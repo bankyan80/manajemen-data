@@ -13,6 +13,7 @@ export default function GtkPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(0)
   const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<any | null>(null)
   const { data: employees, loading } = useData<any[]>('employees', () => fetchJson('/api/employees'))
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
@@ -107,7 +108,7 @@ export default function GtkPage() {
                     </td>
                     <td className="px-4 py-3">{e.jenis_kelamin || '-'}</td>
                     <td className="px-4 py-3">
-                      <button className="text-blue-600 hover:underline text-xs">Detail</button>
+                      <button onClick={() => setSelected(e)} className="text-blue-600 hover:underline text-xs">Detail</button>
                     </td>
                   </tr>
                 ))}
@@ -126,6 +127,44 @@ export default function GtkPage() {
           </div>
         )}
       </div>
+
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelected(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+              <h3 className="font-semibold text-zinc-900">Detail Pegawai</h3>
+              <button onClick={() => setSelected(null)} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="px-6 py-4 space-y-3 text-sm">
+              <Row label="Nama" value={selected.nama} />
+              <Row label="NIK" value={selected.nik} />
+              <Row label="NIP" value={selected.nip || '-'} />
+              <Row label="NUPTK" value={selected.nuptk || '-'} />
+              <Row label="Jenis Kelamin" value={selected.jenis_kelamin || '-'} />
+              <Row label="Tempat Lahir" value={selected.tempat_lahir || '-'} />
+              <Row label="Tanggal Lahir" value={selected.tanggal_lahir || '-'} />
+              <Row label="Jabatan" value={selected.jabatan || '-'} />
+              <Row label="Status Pegawai" value={selected.status_pegawai || '-'} />
+              <Row label="Pangkat/Golongan" value={selected.pangkat_golongan || '-'} />
+              <Row label="Pendidikan Terakhir" value={selected.pendidikan_terakhir || '-'} />
+              <Row label="Sertifikasi" value={selected.sertifikasi || '-'} />
+              <Row label="TMT Kerja" value={selected.tmt_kerja || '-'} />
+              <Row label="Email" value={selected.email || '-'} />
+              <Row label="No HP" value={selected.no_hp || '-'} />
+              <Row label="Unit Kerja" value={selected.school_nama || '-'} />
+            </div>
+          </div>
+        </div>
+      )}
     </AppShellTopbar>
+  )
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-4">
+      <span className="w-36 shrink-0 text-zinc-500">{label}</span>
+      <span className="text-zinc-900 font-medium">{value}</span>
+    </div>
   )
 }
