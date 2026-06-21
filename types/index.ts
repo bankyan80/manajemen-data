@@ -24,13 +24,13 @@ export enum JenisKelamin {
 }
 
 export enum StatusUpload {
-  BELUM_UPLOAD = 'belum_upload',
-  SUDAH_UPLOAD = 'sudah_upload',
+  BELUM_DIUPLOAD = 'belum_diupload',
+  SUDAH_DIUPLOAD = 'sudah_diupload',
 }
 
 export enum StatusVerifikasi {
   BELUM_DIVERIFIKASI = 'belum_diverifikasi',
-  DIVERIFIKASI = 'diverifikasi',
+  SUDAH_DIVERIFIKASI = 'sudah_diverifikasi',
   DITOLAK = 'ditolak',
 }
 
@@ -49,8 +49,8 @@ export enum StatusSiswa {
 export enum StatusLaporan {
   DRAFT = 'draft',
   SUBMITTED = 'submitted',
-  DIVERIFIKASI = 'diverifikasi',
-  DITOLAK = 'ditolak',
+  VERIFIED = 'verified',
+  REJECTED = 'rejected',
 }
 
 export enum Semester {
@@ -82,7 +82,7 @@ export const DOKUMEN_KATEGORI = {
       'Akta Lahir',
     ],
   },
-  KEpegawaian: {
+  KEPEGAWAIAN: {
     label: 'Dokumen Kepegawaian',
     jenis: [
       'SK CPNS',
@@ -351,7 +351,7 @@ export interface Notification {
   type: string
   title: string
   description: string
-  is_read: boolean
+  is_read: number // 0 | 1
   related_link?: string | null
   created_at: Timestamp
 }

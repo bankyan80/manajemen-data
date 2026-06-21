@@ -11,6 +11,7 @@ import {
   GraduationCap,
 } from 'lucide-react'
 import Link from 'next/link'
+import { signOut } from 'next-auth/react'
 
 interface TopbarUser {
   name: string
@@ -189,14 +190,13 @@ export default function Topbar({ user }: TopbarProps) {
                 <Settings className="h-4 w-4" />
                 Pengaturan
               </Link>
-              <Link
-                href="/pengaturan"
-                onClick={() => setShowProfile(false)}
-                className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
+              <button
+                onClick={() => { setShowProfile(false); signOut({ callbackUrl: '/login' }); }}
+                className="flex w-full items-center gap-3 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
               >
                 <LogOut className="h-4 w-4" />
                 Keluar
-              </Link>
+              </button>
             </div>
           )}
         </div>
