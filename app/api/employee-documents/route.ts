@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { employeeDocuments, employees, schools } from '@/db/schema'
 import { eq, count, sql } from 'drizzle-orm'
@@ -9,10 +11,18 @@ export const revalidate = 60
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
 
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
+
   const { searchParams } = new URL(req.url)
   const employee_id = searchParams.get('employee_id')
 
   let whereConditions = sql`1=1`
+
+  if (role === 'operator_sekolah' && userSekolahId) {
+    whereConditions = sql`${whereConditions} AND ${employeeDocuments.school_id} = ${userSekolahId}`
+  }
   if (employee_id) whereConditions = sql`${whereConditions} AND ${employeeDocuments.employee_id} = ${employee_id}`
 
   const rows = await db
@@ -44,6 +54,7 @@ export async function GET(req: NextRequest) {
   const byKategori = await db
     .select({ kategori: employeeDocuments.kategori, total: count() })
     .from(employeeDocuments)
+    .where(whereConditions)
     .groupBy(employeeDocuments.kategori)
     .orderBy(sql`count(*) desc`)
 

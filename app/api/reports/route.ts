@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { reports, schools } from '@/db/schema'
 import { eq, count, sql } from 'drizzle-orm'
@@ -9,10 +11,18 @@ export const revalidate = 60
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
 
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
+
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
 
   let whereConditions = sql`1=1`
+
+  if (role === 'operator_sekolah' && userSekolahId) {
+    whereConditions = sql`${whereConditions} AND ${reports.school_id} = ${userSekolahId}`
+  }
   if (status) whereConditions = sql`${whereConditions} AND ${reports.status} = ${status}`
 
   const rows = await db
@@ -37,6 +47,7 @@ export async function GET(req: NextRequest) {
   const statusSummary = await db
     .select({ status: reports.status, total: count() })
     .from(reports)
+    .where(whereConditions)
     .groupBy(reports.status)
 
   return NextResponse.json({ data: rows, statusSummary })

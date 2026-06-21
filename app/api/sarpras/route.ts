@@ -1,17 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { infrastructure, schools } from '@/db/schema'
-import { eq, desc, and } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
+
   const { searchParams } = new URL(req.url)
   const schoolId = searchParams.get('school_id')
   const jenis = searchParams.get('jenis_sarpras')
 
-  let query = db
+  let effectiveSchoolId = schoolId
+  if (role === 'operator_sekolah' && userSekolahId) {
+    effectiveSchoolId = userSekolahId
+  }
+
+  let filters = sql`1=1`
+  if (effectiveSchoolId) filters = sql`${filters} AND ${eq(infrastructure.school_id, effectiveSchoolId)}`
+  if (jenis) filters = sql`${filters} AND ${eq(infrastructure.jenis_sarpras, jenis)}`
+
+  const data = await db
     .select({
       id: infrastructure.id,
       school_id: infrastructure.school_id,
@@ -29,26 +45,31 @@ export async function GET(req: NextRequest) {
     })
     .from(infrastructure)
     .leftJoin(schools, eq(infrastructure.school_id, schools.id))
+    .where(filters)
     .orderBy(desc(infrastructure.created_at))
 
-  if (schoolId) query = query.where(eq(infrastructure.school_id, schoolId))
-  if (jenis) query = query.where(eq(infrastructure.jenis_sarpras, jenis))
-
-  const data = await query
   return NextResponse.json(data)
 }
 
 export async function POST(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
+
   const body = await req.json()
-  const { school_id, tahun_pelajaran, jenis_sarpras, jumlah, kondisi_baik, rusak_ringan, rusak_sedang, rusak_berat, kebutuhan, keterangan } = body
+  let { school_id, tahun_pelajaran, jenis_sarpras, jumlah, kondisi_baik, rusak_ringan, rusak_sedang, rusak_berat, kebutuhan, keterangan } = body
+
+  if (role === 'operator_sekolah' && userSekolahId) {
+    school_id = userSekolahId
+  }
 
   if (!school_id || !tahun_pelajaran || !jenis_sarpras) {
     return NextResponse.json({ error: 'school_id, tahun_pelajaran, jenis_sarpras required' }, { status: 400 })
   }
 
-  const { v4: uuidv4 } = await import('uuid')
-  const id = uuidv4()
+  const id = crypto.randomUUID()
   const now = Date.now()
 
   await db.insert(infrastructure).values({

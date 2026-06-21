@@ -16,6 +16,8 @@ export default function KesiswaanPage() {
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
 
+  const role = (session?.user as any)?.role
+
   const filtered = (recaps || [])
     .filter(r => r.school_jenjang === activeTab)
     .filter(r => !filterSekolah || r.school_id === filterSekolah)
@@ -35,10 +37,12 @@ export default function KesiswaanPage() {
         </div>
 
         <div className="flex gap-4 items-center">
-          <select value={filterSekolah} onChange={e => setFilterSekolah(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
-            <option value="">Semua Sekolah</option>
-            {sekolahList.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
-          </select>
+          {role !== 'operator_sekolah' && (
+            <select value={filterSekolah} onChange={e => setFilterSekolah(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
+              <option value="">Semua Sekolah</option>
+              {sekolahList.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
+            </select>
+          )}
         </div>
 
         {loading ? <div className="text-center py-8 text-zinc-500">Memuat...</div> : (

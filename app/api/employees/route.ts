@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { employees, schools } from '@/db/schema'
 import { eq, like, sql } from 'drizzle-orm'
@@ -8,6 +10,10 @@ export const revalidate = 60
 
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
 
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q')
@@ -44,12 +50,16 @@ export async function GET(req: NextRequest) {
     .orderBy(employees.nama)
     .$dynamic()
 
+  if (role === 'operator_sekolah' && userSekolahId) {
+    query = query.where(eq(employees.sekolah_id, userSekolahId))
+  } else if (sekolah_id) {
+    query = query.where(eq(employees.sekolah_id, sekolah_id))
+  }
   if (q) {
     query = query.where(
       sql`(${employees.nama} like ${`%${q}%`} or ${employees.nik} like ${`%${q}%`} or ${employees.nip} like ${`%${q}%`})`
     )
   }
-  if (sekolah_id) query = query.where(eq(employees.sekolah_id, sekolah_id))
   if (status_pegawai) query = query.where(eq(employees.status_pegawai, status_pegawai))
 
   const rows = await query

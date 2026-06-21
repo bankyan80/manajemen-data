@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { students } from '@/db/schema'
-import { eq, like, count, sql } from 'drizzle-orm'
+import { eq, like, count, sql, and } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
 
   const { searchParams } = new URL(req.url)
   const school_id = searchParams.get('school_id')
@@ -18,7 +24,12 @@ export async function GET(req: NextRequest) {
   const offset = (page - 1) * limit
 
   let whereConditions = sql`1=1`
-  if (school_id) whereConditions = sql`${whereConditions} AND ${students.school_id} = ${school_id}`
+
+  if (role === 'operator_sekolah' && userSekolahId) {
+    whereConditions = sql`${whereConditions} AND ${students.school_id} = ${userSekolahId}`
+  } else if (school_id) {
+    whereConditions = sql`${whereConditions} AND ${students.school_id} = ${school_id}`
+  }
   if (jenjang) whereConditions = sql`${whereConditions} AND ${students.jenjang} = ${jenjang}`
   if (q) whereConditions = sql`${whereConditions} AND (${students.nama} like ${`%${q}%`} OR ${students.nisn} like ${`%${q}%`})`
 

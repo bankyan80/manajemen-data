@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { studentRecaps, schools } from '@/db/schema'
-import { eq, count, sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 60
@@ -9,10 +11,18 @@ export const revalidate = 60
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
 
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
+
   const { searchParams } = new URL(req.url)
   const jenjang = searchParams.get('jenjang')
 
   let whereConditions = sql`1=1`
+
+  if (role === 'operator_sekolah' && userSekolahId) {
+    whereConditions = sql`${whereConditions} AND ${studentRecaps.school_id} = ${userSekolahId}`
+  }
   if (jenjang) whereConditions = sql`${whereConditions} AND ${schools.jenjang} = ${jenjang}`
 
   const rows = await db

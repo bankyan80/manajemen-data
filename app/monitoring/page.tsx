@@ -18,6 +18,8 @@ export default function MonitoringPage() {
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
 
+  const role = (session?.user as any)?.role
+
   const reports = reportData?.data || []
   const statusSummary = reportData?.statusSummary || []
 
@@ -59,13 +61,15 @@ export default function MonitoringPage() {
             <option value="">Semua Bulan</option>
             {BULAN.filter(Boolean).map((b, i) => <option key={i + 1} value={i + 1}>{b}</option>)}
           </select>
-          <select value={filterSekolah} onChange={e => setFilterSekolah(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
-            <option value="">Semua Sekolah</option>
-            {[...new Set(reports.map((r: any) => r.school_id))].slice(0, 20).map((sid: any) => {
-              const s = reports.find((r: any) => r.school_id === sid)
-              return <option key={sid} value={sid}>{s?.school_nama || sid}</option>
-            })}
-          </select>
+          {role !== 'operator_sekolah' && (
+            <select value={filterSekolah} onChange={e => setFilterSekolah(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
+              <option value="">Semua Sekolah</option>
+              {[...new Set(reports.map((r: any) => r.school_id))].slice(0, 20).map((sid: any) => {
+                const s = reports.find((r: any) => r.school_id === sid)
+                return <option key={sid} value={sid}>{s?.school_nama || sid}</option>
+              })}
+            </select>
+          )}
         </div>
 
         {loading ? <div className="text-center py-8 text-zinc-500">Memuat...</div> : (
