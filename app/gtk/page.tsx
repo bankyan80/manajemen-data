@@ -17,6 +17,7 @@ export default function GtkPage() {
   const [selected, setSelected] = useState<any | null>(null)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('')
   const [form, setForm] = useState<any>({})
   const { data: employees, loading, error } = useData<any[]>('employees', () => fetchJson('/api/employees'))
   const refresh = useData<any[]>('employees-r', () => fetchJson('/api/employees'))
@@ -50,18 +51,19 @@ export default function GtkPage() {
   if (!session) { router.push('/login'); return null }
 
   const filtered = (employees || []).filter(e =>
-    e.nama.toLowerCase().includes(search.toLowerCase()) ||
+    (e.nama.toLowerCase().includes(search.toLowerCase()) ||
     e.nik.includes(search) ||
-    (e.nip && e.nip.includes(search))
+    (e.nip && e.nip.includes(search))) &&
+    (!statusFilter || e.status_pegawai === statusFilter)
   )
 
   const dataKepsek = filtered.filter(e => e.jabatan?.toLowerCase().includes('kepala sekolah'))
   const dataGuru = filtered.filter(e => e.jabatan?.toLowerCase().includes('guru'))
   const dataTendik = filtered.filter(e => !e.jabatan?.toLowerCase().includes('guru') && !e.jabatan?.toLowerCase().includes('kepala'))
 
-  const pns = filtered.filter(e => e.status_pegawai === 'pns')
-  const pppk = filtered.filter(e => e.status_pegawai === 'pppk')
-  const nonAsn = filtered.filter(e => e.status_pegawai === 'non_asn')
+  const STATUS_LABELS: Record<string, string> = { pns: 'PNS', pppk: 'PPPK', pppk_paruh_waktu: 'PPPK Paruh Waktu', honorer: 'Honorer', gty: 'GTY', gtt: 'GTT' }
+  const STATUS_COLORS: Record<string, string> = { pns: 'bg-green-100 text-green-700', pppk: 'bg-blue-100 text-blue-700', pppk_paruh_waktu: 'bg-indigo-100 text-indigo-700', honorer: 'bg-amber-100 text-amber-700', gty: 'bg-orange-100 text-orange-700', gtt: 'bg-red-100 text-red-700' }
+  const STATUS_KEYS = ['pns', 'pppk', 'pppk_paruh_waktu', 'honorer', 'gty', 'gtt']
 
   const tersertifikasi = filtered.filter(e => e.sertifikasi === 'sudah')
   const belumSertifikasi = filtered.filter(e => e.sertifikasi === 'belum')
@@ -80,18 +82,12 @@ export default function GtkPage() {
             <p className="text-2xl font-bold text-blue-700">{filtered.length}</p>
             <p className="text-xs text-zinc-500">Total GTK</p>
           </div>
-          <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-green-700">{pns.length}</p>
-            <p className="text-xs text-zinc-500">PNS</p>
-          </div>
-          <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-blue-700">{pppk.length}</p>
-            <p className="text-xs text-zinc-500">PPPK</p>
-          </div>
-          <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-amber-700">{nonAsn.length}</p>
-            <p className="text-xs text-zinc-500">Non ASN</p>
-          </div>
+          {STATUS_KEYS.map(k => (
+            <div key={k} className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+              <p className={`text-2xl font-bold ${STATUS_COLORS[k].split(' ')[1]}`}>{filtered.filter(e => e.status_pegawai === k).length}</p>
+              <p className="text-xs text-zinc-500">{STATUS_LABELS[k]}</p>
+            </div>
+          ))}
         </div>
 
         <div className="flex flex-wrap gap-1 bg-zinc-100 p-1 rounded-lg">
@@ -102,11 +98,9 @@ export default function GtkPage() {
 
         <div className="flex items-center gap-4 flex-wrap">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama, NIK, NIP..." className="w-80 px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white" />
-          <select className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
             <option value="">Semua Status</option>
-            <option>pns</option>
-            <option>pppk</option>
-            <option>non_asn</option>
+            {STATUS_KEYS.map(k => <option key={k} value={k}>{STATUS_LABELS[k]}</option>)}
           </select>
         </div>
 
@@ -134,7 +128,7 @@ export default function GtkPage() {
                     <td className="px-4 py-3">{e.jabatan || '-'}</td>
                     <td className="px-4 py-3">{e.school_nama || '-'}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.status_pegawai === 'pns' ? 'bg-green-100 text-green-700' : e.status_pegawai === 'pppk' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>{e.status_pegawai || '-'}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[e.status_pegawai] || 'bg-zinc-100 text-zinc-700'}`}>{STATUS_LABELS[e.status_pegawai] || e.status_pegawai || '-'}</span>
                     </td>
                     <td className="px-4 py-3">{e.jenis_kelamin || '-'}</td>
                     <td className="px-4 py-3">
@@ -176,7 +170,7 @@ export default function GtkPage() {
                   <Field label="Tempat Lahir" value={form.tempat_lahir || ''} onChange={v => setForm({ ...form, tempat_lahir: v })} />
                   <Field label="Tanggal Lahir" value={form.tanggal_lahir || ''} onChange={v => setForm({ ...form, tanggal_lahir: v })} />
                   <Field label="Jabatan" value={form.jabatan || ''} onChange={v => setForm({ ...form, jabatan: v })} />
-                  <Select label="Status Pegawai" value={form.status_pegawai || ''} onChange={v => setForm({ ...form, status_pegawai: v })} options={['', 'pns', 'pppk', 'non_asn']} />
+                  <Select label="Status Pegawai" value={form.status_pegawai || ''} onChange={v => setForm({ ...form, status_pegawai: v })} options={['', ...STATUS_KEYS]} labels={{ '': '', ...STATUS_LABELS }} />
                   <Field label="Pangkat/Golongan" value={form.pangkat_golongan || ''} onChange={v => setForm({ ...form, pangkat_golongan: v })} />
                   <Field label="Pendidikan Terakhir" value={form.pendidikan_terakhir || ''} onChange={v => setForm({ ...form, pendidikan_terakhir: v })} />
                   <Select label="Sertifikasi" value={form.sertifikasi || ''} onChange={v => setForm({ ...form, sertifikasi: v })} options={['', 'sudah', 'belum']} />
@@ -243,12 +237,12 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
   )
 }
 
-function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+function Select({ label, value, onChange, options, labels }: { label: string; value: string; onChange: (v: string) => void; options: string[]; labels?: Record<string, string> }) {
   return (
     <div className="flex items-start gap-4">
       <span className="w-36 shrink-0 text-zinc-500 pt-2">{label}</span>
       <select value={value} onChange={e => onChange(e.target.value)} className="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-        {options.map(o => <option key={o} value={o}>{o || 'Pilih...'}</option>)}
+        {options.map(o => <option key={o} value={o}>{(labels && labels[o]) || o || 'Pilih...'}</option>)}
       </select>
     </div>
   )

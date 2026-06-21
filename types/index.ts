@@ -61,7 +61,10 @@ export enum Semester {
 export enum StatusPegawai {
   PNS = 'pns',
   PPPK = 'pppk',
-  NON_ASN = 'non_asn',
+  PPPK_PARUH_WAKTU = 'pppk_paruh_waktu',
+  HONORER = 'honorer',
+  GTY = 'gty',
+  GTT = 'gtt',
 }
 
 export enum JenisSertifikasi {

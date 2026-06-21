@@ -72,7 +72,7 @@ export const employees = sqliteTable('employees', {
   tanggal_lahir: text('tanggal_lahir'),
   jenis_kelamin: text('jenis_kelamin'), // laki-laki | perempuan
   jabatan: text('jabatan'),
-  status_pegawai: text('status_pegawai'), // pns | pppk | non_asn
+  status_pegawai: text('status_pegawai'), // pns | pppk | pppk_paruh_waktu | honorer | gty | gtt
   pangkat_golongan: text('pangkat_golongan'),
   pendidikan_terakhir: text('pendidikan_terakhir'),
   jurusan: text('jurusan'),

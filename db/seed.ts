@@ -24,8 +24,10 @@ function mapJenisKelamin(jk: string): string | null {
 function mapStatusPegawai(sp: string): string {
   const s = sp.toLowerCase()
   if (s === 'pns') return 'pns'
+  if (s.includes('pppk paruh')) return 'pppk_paruh_waktu'
   if (s.includes('pppk')) return 'pppk'
-  return 'non_asn'
+  if (s.includes('honor') || s === 'guru honor sekolah') return 'honorer'
+  return 'honorer'
 }
 
 function mapJenjang(j: string): string {
