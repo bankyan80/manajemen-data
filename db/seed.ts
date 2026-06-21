@@ -30,6 +30,21 @@ function mapStatusPegawai(sp: string): string {
   return 'honorer'
 }
 
+function mapPendidikan(p: string | null): string | null {
+  if (!p) return null
+  const s = p.trim()
+  if (s === 'S1') return 'S.1'
+  if (s === 'S2') return 'S.2'
+  if (s === 'S3') return 'S.3'
+  if (s === 'D1') return 'D.1'
+  if (s === 'D2') return 'D.2'
+  if (s === 'D3') return 'D.3'
+  if (s === 'SD') return 'SD Sederajat'
+  if (s === 'SMP') return 'SMP Sederajat'
+  if (s === 'SMA') return 'SMA Sederajat'
+  return s
+}
+
 function mapJenjang(j: string): string {
   const upper = j.toUpperCase()
   if (upper === 'SD') return 'sd'
@@ -302,7 +317,7 @@ async function main() {
       jabatan: pgw.jabatan || null,
       status_pegawai: pgw.status_pegawai ? mapStatusPegawai(pgw.status_pegawai) : 'non_asn',
       pangkat_golongan: pgw.pangkat_golongan || null,
-      pendidikan_terakhir: pgw.pendidikan_terakhir || null,
+      pendidikan_terakhir: mapPendidikan(pgw.pendidikan_terakhir),
       sertifikasi: null,
       tmt_kerja: null,
       tanggal_bup: null,

@@ -67,11 +67,12 @@ export default function GtkPage() {
   const STATUS_COLORS: Record<string, string> = { pns: 'bg-green-100 text-green-700', pppk: 'bg-blue-100 text-blue-700', pppk_paruh_waktu: 'bg-indigo-100 text-indigo-700', honorer: 'bg-amber-100 text-amber-700', gty: 'bg-orange-100 text-orange-700', gtt: 'bg-red-100 text-red-700' }
   const STATUS_KEYS = ['pns', 'pppk', 'pppk_paruh_waktu', 'honorer', 'gty', 'gtt']
 
+  const PENDIDIKAN_OPTIONS = ['SD Sederajat', 'SMP Sederajat', 'SMA Sederajat', 'D.1', 'D.2', 'D.3', 'S.1', 'S.2', 'S.3']
+
   const tersertifikasi = filtered.filter(e => e.sertifikasi === 'sudah')
   const belumSertifikasi = filtered.filter(e => e.sertifikasi === 'belum')
 
   const dataGuruDanKepsek = filtered.filter(e => e.jabatan?.toLowerCase().includes('guru') || e.jabatan?.toLowerCase().includes('kepala'))
-  const pendidikanGroups = [...new Set((employees || []).map(e => e.pendidikan_terakhir || '').filter(Boolean))].sort()
   const displayData = activeTab === 0 ? dataKepsek : activeTab === 1 ? dataGuru : activeTab === 2 ? dataTendik : activeTab === 4 ? dataGuruDanKepsek : filtered
 
   if (loading) return <div className="p-8 text-center text-zinc-500">Memuat data...</div>
@@ -108,7 +109,7 @@ export default function GtkPage() {
           </select>
           <select value={pendidikanFilter} onChange={e => setPendidikanFilter(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
             <option value="">Semua Pendidikan</option>
-            {pendidikanGroups.map(k => <option key={k} value={k}>{k}</option>)}
+            {PENDIDIKAN_OPTIONS.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
         </div>
 
@@ -156,8 +157,8 @@ export default function GtkPage() {
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
             <h3 className="font-semibold text-zinc-900 mb-3">Ringkasan Pendidikan Terakhir</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {pendidikanGroups.map(k => {
-                const c = (employees || []).filter(e => (e.pendidikan_terakhir || '') === k).length
+              {PENDIDIKAN_OPTIONS.map(k => {
+                const c = (employees || []).filter(e => e.pendidikan_terakhir === k).length
                 return (
                   <div key={k} className="border border-zinc-200 rounded-lg p-3 text-center">
                     <p className="text-lg font-bold text-blue-700">{c}</p>
@@ -201,7 +202,7 @@ export default function GtkPage() {
                   <Field label="Jabatan" value={form.jabatan || ''} onChange={v => setForm({ ...form, jabatan: v })} />
                   <Select label="Status Pegawai" value={form.status_pegawai || ''} onChange={v => setForm({ ...form, status_pegawai: v })} options={['', ...STATUS_KEYS]} labels={{ '': '', ...STATUS_LABELS }} />
                   <Field label="Pangkat/Golongan" value={form.pangkat_golongan || ''} onChange={v => setForm({ ...form, pangkat_golongan: v })} />
-                  <Field label="Pendidikan Terakhir" value={form.pendidikan_terakhir || ''} onChange={v => setForm({ ...form, pendidikan_terakhir: v })} />
+                  <Select label="Pendidikan Terakhir" value={form.pendidikan_terakhir || ''} onChange={v => setForm({ ...form, pendidikan_terakhir: v })} options={['', ...PENDIDIKAN_OPTIONS]} />
                   <Select label="Sertifikasi" value={form.sertifikasi || ''} onChange={v => setForm({ ...form, sertifikasi: v })} options={['', 'sudah', 'belum']} />
                   <Field label="TMT Kerja" value={form.tmt_kerja || ''} onChange={v => setForm({ ...form, tmt_kerja: v })} />
                   <Field label="Email" value={form.email || ''} onChange={v => setForm({ ...form, email: v })} />
