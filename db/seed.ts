@@ -55,9 +55,9 @@ function isNegeri(nama: string): string {
   return nama.toUpperCase().includes('NEGERI') ? 'negeri' : 'swasta'
 }
 
-function calculateBup(tanggalLahir: string | null | undefined, statusPegawai: string): string | null {
+function calculateBup(tanggalLahir: string | null | undefined, jabatan: string | null): string | null {
   if (!tanggalLahir) return null
-  const usiaPensiun = statusPegawai === 'pns' || statusPegawai === 'pppk' ? 58 : 56
+  const usiaPensiun = jabatan?.toLowerCase().includes('guru') || jabatan?.toLowerCase().includes('kepala') ? 60 : 58
   const tgl = new Date(tanggalLahir)
   if (isNaN(tgl.getTime())) return null
   tgl.setFullYear(tgl.getFullYear() + usiaPensiun)
@@ -331,7 +331,7 @@ async function main() {
       pendidikan_terakhir: mapPendidikan(pgw.pendidikan_terakhir),
       sertifikasi: null,
       tmt_kerja: null,
-      tanggal_bup: calculateBup(pgw.tanggal_lahir, mapStatusPegawai(pgw.status_pegawai)),
+      tanggal_bup: calculateBup(pgw.tanggal_lahir, pgw.jabatan),
     })
   }
 
