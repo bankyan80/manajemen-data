@@ -68,7 +68,8 @@ export default function GtkPage() {
   const tersertifikasi = filtered.filter(e => e.sertifikasi === 'sudah')
   const belumSertifikasi = filtered.filter(e => e.sertifikasi === 'belum')
 
-  const displayData = activeTab === 0 ? dataKepsek : activeTab === 1 ? dataGuru : activeTab === 2 ? dataTendik : filtered
+  const dataGuruDanKepsek = filtered.filter(e => e.jabatan?.toLowerCase().includes('guru') || e.jabatan?.toLowerCase().includes('kepala'))
+  const displayData = activeTab === 0 ? dataKepsek : activeTab === 1 ? dataGuru : activeTab === 2 ? dataTendik : activeTab === 4 ? dataGuruDanKepsek : filtered
 
   if (loading) return <div className="p-8 text-center text-zinc-500">Memuat data...</div>
 
