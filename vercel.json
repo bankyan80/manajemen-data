@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "env": {
+    "APP_NAME": "Aplikasi Laporan Pendidikan Kecamatan",
+    "APP_REGION": "Kecamatan Lemahabang",
+    "APP_YEAR": "2026"
+  }
+}
