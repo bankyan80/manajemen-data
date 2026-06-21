@@ -21,8 +21,8 @@ function mapJenisKelamin(jk: string): string | null {
   return null
 }
 
-function mapStatusPegawai(sp: string): string {
-  const s = sp.toLowerCase()
+function mapStatusPegawai(sp: string | null | undefined): string {
+  const s = (sp || '').toLowerCase()
   if (s === 'pns') return 'pns'
   if (s.includes('pppk paruh')) return 'pppk_paruh_waktu'
   if (s.includes('pppk')) return 'pppk'
@@ -55,7 +55,7 @@ function isNegeri(nama: string): string {
   return nama.toUpperCase().includes('NEGERI') ? 'negeri' : 'swasta'
 }
 
-function calculateBup(tanggalLahir: string | null, statusPegawai: string): string | null {
+function calculateBup(tanggalLahir: string | null | undefined, statusPegawai: string): string | null {
   if (!tanggalLahir) return null
   const usiaPensiun = statusPegawai === 'pns' || statusPegawai === 'pppk' ? 58 : 56
   const tgl = new Date(tanggalLahir)
