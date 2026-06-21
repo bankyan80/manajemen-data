@@ -175,9 +175,86 @@ export default function GtkPage() {
         )}
 
         {activeTab === 6 && (
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
-            <h3 className="font-semibold text-zinc-900 mb-4">BUP / Pensiun</h3>
-            <p className="text-sm text-zinc-500">Data BUP belum tersedia (tanggal_bup tidak ada di data sumber).</p>
+          <div className="space-y-4">
+            {(() => {
+              const now = new Date()
+              const nowStr = now.toISOString().split('T')[0]
+              const withBup = (employees || []).filter(e => e.tanggal_bup)
+              const akanPensiun = withBup.filter(e => e.tanggal_bup > nowStr).sort((a, b) => a.tanggal_bup.localeCompare(b.tanggal_bup))
+              const sudahPensiun = withBup.filter(e => e.tanggal_bup <= nowStr).sort((a, b) => b.tanggal_bup.localeCompare(a.tanggal_bup))
+              return (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-blue-700">{withBup.length}</p>
+                      <p className="text-xs text-zinc-500">Total dengan BUP</p>
+                    </div>
+                    <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-amber-700">{akanPensiun.length}</p>
+                      <p className="text-xs text-zinc-500">Akan Pensiun</p>
+                    </div>
+                    <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-red-700">{sudahPensiun.length}</p>
+                      <p className="text-xs text-zinc-500">Sudah Pensiun</p>
+                    </div>
+                    <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-green-700">{akanPensiun.filter(e => {
+                        const bup = new Date(e.tanggal_bup)
+                        const diff = (bup.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+                        return diff <= 12
+                      }).length}</p>
+                      <p className="text-xs text-zinc-500">Pensiun &lt; 1 Thn</p>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-zinc-50 border-b border-zinc-200">
+                            <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama</th>
+                            <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jabatan</th>
+                            <th className="text-left px-4 py-3 font-semibold text-zinc-700">Unit Kerja</th>
+                            <th className="text-left px-4 py-3 font-semibold text-zinc-700">Tanggal Lahir</th>
+                            <th className="text-left px-4 py-3 font-semibold text-zinc-700">BUP</th>
+                            <th className="text-left px-4 py-3 font-semibold text-zinc-700">Sisa Waktu</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {akanPensiun.map((e, i) => {
+                            const diffMonths = Math.round((new Date(e.tanggal_bup).getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
+                            const tahun = Math.floor(diffMonths / 12)
+                            const bulan = diffMonths % 12
+                            return (
+                              <tr key={e.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
+                                <td className="px-4 py-3 font-medium text-zinc-900">{e.nama}</td>
+                                <td className="px-4 py-3">{e.jabatan || '-'}</td>
+                                <td className="px-4 py-3">{e.school_nama || '-'}</td>
+                                <td className="px-4 py-3">{e.tanggal_lahir || '-'}</td>
+                                <td className="px-4 py-3">{e.tanggal_bup}</td>
+                                <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${diffMonths <= 12 ? 'bg-red-100 text-red-700' : diffMonths <= 36 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>{tahun} thn {bulan} bln</span></td>
+                              </tr>
+                            )
+                          })}
+                          {sudahPensiun.map((e, i) => (
+                            <tr key={e.id || i} className="border-b border-zinc-100 hover:bg-zinc-50 text-zinc-400">
+                              <td className="px-4 py-3 font-medium">{e.nama}</td>
+                              <td className="px-4 py-3">{e.jabatan || '-'}</td>
+                              <td className="px-4 py-3">{e.school_nama || '-'}</td>
+                              <td className="px-4 py-3">{e.tanggal_lahir || '-'}</td>
+                              <td className="px-4 py-3">{e.tanggal_bup}</td>
+                              <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Pensiun</span></td>
+                            </tr>
+                          ))}
+                          {akanPensiun.length === 0 && sudahPensiun.length === 0 && (
+                            <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-zinc-400">Tidak ada data BUP</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
           </div>
         )}
       </div>
