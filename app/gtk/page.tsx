@@ -38,8 +38,7 @@ export default function GtkPage() {
         body: JSON.stringify(form),
       })
       if (!res.ok) throw new Error('Gagal menyimpan')
-      setSelected({ ...selected, ...form })
-      setEditing(false)
+      closeDetail()
       setRefreshKey(k => k + 1)
     } catch (err: any) {
       alert('Gagal menyimpan: ' + err.message)
