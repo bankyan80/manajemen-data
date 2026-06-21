@@ -4,16 +4,9 @@ import { useState } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useData, fetchJson } from '@/lib/useData'
 
 const TABS = ['Kurikulum', 'Kalender Pendidikan', 'Jadwal Asesmen', 'Perangkat Ajar', 'Rekap Penilaian', 'Literasi Numerasi', 'Supervisi Akademik', 'Transisi PAUD-SD']
-
-const SCHOOLS = [
-  { sekolah: 'SD Negeri 1 Margaasih', npsn: '20245678', kurikulum: 'Kurikulum Merdeka', kelas: 'I-VI', tahun: '2025/2026', status: 'Aktif', ptk: 12, pd: 180 },
-  { sekolah: 'SD Negeri 2 Margaasih', npsn: '20245679', kurikulum: 'Kurikulum Merdeka', kelas: 'I-VI', tahun: '2025/2026', status: 'Aktif', ptk: 8, pd: 120 },
-  { sekolah: 'SD Negeri 3 Cangkuang', npsn: '20245681', kurikulum: 'Kurikulum 2013', kelas: 'I-VI', tahun: '2024/2025', status: 'Aktif', ptk: 10, pd: 156 },
-  { sekolah: 'SD Swasta Bina Bangsa', npsn: '20245680', kurikulum: 'Kurikulum Merdeka', kelas: 'I-VI', tahun: '2025/2026', status: 'Aktif', ptk: 15, pd: 210 },
-  { sekolah: 'PAUD Melati Putih', npsn: '69987654', kurikulum: 'Kurikulum PAUD 2013', kelompok: 'A-B', tahun: '2025/2026', status: 'Aktif', ptk: 4, pd: 22 },
-]
 
 const KALENDER = [
   { kegiatan: 'Hari Pertama Masuk Sekolah', tanggal: '15 Juli 2026', jenis: 'Nasional' },
@@ -28,10 +21,18 @@ const KALENDER = [
   { kegiatan: 'Libur Akhir Tahun Pelajaran', tanggal: '19 Juni - 14 Juli 2027', jenis: 'Libur' },
 ]
 
+type KurikulumSchool = {
+  id: string; nama: string; npsn: string; jenjang: string; status: string
+  desa: string; kecamatan: string; alamat: string; is_active: number
+  kepala_id: string | null; latitude: number | null; longitude: number | null
+}
+
 export default function KurikulumPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(0)
+
+  const { data: schoolsData, loading: schoolsLoading } = useData<KurikulumSchool[]>('kurikulum-sekolah', () => fetchJson('/api/schools'))
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -56,27 +57,27 @@ export default function KurikulumPage() {
                   <tr className="bg-zinc-50 border-b border-zinc-200">
                     <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama Sekolah</th>
                     <th className="text-left px-4 py-3 font-semibold text-zinc-700">NPSN</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Kurikulum</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Kelas/Kelompok</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Tahun Pelajaran</th>
+                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jenjang</th>
                     <th className="text-left px-4 py-3 font-semibold text-zinc-700">Status</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">PTK</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">PD</th>
+                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Desa</th>
+                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Kecamatan</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {SCHOOLS.map((s, i) => (
-                    <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
-                      <td className="px-4 py-3 font-medium text-zinc-900">{s.sekolah}</td>
+                  {schoolsLoading ? (
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-500">Memuat data sekolah...</td></tr>
+                  ) : !schoolsData || schoolsData.length === 0 ? (
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-500">Belum ada data sekolah</td></tr>
+                  ) : schoolsData.map((s) => (
+                    <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                      <td className="px-4 py-3 font-medium text-zinc-900">{s.nama}</td>
                       <td className="px-4 py-3">{s.npsn}</td>
-                      <td className="px-4 py-3">{s.kurikulum}</td>
-                      <td className="px-4 py-3">{s.kelas || s.kelompok}</td>
-                      <td className="px-4 py-3">{s.tahun}</td>
                       <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">{s.status}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.jenjang === 'sd' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{s.jenjang.toUpperCase()}</span>
                       </td>
-                      <td className="px-4 py-3">{s.ptk}</td>
-                      <td className="px-4 py-3">{s.pd}</td>
+                      <td className="px-4 py-3 uppercase">{s.status}</td>
+                      <td className="px-4 py-3">{s.desa}</td>
+                      <td className="px-4 py-3">{s.kecamatan}</td>
                     </tr>
                   ))}
                 </tbody>

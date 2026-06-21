@@ -4,48 +4,34 @@ import { useState } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useData, fetchJson } from '@/lib/useData'
 
 const TABS = ['Manajemen User', 'Role & Hak Akses', 'Master Sekolah/Lembaga', 'Data Kecamatan', 'Tahun Pelajaran', 'Periode Laporan', 'Template Laporan', 'Koneksi Google Drive', 'Koneksi Google Spreadsheet', 'Backup Data', 'Log Aktivitas']
 
-const USERS = [
-  { nama: 'Admin Kecamatan', email: 'admin@kecamatan.go.id', role: 'Admin Kecamatan', sekolah: '-', status: 'Aktif' },
-  { nama: 'Operator SDN 1', email: 'operator1@sekolah.id', role: 'Operator Sekolah', sekolah: 'SD Negeri 1 Margaasih', status: 'Aktif' },
-  { nama: 'Operator SDN 2', email: 'operator2@sekolah.id', role: 'Operator Sekolah', sekolah: 'SD Negeri 2 Margaasih', status: 'Aktif' },
-  { nama: 'Operator PAUD', email: 'operatorpaud@sekolah.id', role: 'Operator Sekolah', sekolah: 'PAUD Melati Putih', status: 'Aktif' },
-  { nama: 'Pegawai SDN 1', email: 'pegawai1@sekolah.id', role: 'Pegawai', sekolah: 'SD Negeri 1 Margaasih', status: 'Nonaktif' },
-  { nama: 'Pegawai SDN 3', email: 'pegawai3@sekolah.id', role: 'Pegawai', sekolah: 'SD Negeri 3 Cangkuang', status: 'Aktif' },
-]
+type UserRow = {
+  id: string; name: string; username: string; email: string | null
+  role: string; is_active: number; sekolah_id: string | null; pegawai_id: string | null
+  school_nama: string | null; school_npsn: string | null; employee_nama: string | null
+}
 
-const SEKOLAH_MASTER = [
-  { nama: 'SD Negeri 1 Margaasih', npsn: '20245678', jenjang: 'SD', status: 'NEGERI', desa: 'Margaasih', kecamatan: 'Margaasih' },
-  { nama: 'SD Negeri 2 Margaasih', npsn: '20245679', jenjang: 'SD', status: 'NEGERI', desa: 'Margaasih', kecamatan: 'Margaasih' },
-  { nama: 'SD Negeri 3 Cangkuang', npsn: '20245681', jenjang: 'SD', status: 'NEGERI', desa: 'Cangkuang', kecamatan: 'Cangkuang' },
-  { nama: 'SD Swasta Bina Bangsa', npsn: '20245680', jenjang: 'SD', status: 'SWASTA', desa: 'Margaasih', kecamatan: 'Margaasih' },
-  { nama: 'SD Swasta Al-Ikhlas', npsn: '20245682', jenjang: 'SD', status: 'SWASTA', desa: 'Cibeureum', kecamatan: 'Cangkuang' },
-  { nama: 'PAUD Melati Putih', npsn: '69987654', jenjang: 'PAUD', status: 'SWASTA', desa: 'Margaasih', kecamatan: 'Margaasih' },
-  { nama: 'PAUD Bintang Kecil', npsn: '69987655', jenjang: 'PAUD', status: 'SWASTA', desa: 'Cangkuang', kecamatan: 'Cangkuang' },
-  { nama: 'KB Ceria', npsn: '69987656', jenjang: 'PAUD', status: 'SWASTA', desa: 'Margaasih', kecamatan: 'Margaasih' },
-]
+type SchoolRow = {
+  id: string; nama: string; npsn: string; jenjang: string
+  status: string; desa: string; kecamatan: string
+}
 
-const LOGS = [
-  { user: 'Admin Kecamatan', aksi: 'Login', tabel: '-', deskripsi: 'Admin login ke sistem', waktu: '21-06-2026 08:00:00' },
-  { user: 'Operator SDN 1', aksi: 'Create', tabel: 'StudentRecap', deskripsi: 'Menambah data kesiswaan SD Negeri 1 Margaasih', waktu: '20-06-2026 09:15:00' },
-  { user: 'Admin Kecamatan', aksi: 'Update', tabel: 'Report', deskripsi: 'Verifikasi laporan SD Negeri 1 Margaasih Januari 2026', waktu: '20-06-2026 10:30:00' },
-  { user: 'Admin Kecamatan', aksi: 'Update', tabel: 'EmployeeDocument', deskripsi: 'Verifikasi dokumen KTP Ahmad Fauzi', waktu: '19-06-2026 11:00:00' },
-  { user: 'Operator SDN 2', aksi: 'Create', tabel: 'Student', deskripsi: 'Menambah data siswa baru', waktu: '19-06-2026 13:45:00' },
-  { user: 'Operator PAUD', aksi: 'Create', tabel: 'School', deskripsi: 'Menambah data sekolah PAUD Bintang Kecil', waktu: '18-06-2026 08:20:00' },
-  { user: 'Pegawai SDN 1', aksi: 'Login', tabel: '-', deskripsi: 'Pegawai login ke sistem', waktu: '18-06-2026 07:55:00' },
-  { user: 'Admin Kecamatan', aksi: 'Delete', tabel: 'Student', deskripsi: 'Menghapus data siswa tidak valid', waktu: '17-06-2026 14:00:00' },
-  { user: 'Pegawai SDN 3', aksi: 'Upload', tabel: 'EmployeeDocument', deskripsi: 'Upload dokumen Ijazah S1', waktu: '17-06-2026 09:10:00' },
-  { user: 'Admin Kecamatan', aksi: 'Update', tabel: 'Setting', deskripsi: 'Mengubah periode laporan', waktu: '16-06-2026 15:30:00' },
-  { user: 'Operator SDN 1', aksi: 'Export', tabel: 'Report', deskripsi: 'Export laporan PDF SD Negeri 1 Margaasih', waktu: '15-06-2026 11:20:00' },
-  { user: 'Admin Kecamatan', aksi: 'Backup', tabel: 'System', deskripsi: 'Melakukan backup database', waktu: '15-06-2026 02:00:00' },
-]
+type ActivityLogRow = {
+  id: string; action: string; table_name: string; description: string | null
+  created_at: number; user_name: string | null; user_role: string | null
+}
 
 export default function PengaturanPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(0)
+
+  const { data: usersData, loading: usersLoading } = useData<UserRow[]>('pengaturan-users', () => fetchJson('/api/users'))
+  const { data: schoolsData, loading: schoolsLoading } = useData<SchoolRow[]>('pengaturan-sekolah', () => fetchJson('/api/schools'))
+  const { data: logsData, loading: logsLoading } = useData<ActivityLogRow[]>('pengaturan-logs', () => fetchJson('/api/activity-logs'))
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -72,7 +58,7 @@ export default function PengaturanPage() {
                   <thead>
                     <tr className="bg-zinc-50 border-b border-zinc-200">
                       <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama</th>
-                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Email</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Username</th>
                       <th className="text-left px-4 py-3 font-semibold text-zinc-700">Role</th>
                       <th className="text-left px-4 py-3 font-semibold text-zinc-700">Sekolah</th>
                       <th className="text-left px-4 py-3 font-semibold text-zinc-700">Status</th>
@@ -80,16 +66,20 @@ export default function PengaturanPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {USERS.map((u, i) => (
-                      <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
-                        <td className="px-4 py-3 font-medium text-zinc-900">{u.nama}</td>
-                        <td className="px-4 py-3">{u.email}</td>
+                    {usersLoading ? (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-500">Memuat data user...</td></tr>
+                    ) : !usersData || usersData.length === 0 ? (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-500">Belum ada data user</td></tr>
+                    ) : usersData.map((u) => (
+                      <tr key={u.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                        <td className="px-4 py-3 font-medium text-zinc-900">{u.name}</td>
+                        <td className="px-4 py-3 text-zinc-600">{u.username}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.role === 'Admin Kecamatan' ? 'bg-purple-100 text-purple-700' : u.role === 'Operator Sekolah' ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-700'}`}>{u.role}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.role === 'admin_kecamatan' ? 'bg-purple-100 text-purple-700' : u.role === 'operator_sekolah' ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-700'}`}>{u.role === 'admin_kecamatan' ? 'Admin Kecamatan' : u.role === 'operator_sekolah' ? 'Operator Sekolah' : 'Pegawai'}</span>
                         </td>
-                        <td className="px-4 py-3">{u.sekolah}</td>
+                        <td className="px-4 py-3">{u.school_nama || u.employee_nama || '-'}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.status === 'Aktif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{u.status}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{u.is_active ? 'Aktif' : 'Nonaktif'}</span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
@@ -147,14 +137,18 @@ export default function PengaturanPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {SEKOLAH_MASTER.map((s, i) => (
-                    <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
+                  {schoolsLoading ? (
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500">Memuat data sekolah...</td></tr>
+                  ) : !schoolsData || schoolsData.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500">Belum ada data sekolah</td></tr>
+                  ) : schoolsData.map((s) => (
+                    <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                       <td className="px-4 py-3 font-medium text-zinc-900">{s.nama}</td>
                       <td className="px-4 py-3">{s.npsn}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.jenjang === 'SD' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{s.jenjang}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.jenjang === 'sd' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{s.jenjang.toUpperCase()}</span>
                       </td>
-                      <td className="px-4 py-3">{s.status}</td>
+                      <td className="px-4 py-3 uppercase">{s.status}</td>
                       <td className="px-4 py-3">{s.desa}</td>
                       <td className="px-4 py-3">{s.kecamatan}</td>
                       <td className="px-4 py-3">
@@ -341,15 +335,19 @@ export default function PengaturanPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {LOGS.map((l, i) => (
-                    <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
-                      <td className="px-4 py-3 font-medium text-zinc-900">{l.user}</td>
+                  {logsLoading ? (
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">Memuat log aktivitas...</td></tr>
+                  ) : !logsData || logsData.length === 0 ? (
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">Belum ada aktivitas</td></tr>
+                  ) : logsData.map((l) => (
+                    <tr key={l.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                      <td className="px-4 py-3 font-medium text-zinc-900">{l.user_name || '-'}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${l.aksi === 'Login' ? 'bg-blue-100 text-blue-700' : l.aksi === 'Create' ? 'bg-green-100 text-green-700' : l.aksi === 'Update' ? 'bg-yellow-100 text-yellow-700' : l.aksi === 'Delete' ? 'bg-red-100 text-red-700' : l.aksi === 'Backup' ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-700'}`}>{l.aksi}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${l.action === 'login' ? 'bg-blue-100 text-blue-700' : l.action === 'create' ? 'bg-green-100 text-green-700' : l.action === 'update' ? 'bg-yellow-100 text-yellow-700' : l.action === 'delete' ? 'bg-red-100 text-red-700' : l.action === 'backup' ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-700'}`}>{l.action.charAt(0).toUpperCase() + l.action.slice(1)}</span>
                       </td>
-                      <td className="px-4 py-3">{l.tabel}</td>
-                      <td className="px-4 py-3 max-w-[300px] truncate" title={l.deskripsi}>{l.deskripsi}</td>
-                      <td className="px-4 py-3 text-xs text-zinc-500">{l.waktu}</td>
+                      <td className="px-4 py-3">{l.table_name}</td>
+                      <td className="px-4 py-3 max-w-[300px] truncate" title={l.description || ''}>{l.description || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-zinc-500">{new Date(l.created_at).toLocaleString('id-ID')}</td>
                     </tr>
                   ))}
                 </tbody>

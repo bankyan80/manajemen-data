@@ -1,184 +1,528 @@
 import 'dotenv/config'
-import { eq } from 'drizzle-orm'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import bcrypt from 'bcryptjs'
 import { db } from '../lib/db'
 import {
-  users, schools, employees, employeeDocuments,
-  studentRecaps, reports, settings, activityLogs, notifications,
+  users, schools, employees, employeeDocuments, students, studentRecaps,
+  reports, settings, activityLogs, notifications,
 } from './schema'
+
+const JSON_DIR = join(process.env.HOME || process.env.USERPROFILE || 'C:\\Users\\Bank Yan', 'Downloads', 'tursodb')
+
+function loadJson<T>(file: string): T[] {
+  const raw = readFileSync(join(JSON_DIR, file), 'utf-8')
+  return JSON.parse(raw) as T[]
+}
+
+function mapJenisKelamin(jk: string): string | null {
+  if (jk.toLowerCase().includes('laki')) return 'laki-laki'
+  if (jk.toLowerCase().includes('perempuan')) return 'perempuan'
+  return null
+}
+
+function mapStatusPegawai(sp: string): string {
+  const s = sp.toLowerCase()
+  if (s === 'pns') return 'pns'
+  if (s.includes('pppk')) return 'pppk'
+  return 'non_asn'
+}
+
+function mapJenjang(j: string): string {
+  const upper = j.toUpperCase()
+  if (upper === 'SD') return 'sd'
+  return 'paud'
+}
+
+function isNegeri(nama: string): string {
+  return nama.toUpperCase().includes('NEGERI') ? 'negeri' : 'swasta'
+}
+
+function parseDateToTimestamp(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null
+  const d = new Date(dateStr)
+  return isNaN(d.getTime()) ? null : d.getTime()
+}
+
+const BATCH_SIZE = 100
+
+async function batchInsert<T>(table: any, rows: T[]) {
+  if (!db) throw new Error('DB not configured')
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const chunk = rows.slice(i, i + BATCH_SIZE)
+    await db.insert(table).values(chunk as any)
+  }
+}
+
+// ───────────────────────── Types ─────────────────────────
+
+interface SekolahJson {
+  id: string
+  npsn: string
+  namaSekolah: string
+  jenjang: string
+  statusSekolah: string
+  alamat: string | null
+  desa: string | null
+  kecamatan: string | null
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface InstansiJson {
+  id: string
+  nama_instansi: string
+  alamat: string | null
+  kecamatan: string | null
+  kabupaten: string | null
+  status_aktif: number
+}
+
+interface PegawaiJson {
+  id: string
+  instansi_id: string
+  nama_instansi: string
+  nama_pegawai: string
+  nip: string
+  nik: string
+  tanggal_lahir: string | null
+  jenis_kelamin: string | null
+  jabatan: string | null
+  status_pegawai: string | null
+  pangkat_golongan: string | null
+  pendidikan_terakhir: string | null
+  nomor_hp: string | null
+  email: string | null
+  alamat: string | null
+  role: string
+  status_aktif: number
+  password: string
+  created_at: string
+  updated_at: string
+}
+
+interface ArsipJson {
+  id: string
+  pegawai_id: string
+  nip: string
+  nik: string
+  nama_pegawai: string
+  instansi_id: string
+  kelompok_arsip: string
+  jenis_dokumen: string
+  nama_dokumen: string
+  file_name: string
+  file_type: string
+  file_size: number
+  storage_path: string
+  download_url: string
+  status_validasi: string
+  catatan_admin: string | null
+  deleted: number
+  uploaded_at: string
+  updated_at: string
+}
+
+interface SiswaJson {
+  id: string
+  sekolahId: string
+  rombelId: string
+  tahunPelajaran: string
+  nisn: string
+  nik: string
+  namaLengkap: string
+  tempatLahir: string | null
+  tanggalLahir: string | null
+  usia: number
+  jenisKelamin: string | null
+  agama: string | null
+  statusSiswa: string
+  jenjang: string
+  kelasKelompok: string
+  rombel: string
+  nomorAbsen: number
+  createdAt: string
+  updatedAt: string
+}
+
+interface AlamatSiswaJson {
+  id: string
+  siswaId: string
+  alamatLengkap: string
+  kecamatan: string
+  desa: string
+}
+
+interface OrangTuaSiswaJson {
+  id: string
+  siswaId: string
+  namaAyah: string
+  namaIbu: string
+}
+
+interface RombelJson {
+  id: string
+  sekolahId: string
+  jenjang: string
+  kelasKelompok: string
+  namaRombel: string
+  jumlahL: number
+  jumlahP: number
+  totalSiswa: number
+}
+
+// ───────── Main ─────────
 
 async function main() {
   if (!db) {
     console.error('Database not configured. Set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN.')
     process.exit(1)
   }
-  console.log('Seeding database...')
+  console.log('Loading JSON files...')
 
-  const now = Date.now()
-  const month = 60 * 60 * 24 * 30 * 1000
+  const sekolahList = loadJson<SekolahJson>('Sekolah.json')
+  const instansiList = loadJson<InstansiJson>('instansi.json')
+  const pegawaiList = loadJson<PegawaiJson>('pegawai.json')
+  const arsipList = loadJson<ArsipJson>('arsip.json')
+  const siswaList = loadJson<SiswaJson>('Siswa.json')
+  const alamatSiswaList = loadJson<AlamatSiswaJson>('AlamatSiswa.json')
+  const orangTuaList = loadJson<OrangTuaSiswaJson>('OrangTuaSiswa.json')
+  const rombelList = loadJson<RombelJson>('Rombel.json')
 
-  // ============================================================
+  console.log(`  Schools: ${sekolahList.length}, Instansi: ${instansiList.length}`)
+  console.log(`  Employees: ${pegawaiList.length}, Documents: ${arsipList.length}`)
+  console.log(`  Students: ${siswaList.length}, Rombels: ${rombelList.length}`)
+
+  // ─── Build lookup maps ───
+
+  // Instansi by id (INST_<npsn>)
+  const instansiById = new Map<string, InstansiJson>()
+  for (const inst of instansiList) {
+    instansiById.set(inst.id, inst)
+  }
+
+  // For each Sekolah record, extract npsn
+  // Also build map from npsn -> SekolahJson
+  const sekolahByNpsn = new Map<string, SekolahJson>()
+  for (const sk of sekolahList) {
+    sekolahByNpsn.set(sk.npsn, sk)
+  }
+
+  // Map from instansi INST_<npsn> to cmq id via npsn
+  function instansiToSekolahId(instansi_id: string): string | undefined {
+    const npsn = instansi_id.replace('INST_', '')
+    const sk = sekolahByNpsn.get(npsn)
+    return sk?.id
+  }
+
+  console.log('\nClearing existing data...')
+  // Delete in reverse dependency order
+  await db.delete(notifications)
+  await db.delete(activityLogs)
+  await db.delete(settings)
+  await db.delete(reports)
+  await db.delete(employeeDocuments)
+  await db.delete(studentRecaps)
+  await db.delete(students)
+  await db.delete(employees)
+  await db.delete(users)
+  await db.delete(schools)
+
+  console.log('  ✓ All tables cleared')
+
+  // ════════════════════════════════════════════
   // SCHOOLS
-  // ============================================================
-  const school = {
-    sdn1: crypto.randomUUID(),
-    sdn2: crypto.randomUUID(),
-    sdn3: crypto.randomUUID(),
-    sdn4: crypto.randomUUID(),
-    paudMelati: crypto.randomUUID(),
-    tkHarapan: crypto.randomUUID(),
-    kbCerdas: crypto.randomUUID(),
+  // ════════════════════════════════════════════
+
+  console.log('\nSeeding schools...')
+  const schoolRows: any[] = []
+  const cmqToUuid = new Map<string, string>()
+
+  for (const sk of sekolahList) {
+    const id = crypto.randomUUID()
+    cmqToUuid.set(sk.id, id)
+
+    // Enrich address from instansi if available
+    const instId = `INST_${sk.npsn}`
+    const inst = instansiById.get(instId)
+
+    schoolRows.push({
+      id,
+      nama: sk.namaSekolah,
+      npsn: sk.npsn,
+      jenjang: mapJenjang(sk.jenjang),
+      status: isNegeri(sk.namaSekolah),
+      alamat: inst?.alamat || sk.alamat || '',
+      desa: sk.desa || inst?.kecamatan || '',
+      kecamatan: sk.kecamatan?.replace('Kec. ', '') || inst?.kecamatan || '',
+    })
   }
 
-  await db.insert(schools).values([
-    { id: school.sdn1, nama: 'SDN 1 Sukamaju', npsn: '20210001', jenjang: 'SD', status: 'Negeri', alamat: 'Jl. Raya Sukamaju No. 1', desa: 'Sukamaju', kecamatan: 'Lemahabang' },
-    { id: school.sdn2, nama: 'SDN 2 Sukamaju', npsn: '20210002', jenjang: 'SD', status: 'Negeri', alamat: 'Jl. Merdeka No. 10', desa: 'Sukamaju', kecamatan: 'Lemahabang' },
-    { id: school.sdn3, nama: 'SDN 3 Sukamaju', npsn: '20210003', jenjang: 'SD', status: 'Negeri', alamat: 'Jl. Pendidikan No. 5', desa: 'Sukamaju', kecamatan: 'Lemahabang' },
-    { id: school.sdn4, nama: 'SDN 4 Sukamaju', npsn: '20210004', jenjang: 'SD', status: 'Negeri', alamat: 'Jl. Pelajar No. 7', desa: 'Sukamaju', kecamatan: 'Lemahabang' },
-    { id: school.paudMelati, nama: 'PAUD Melati', npsn: '20220001', jenjang: 'PAUD', status: 'Swasta', alamat: 'Jl. Bunga No. 3', desa: 'Sukamaju', kecamatan: 'Lemahabang' },
-    { id: school.tkHarapan, nama: 'TK Harapan Bunda', npsn: '20220002', jenjang: 'PAUD', status: 'Swasta', alamat: 'Jl. Kasih Ibu No. 2', desa: 'Sukamaju', kecamatan: 'Lemahabang' },
-    { id: school.kbCerdas, nama: 'KB Cerdas Ceria', npsn: '20220003', jenjang: 'PAUD', status: 'Swasta', alamat: 'Jl. Ceria No. 8', desa: 'Sukamaju', kecamatan: 'Lemahabang' },
-  ])
+  await batchInsert(schools, schoolRows)
+  console.log(`  ✓ ${schoolRows.length} schools seeded`)
 
-  console.log('  ✓ Schools seeded')
-
-  // ============================================================
+  // ════════════════════════════════════════════
   // EMPLOYEES
-  // ============================================================
-  const emp = {
-    dedi: crypto.randomUUID(),
-    siti: crypto.randomUUID(),
-    agus: crypto.randomUUID(),
-    rina: crypto.randomUUID(),
-    bambang: crypto.randomUUID(),
+  // ════════════════════════════════════════════
+
+  console.log('\nSeeding employees...')
+  const employeeRows: any[] = []
+  const pgwToUuid = new Map<string, string>() // pegawai.json id -> uuid
+
+  for (const pgw of pegawaiList) {
+    const empId = crypto.randomUUID()
+    pgwToUuid.set(pgw.id, empId)
+
+    const sekolahId = instansiToSekolahId(pgw.instansi_id)
+    if (!sekolahId) {
+      console.warn(`  ⚠ Skipping pegawai ${pgw.nama_pegawai}: no school found for instansi ${pgw.instansi_id}`)
+      continue
+    }
+    const cmqSekolahId = sekolahId
+    const dbSchoolId = cmqToUuid.get(cmqSekolahId)
+    if (!dbSchoolId) {
+      console.warn(`  ⚠ Skipping pegawai ${pgw.nama_pegawai}: school UUID not found for ${cmqSekolahId}`)
+      continue
+    }
+
+    employeeRows.push({
+      id: empId,
+      sekolah_id: dbSchoolId,
+      nama: pgw.nama_pegawai,
+      nik: pgw.nik,
+      nip: pgw.nip || null,
+      email: pgw.email || null,
+      no_hp: pgw.nomor_hp || null,
+      tempat_lahir: null,
+      tanggal_lahir: pgw.tanggal_lahir || null,
+      jenis_kelamin: pgw.jenis_kelamin ? mapJenisKelamin(pgw.jenis_kelamin) : null,
+      jabatan: pgw.jabatan || null,
+      status_pegawai: pgw.status_pegawai ? mapStatusPegawai(pgw.status_pegawai) : 'non_asn',
+      pangkat_golongan: pgw.pangkat_golongan || null,
+      pendidikan_terakhir: pgw.pendidikan_terakhir || null,
+      sertifikasi: null,
+      tmt_kerja: null,
+      tanggal_bup: null,
+    })
   }
 
-  await db.insert(employees).values([
-    { id: emp.dedi, sekolah_id: school.sdn1, nama: 'Dedi Kurniawan, S.Pd.', nik: '3273010101900001', nip: '198001012005011001', nuptk: '1234567890123456', email: 'dedi.kurniawan@sdnsatu.sch.id', no_hp: '081234567890', tempat_lahir: 'Cirebon', tanggal_lahir: '1980-01-01', jenis_kelamin: 'laki-laki', jabatan: 'Kepala Sekolah', status_pegawai: 'pns', pangkat_golongan: 'IV/a', pendidikan_terakhir: 'S1', jurusan: 'Pendidikan Matematika', sertifikasi: 'sudah', tmt_kerja: '2005-01-01', tanggal_bup: '2035-01-01' },
-    { id: emp.siti, sekolah_id: school.sdn1, nama: 'Siti Nurhayati, S.Pd.', nik: '3273020202900002', nip: '198502102010012002', nuptk: '2345678901234567', email: 'siti.nurhayati@sdnsatu.sch.id', no_hp: '081234567891', tempat_lahir: 'Cirebon', tanggal_lahir: '1985-02-10', jenis_kelamin: 'perempuan', jabatan: 'Guru', status_pegawai: 'pns', pangkat_golongan: 'III/b', pendidikan_terakhir: 'S1', jurusan: 'Pendidikan Bahasa Indonesia', sertifikasi: 'sudah', tmt_kerja: '2010-01-01', tanggal_bup: '2040-02-10' },
-    { id: emp.agus, sekolah_id: school.sdn2, nama: 'Agus Setiawan, S.Pd.', nik: '3273030303900003', nip: '198703152011011003', nuptk: '3456789012345678', email: 'agus.setiawan@sdndua.sch.id', no_hp: '081234567892', tempat_lahir: 'Cirebon', tanggal_lahir: '1987-03-15', jenis_kelamin: 'laki-laki', jabatan: 'Guru', status_pegawai: 'pppk', pangkat_golongan: 'IX', pendidikan_terakhir: 'S1', jurusan: 'Pendidikan IPA', sertifikasi: 'belum', tmt_kerja: '2020-01-01', tanggal_bup: '2042-03-15' },
-    { id: emp.rina, sekolah_id: school.paudMelati, nama: 'Rina Febriani, S.Pd.', nik: '3273040404900004', nip: '199004202015012004', email: 'rina.febriani@paudmelati.sch.id', no_hp: '081234567893', tempat_lahir: 'Cirebon', tanggal_lahir: '1990-04-20', jenis_kelamin: 'perempuan', jabatan: 'Guru', status_pegawai: 'non_asn', pendidikan_terakhir: 'S1', jurusan: 'PAUD', sertifikasi: 'sudah', tmt_kerja: '2015-01-01', tanggal_bup: '2045-04-20' },
-    { id: emp.bambang, sekolah_id: school.sdn2, nama: 'Bambang Supriyadi, S.Pd.', nik: '3273050505900005', nip: '198205052005012002', nuptk: '4567890123456789', email: 'bambang.supriyadi@sdndua.sch.id', no_hp: '081234567894', tempat_lahir: 'Cirebon', tanggal_lahir: '1982-05-05', jenis_kelamin: 'laki-laki', jabatan: 'Kepala Sekolah', status_pegawai: 'pns', pangkat_golongan: 'IV/b', pendidikan_terakhir: 'S1', jurusan: 'Manajemen Pendidikan', sertifikasi: 'sudah', tmt_kerja: '2005-01-01', tanggal_bup: '2037-05-05' },
-  ])
+  await batchInsert(employees, employeeRows)
+  console.log(`  ✓ ${employeeRows.length} employees seeded`)
 
-  console.log('  ✓ Employees seeded')
-
-  // ============================================================
+  // ════════════════════════════════════════════
   // USERS
-  // ============================================================
-  const hash = (pw: string) => bcrypt.hashSync(pw, 10)
-  const pw_admin = hash('admin456')
-  const pw_operator1 = hash('sp20210001')
-  const pw_operator2 = hash('sp20210002')
-  const pw_operator3 = hash('sp20210003')
-  const pw_operator4 = hash('sp20210004')
-  const pw_operator5 = hash('sp20220001')
-  const pw_operator6 = hash('sp20220002')
-  const pw_operator7 = hash('sp20220003')
-  const pw_pegawai1 = hash('011001')
-  const pw_pegawai2 = hash('012002')
-  const pw_pegawai3 = hash('011003')
-  const pw_pegawai4 = hash('040004')
-  const pw_pegawai5 = hash('012002')
+  // ════════════════════════════════════════════
 
-  const usr = {
-    admin: crypto.randomUUID(),
-    operator1: crypto.randomUUID(),
-    operator2: crypto.randomUUID(),
-    operator3: crypto.randomUUID(),
-    operator4: crypto.randomUUID(),
-    operator5: crypto.randomUUID(),
-    operator6: crypto.randomUUID(),
-    operator7: crypto.randomUUID(),
-    pegawai1: crypto.randomUUID(),
-    pegawai2: crypto.randomUUID(),
-    pegawai3: crypto.randomUUID(),
-    pegawai4: crypto.randomUUID(),
-    pegawai5: crypto.randomUUID(),
+  console.log('\nSeeding users...')
+  const userRows: any[] = []
+
+  const pwAdmin = bcrypt.hashSync('admin456', 10)
+
+  // 1. Admin
+  const adminId = crypto.randomUUID()
+  userRows.push({
+    id: adminId,
+    name: 'Admin Kecamatan',
+    username: 'admin_Tim',
+    password: pwAdmin,
+    email: 'admin.kecamatan@gmail.com',
+    role: 'admin_kecamatan',
+  })
+
+  // 2. Operators — one per school (password = sp + npsn)
+  const operatorIds = new Map<string, string>()
+  for (const sk of sekolahList) {
+    const dbSchoolId = cmqToUuid.get(sk.id)
+    if (!dbSchoolId) continue
+
+    const opId = crypto.randomUUID()
+    operatorIds.set(sk.id, opId)
+    userRows.push({
+      id: opId,
+      name: `Operator ${sk.namaSekolah}`,
+      username: sk.npsn,
+      password: bcrypt.hashSync(`sp${sk.npsn}`, 10),
+      email: `operator.${sk.npsn}@sekolah.sch.id`,
+      role: 'operator_sekolah',
+      sekolah_id: dbSchoolId,
+    })
   }
 
-  await db.insert(users).values([
-    { id: usr.admin, name: 'Admin Kecamatan', username: 'admin_Tim', password: pw_admin, email: 'admin.kecamatan@gmail.com', role: 'admin_kecamatan' },
-    { id: usr.operator1, name: 'Operator SDN 1 Sukamaju', username: '20210001', password: pw_operator1, email: 'operator.sdn1@gmail.com', role: 'operator_sekolah', sekolah_id: school.sdn1 },
-    { id: usr.operator2, name: 'Operator SDN 2 Sukamaju', username: '20210002', password: pw_operator2, email: 'operator.sdn2@gmail.com', role: 'operator_sekolah', sekolah_id: school.sdn2 },
-    { id: usr.operator3, name: 'Operator SDN 3 Sukamaju', username: '20210003', password: pw_operator3, email: 'operator.sdn3@gmail.com', role: 'operator_sekolah', sekolah_id: school.sdn3 },
-    { id: usr.operator4, name: 'Operator SDN 4 Sukamaju', username: '20210004', password: pw_operator4, email: 'operator.sdn4@gmail.com', role: 'operator_sekolah', sekolah_id: school.sdn4 },
-    { id: usr.operator5, name: 'Operator PAUD Melati', username: '20220001', password: pw_operator5, email: 'operator.paudmelati@gmail.com', role: 'operator_sekolah', sekolah_id: school.paudMelati },
-    { id: usr.operator6, name: 'Operator TK Harapan Bunda', username: '20220002', password: pw_operator6, email: 'operator.tkharapan@gmail.com', role: 'operator_sekolah', sekolah_id: school.tkHarapan },
-    { id: usr.operator7, name: 'Operator KB Cerdas Ceria', username: '20220003', password: pw_operator7, email: 'operator.kbcerdas@gmail.com', role: 'operator_sekolah', sekolah_id: school.kbCerdas },
-    { id: usr.pegawai1, name: 'Dedi Kurniawan, S.Pd.', username: '198001012005011001', password: pw_pegawai1, email: 'dedi.kurniawan@sdnsatu.sch.id', role: 'pegawai', sekolah_id: school.sdn1, pegawai_id: emp.dedi },
-    { id: usr.pegawai2, name: 'Siti Nurhayati, S.Pd.', username: '198502102010012002', password: pw_pegawai2, email: 'siti.nurhayati@sdnsatu.sch.id', role: 'pegawai', sekolah_id: school.sdn1, pegawai_id: emp.siti },
-    { id: usr.pegawai3, name: 'Agus Setiawan, S.Pd.', username: '198703152011011003', password: pw_pegawai3, email: 'agus.setiawan@sdndua.sch.id', role: 'pegawai', sekolah_id: school.sdn2, pegawai_id: emp.agus },
-    { id: usr.pegawai4, name: 'Rina Febriani, S.Pd.', username: '199004202015012004', password: pw_pegawai4, email: 'rina.febriani@paudmelati.sch.id', role: 'pegawai', sekolah_id: school.paudMelati, pegawai_id: emp.rina },
-    { id: usr.pegawai5, name: 'Bambang Supriyadi, S.Pd.', username: '198205052005012002', password: pw_pegawai5, email: 'bambang.supriyadi@sdndua.sch.id', role: 'pegawai', sekolah_id: school.sdn2, pegawai_id: emp.bambang },
-  ])
+  // 3. Pegawai — from pegawai.json (already bcrypt-hashed passwords)
+  const pegawaiUserIds = new Map<string, string>()
+  for (const pgw of pegawaiList) {
+    const empId = pgwToUuid.get(pgw.id)
+    if (!empId) continue
 
-  console.log('  ✓ Users seeded')
+    const dbSekolahId = cmqToUuid.get(instansiToSekolahId(pgw.instansi_id) || '')
+    if (!dbSekolahId) continue
 
-  const usr_admin = usr.admin
-  const usr_operator = usr.operator1
-  const usr_pegawai = usr.pegawai1
+    const userId = crypto.randomUUID()
+    pegawaiUserIds.set(pgw.id, userId)
 
-  // ============================================================
-  // UPDATE SCHOOLS WITH KEPALA SEKOLAH
-  // ============================================================
-  await db.update(schools).set({ kepala_id: emp.dedi }).where(eq(schools.id, school.sdn1))
-  await db.update(schools).set({ kepala_id: emp.bambang }).where(eq(schools.id, school.sdn2))
+    // Use nip as username, or nik as fallback
+    const username = pgw.nip || pgw.nik
 
-  // ============================================================
+    userRows.push({
+      id: userId,
+      name: pgw.nama_pegawai,
+      username,
+      password: pgw.password, // Already bcrypt hashed from source system
+      email: pgw.email || null,
+      role: 'pegawai',
+      sekolah_id: dbSekolahId,
+      pegawai_id: empId,
+    })
+  }
+
+  await batchInsert(users, userRows)
+  console.log(`  ✓ ${userRows.length} users seeded`)
+
+  // ════════════════════════════════════════════
+  // UPDATE SCHOOLS — set kepala_id
+  // ════════════════════════════════════════════
+
+  console.log('\nUpdating school heads...')
+  let kepalaUpdated = 0
+  for (const pgw of pegawaiList) {
+    if (pgw.jabatan?.toLowerCase().includes('kepala sekolah')) {
+      const empId = pgwToUuid.get(pgw.id)
+      if (!empId) continue
+      const cmqSekId = instansiToSekolahId(pgw.instansi_id)
+      if (!cmqSekId) continue
+      const dbSchoolId = cmqToUuid.get(cmqSekId)
+      if (!dbSchoolId) continue
+
+      await db.update(schools).set({ kepala_id: empId }).where(eq(schools.id, dbSchoolId))
+      kepalaUpdated++
+    }
+  }
+  console.log(`  ✓ ${kepalaUpdated} schools updated with kepala sekolah`)
+
+  // ════════════════════════════════════════════
   // EMPLOYEE DOCUMENTS
-  // ============================================================
-  await db.insert(employeeDocuments).values([
-    { id: crypto.randomUUID(), employee_id: emp.dedi, school_id: school.sdn1, kategori: 'kepegawaian', jenis_dokumen: 'Ijazah S1', nama_file: 'ijazah_dedi.pdf', mime_type: 'application/pdf', file_size: 512000, drive_file_id: '1abc123', drive_url: 'https://drive.google.com/d/1abc123', status_upload: 'sudah_diupload', status_verifikasi: 'sudah_diverifikasi', status_kelengkapan: 'lengkap',     uploaded_by: usr_pegawai, verified_by: usr_admin, uploaded_at: now - month * 2, verified_at: now - month * 2 },
-    { id: crypto.randomUUID(), employee_id: emp.dedi, school_id: school.sdn1, kategori: 'kepegawaian', jenis_dokumen: 'Sertifikat Pendidik', nama_file: 'sertifikat_dedi.pdf', mime_type: 'application/pdf', file_size: 256000, drive_file_id: '1def456', drive_url: 'https://drive.google.com/d/1def456', status_upload: 'sudah_diupload', status_verifikasi: 'sudah_diverifikasi', status_kelengkapan: 'lengkap',     uploaded_by: usr_pegawai, verified_by: usr_admin, uploaded_at: now - month * 2, verified_at: now - month * 2 },
-    { id: crypto.randomUUID(), employee_id: emp.dedi, school_id: school.sdn1, kategori: 'kepegawaian', jenis_dokumen: 'SK Pengangkatan CPNS', nama_file: 'sk_cpns_dedi.pdf', mime_type: 'application/pdf', file_size: 384000, drive_file_id: '1ghi789', drive_url: 'https://drive.google.com/d/1ghi789', status_upload: 'sudah_diupload', status_verifikasi: 'sudah_diverifikasi', status_kelengkapan: 'lengkap',     uploaded_by: usr_pegawai, verified_by: usr_admin, uploaded_at: now - month * 2, verified_at: now - month * 2 },
-    { id: crypto.randomUUID(), employee_id: emp.siti, school_id: school.sdn1, kategori: 'kepegawaian', jenis_dokumen: 'Ijazah S1', nama_file: 'ijazah_siti.pdf', mime_type: 'application/pdf', file_size: 480000, drive_file_id: '1jkl012', drive_url: 'https://drive.google.com/d/1jkl012', status_upload: 'sudah_diupload', status_verifikasi: 'sudah_diverifikasi', status_kelengkapan: 'lengkap', uploaded_by: usr_operator, verified_by: usr_admin, uploaded_at: now - month, verified_at: now - month },
-    { id: crypto.randomUUID(), employee_id: emp.siti, school_id: school.sdn1, kategori: 'kepegawaian', jenis_dokumen: 'Sertifikat Pendidik', nama_file: 'sertifikat_siti.pdf', mime_type: 'application/pdf', file_size: 192000, drive_file_id: '1mno345', drive_url: 'https://drive.google.com/d/1mno345', status_upload: 'sudah_diupload', status_verifikasi: 'belum_diverifikasi', status_kelengkapan: 'belum_lengkap', catatan_revisi: 'File tidak jelas, harap upload ulang', uploaded_by: usr_operator, uploaded_at: now - month },
-    { id: crypto.randomUUID(), employee_id: emp.agus, school_id: school.sdn2, kategori: 'kepegawaian', jenis_dokumen: 'Ijazah S1', nama_file: 'ijazah_agus.pdf', mime_type: 'application/pdf', file_size: 512000, drive_file_id: '1pqr678', drive_url: 'https://drive.google.com/d/1pqr678', status_upload: 'sudah_diupload', status_verifikasi: 'sudah_diverifikasi', status_kelengkapan: 'lengkap',     uploaded_by: usr_pegawai, verified_by: usr_admin, uploaded_at: now - month * 3, verified_at: now - month * 3 },
-    { id: crypto.randomUUID(), employee_id: emp.agus, school_id: school.sdn2, kategori: 'kepegawaian', jenis_dokumen: 'SK Pengangkatan', nama_file: 'sk_agus.pdf', mime_type: 'application/pdf', file_size: 320000, drive_file_id: '1stu901', drive_url: 'https://drive.google.com/d/1stu901', status_upload: 'sudah_diupload', status_verifikasi: 'belum_diverifikasi', status_kelengkapan: 'belum_lengkap', uploaded_by: usr_pegawai, uploaded_at: now - month },
-    { id: crypto.randomUUID(), employee_id: emp.rina, school_id: school.paudMelati, kategori: 'kepegawaian', jenis_dokumen: 'Ijazah S1', nama_file: 'ijazah_rina.pdf', mime_type: 'application/pdf', file_size: 448000, drive_file_id: '1vwx234', drive_url: 'https://drive.google.com/d/1vwx234', status_upload: 'sudah_diupload', status_verifikasi: 'sudah_diverifikasi', status_kelengkapan: 'lengkap',     uploaded_by: usr_pegawai, verified_by: usr_admin, uploaded_at: now - month * 4, verified_at: now - month * 4 },
-    { id: crypto.randomUUID(), employee_id: emp.rina, school_id: school.paudMelati, kategori: 'kepegawaian', jenis_dokumen: 'SK Yayasan', nama_file: 'sk_yayasan_rina.pdf', mime_type: 'application/pdf', file_size: 224000, drive_file_id: '1yza567', drive_url: 'https://drive.google.com/d/1yza567', status_upload: 'sudah_diupload', status_verifikasi: 'belum_diverifikasi', status_kelengkapan: 'belum_lengkap', uploaded_by: usr_operator, uploaded_at: now - month },
-    { id: crypto.randomUUID(), employee_id: emp.bambang, school_id: school.sdn2, kategori: 'kepegawaian', jenis_dokumen: 'Ijazah S1', nama_file: 'ijazah_bambang.pdf', mime_type: 'application/pdf', file_size: 512000, drive_file_id: '1bcd890', drive_url: 'https://drive.google.com/d/1bcd890', status_upload: 'sudah_diupload', status_verifikasi: 'sudah_diverifikasi', status_kelengkapan: 'lengkap',     uploaded_by: usr_pegawai, verified_by: usr_admin, uploaded_at: now - month * 6, verified_at: now - month * 6 },
-    { id: crypto.randomUUID(), employee_id: emp.bambang, school_id: school.sdn2, kategori: 'kepegawaian', jenis_dokumen: 'SK Pengangkatan Kepala Sekolah', nama_file: '', mime_type: 'application/pdf', file_size: 0, drive_file_id: '', drive_url: '', status_upload: 'belum_diupload', status_verifikasi: 'belum_diverifikasi', status_kelengkapan: 'belum_lengkap' },
-    { id: crypto.randomUUID(), employee_id: emp.bambang, school_id: school.sdn2, kategori: 'kepegawaian', jenis_dokumen: 'Sertifikat Pendidik', nama_file: 'sertifikat_bambang.pdf', mime_type: 'application/pdf', file_size: 256000, drive_file_id: '1efg123', drive_url: 'https://drive.google.com/d/1efg123', status_upload: 'sudah_diupload', status_verifikasi: 'sudah_diverifikasi', status_kelengkapan: 'lengkap',     uploaded_by: usr_pegawai, verified_by: usr_admin, uploaded_at: now - month * 6, verified_at: now - month * 6 },
-  ])
+  // ════════════════════════════════════════════
 
-  console.log('  ✓ Employee documents seeded')
+  console.log('\nSeeding employee documents...')
+  const docRows: any[] = []
 
-  // ============================================================
-  // STUDENT RECAPS
-  // ============================================================
-  await db.insert(studentRecaps).values([
-    { id: crypto.randomUUID(), school_id: school.sdn1, tahun_pelajaran: '2025/2026', semester: 'genap', kelas_kelompok: 'Kelas 1', laki_laki: 15, perempuan: 12, total: 27, siswa_masuk: 27, siswa_keluar: 0 },
-    { id: crypto.randomUUID(), school_id: school.sdn1, tahun_pelajaran: '2025/2026', semester: 'genap', kelas_kelompok: 'Kelas 2', laki_laki: 14, perempuan: 13, total: 27, siswa_masuk: 2, siswa_keluar: 1 },
-    { id: crypto.randomUUID(), school_id: school.sdn1, tahun_pelajaran: '2025/2026', semester: 'genap', kelas_kelompok: 'Kelas 3', laki_laki: 13, perempuan: 14, total: 27, siswa_masuk: 1, siswa_keluar: 2 },
-    { id: crypto.randomUUID(), school_id: school.sdn1, tahun_pelajaran: '2025/2026', semester: 'genap', kelas_kelompok: 'Kelas 4', laki_laki: 16, perempuan: 11, total: 27, siswa_masuk: 3, siswa_keluar: 0 },
-    { id: crypto.randomUUID(), school_id: school.sdn1, tahun_pelajaran: '2025/2026', semester: 'genap', kelas_kelompok: 'Kelas 5', laki_laki: 12, perempuan: 15, total: 27, siswa_masuk: 0, siswa_keluar: 1 },
-    { id: crypto.randomUUID(), school_id: school.sdn1, tahun_pelajaran: '2025/2026', semester: 'genap', kelas_kelompok: 'Kelas 6', laki_laki: 14, perempuan: 13, total: 27, siswa_masuk: 0, siswa_keluar: 3 },
-    { id: crypto.randomUUID(), school_id: school.paudMelati, tahun_pelajaran: '2025/2026', semester: 'genap', kelas_kelompok: 'Kelompok A', laki_laki: 8, perempuan: 7, total: 15, siswa_masuk: 15, siswa_keluar: 0 },
-    { id: crypto.randomUUID(), school_id: school.paudMelati, tahun_pelajaran: '2025/2026', semester: 'genap', kelas_kelompok: 'Kelompok B', laki_laki: 9, perempuan: 6, total: 15, siswa_masuk: 2, siswa_keluar: 1 },
-  ])
+  for (const ars of arsipList) {
+    const empId = pgwToUuid.get(ars.pegawai_id)
+    if (!empId) continue
 
-  console.log('  ✓ Student recaps seeded')
+    const cmqSekId = instansiToSekolahId(ars.instansi_id)
+    if (!cmqSekId) continue
+    const dbSchoolId = cmqToUuid.get(cmqSekId)
+    if (!dbSchoolId) continue
 
-  // ============================================================
-  // REPORTS
-  // ============================================================
-  await db.insert(reports).values([
-    { id: crypto.randomUUID(), school_id: school.sdn1, periode_bulan: 1, tahun: 2026, jenis_laporan: 'laporan_bulanan', status: 'draft', submitted_by: usr_operator },
-    { id: crypto.randomUUID(), school_id: school.sdn1, periode_bulan: 2, tahun: 2026, jenis_laporan: 'laporan_bulanan', status: 'submitted', submitted_by: usr_operator, submitted_at: now - 7 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), school_id: school.sdn1, periode_bulan: 3, tahun: 2026, jenis_laporan: 'laporan_bulanan', status: 'draft', submitted_by: usr_operator },
-    { id: crypto.randomUUID(), school_id: school.sdn2, periode_bulan: 1, tahun: 2026, jenis_laporan: 'laporan_bulanan', status: 'verified', submitted_by: usr_operator, verified_by: usr_admin, submitted_at: now - 14 * 24 * 60 * 60 * 1000, verified_at: now - 10 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), school_id: school.sdn2, periode_bulan: 2, tahun: 2026, jenis_laporan: 'laporan_bulanan', status: 'submitted', submitted_by: usr_operator, submitted_at: now - 3 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), school_id: school.paudMelati, periode_bulan: 1, tahun: 2026, jenis_laporan: 'laporan_bulanan', status: 'draft', submitted_by: usr_operator },
-    { id: crypto.randomUUID(), school_id: school.paudMelati, periode_bulan: 2, tahun: 2026, jenis_laporan: 'laporan_bulanan', status: 'rejected', submitted_by: usr_operator, verified_by: usr_admin, submitted_at: now - 5 * 24 * 60 * 60 * 1000, verified_at: now - 3 * 24 * 60 * 60 * 1000, catatan_revisi: 'Data siswa tidak lengkap, harap lengkapi' },
-  ])
+    const kategori = ars.kelompok_arsip.toLowerCase().replace(/\s+/g, '_')
+    const jnsDok = ars.jenis_dokumen
+    const status = ars.status_validasi === 'Valid' ? 'sudah_diverifikasi' : 'belum_diverifikasi'
 
-  console.log('  ✓ Reports seeded')
+    docRows.push({
+      id: crypto.randomUUID(),
+      employee_id: empId,
+      school_id: dbSchoolId,
+      kategori,
+      jenis_dokumen: jnsDok,
+      nama_file: ars.file_name,
+      mime_type: ars.file_type || 'application/pdf',
+      file_size: ars.file_size || 0,
+      drive_file_id: ars.storage_path,
+      drive_url: ars.download_url,
+      status_upload: 'sudah_diupload',
+      status_verifikasi: status,
+      status_kelengkapan: status === 'sudah_diverifikasi' ? 'lengkap' : 'belum_lengkap',
+      catatan_revisi: ars.catatan_admin,
+      uploaded_at: parseDateToTimestamp(ars.uploaded_at),
+    })
+  }
 
-  // ============================================================
+  await batchInsert(employeeDocuments, docRows)
+  console.log(`  ✓ ${docRows.length} documents seeded`)
+
+  // ════════════════════════════════════════════
+  // STUDENTS
+  // ════════════════════════════════════════════
+
+  console.log('\nSeeding students...')
+
+  // Build alamat & orang_tua lookup by siswaId
+  const alamatBySiswaId = new Map<string, AlamatSiswaJson>()
+  for (const al of alamatSiswaList) {
+    alamatBySiswaId.set(al.siswaId, al)
+  }
+  const ortuBySiswaId = new Map<string, OrangTuaSiswaJson>()
+  for (const ot of orangTuaList) {
+    ortuBySiswaId.set(ot.siswaId, ot)
+  }
+
+  const studentRows: any[] = []
+  for (const sw of siswaList) {
+    const dbSchoolId = cmqToUuid.get(sw.sekolahId)
+    if (!dbSchoolId) continue
+
+    const almt = alamatBySiswaId.get(sw.id)
+    const ortu = ortuBySiswaId.get(sw.id)
+
+    const namaOrtu = ortu
+      ? [ortu.namaAyah, ortu.namaIbu].filter(Boolean).join(' / ')
+      : null
+
+    studentRows.push({
+      id: crypto.randomUUID(),
+      school_id: dbSchoolId,
+      tahun_pelajaran: sw.tahunPelajaran || '2025/2026',
+      jenjang: mapJenjang(sw.jenjang),
+      kelas_kelompok: sw.kelasKelompok || sw.rombel || '',
+      nama: sw.namaLengkap,
+      nik: sw.nik || null,
+      nisn: sw.nisn || null,
+      jenis_kelamin: sw.jenisKelamin ? mapJenisKelamin(sw.jenisKelamin) : null,
+      tempat_lahir: sw.tempatLahir || null,
+      tanggal_lahir: sw.tanggalLahir ? sw.tanggalLahir.split('T')[0] : null,
+      alamat: almt?.alamatLengkap || null,
+      nama_orang_tua: namaOrtu,
+      status_siswa: sw.statusSiswa?.toLowerCase() === 'aktif' ? 'aktif' : 'aktif',
+    })
+  }
+
+  await batchInsert(students, studentRows)
+  console.log(`  ✓ ${studentRows.length} students seeded`)
+
+  // ════════════════════════════════════════════
+  // STUDENT RECAPS (from Rombel)
+  // ════════════════════════════════════════════
+
+  console.log('\nSeeding student recaps...')
+  const recapRows: any[] = []
+  for (const rmb of rombelList) {
+    const dbSchoolId = cmqToUuid.get(rmb.sekolahId)
+    if (!dbSchoolId) continue
+
+    recapRows.push({
+      id: crypto.randomUUID(),
+      school_id: dbSchoolId,
+      tahun_pelajaran: '2025/2026',
+      semester: 'genap',
+      kelas_kelompok: rmb.kelasKelompok,
+      laki_laki: rmb.jumlahL,
+      perempuan: rmb.jumlahP,
+      total: rmb.totalSiswa,
+      siswa_masuk: 0,
+      siswa_keluar: 0,
+    })
+  }
+
+  await batchInsert(studentRecaps, recapRows)
+  console.log(`  ✓ ${recapRows.length} student recaps seeded`)
+
+  // ════════════════════════════════════════════
   // SETTINGS
-  // ============================================================
+  // ════════════════════════════════════════════
+
+  console.log('\nSeeding settings...')
   await db.insert(settings).values([
     { id: crypto.randomUUID(), key: 'tahun_pelajaran', value: '2025/2026' },
     { id: crypto.randomUUID(), key: 'semester', value: 'genap' },
@@ -187,42 +531,47 @@ async function main() {
     { id: crypto.randomUUID(), key: 'logo_kecamatan', value: '' },
     { id: crypto.randomUUID(), key: 'alamat_kecamatan', value: 'Jl. Raya Lemahabang No. 1, Cirebon' },
   ])
-
   console.log('  ✓ Settings seeded')
 
-  // ============================================================
-  // ACTIVITY LOGS
-  // ============================================================
-  await db.insert(activityLogs).values([
-    { id: crypto.randomUUID(), user_id: usr_admin, action: 'login', table_name: 'users', record_id: usr_admin, description: 'Admin Kecamatan login ke sistem', created_at: now - 30 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_admin, action: 'create', table_name: 'schools', record_id: school.sdn1, description: 'Menambahkan sekolah baru: SDN 1 Sukamaju', created_at: now - 30 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_admin, action: 'create', table_name: 'schools', record_id: school.sdn2, description: 'Menambahkan sekolah baru: SDN 2 Sukamaju', created_at: now - 30 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_admin, action: 'create', table_name: 'employees', record_id: emp.dedi, description: 'Menambahkan pegawai: Dedi Kurniawan', created_at: now - 25 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_operator, action: 'update', table_name: 'employee_documents', record_id: null, description: 'Mengupload dokumen pegawai Dedi Kurniawan', created_at: now - 20 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_admin, action: 'verify', table_name: 'employee_documents', record_id: null, description: 'Memverifikasi dokumen pegawai Dedi Kurniawan', created_at: now - 20 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_operator, action: 'submit', table_name: 'reports', record_id: null, description: 'Mengirim laporan bulanan SDN 1 Sukamaju', created_at: now - 7 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_admin, action: 'verify', table_name: 'reports', record_id: null, description: 'Menyetujui laporan bulanan SDN 2 Sukamaju', created_at: now - 10 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_operator, action: 'login', table_name: 'users', record_id: usr_operator, description: 'Operator login ke sistem', created_at: now - 1 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_admin, action: 'login', table_name: 'users', record_id: usr_admin, description: 'Admin Kecamatan login ke sistem', created_at: now },
-  ])
+  // ════════════════════════════════════════════
+  // ACTIVITY LOGS (minimal)
+  // ════════════════════════════════════════════
 
+  console.log('\nSeeding activity logs...')
+  const now = Date.now()
+  await db.insert(activityLogs).values([
+    { id: crypto.randomUUID(), user_id: adminId, action: 'seed', table_name: 'system', description: 'Initial database seed from JSON exports', created_at: now },
+  ])
   console.log('  ✓ Activity logs seeded')
 
-  // ============================================================
-  // NOTIFICATIONS
-  // ============================================================
-  await db.insert(notifications).values([
-    { id: crypto.randomUUID(), user_id: usr_admin, type: 'info', title: 'Laporan Baru', description: 'SDN 1 Sukamaju telah mengirim laporan bulan Januari 2026', is_read: 0, related_link: '/reports', created_at: now - 7 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_admin, type: 'warning', title: 'Dokumen Perlu Verifikasi', description: 'Terdapat 3 dokumen pegawai yang perlu diverifikasi', is_read: 0, related_link: '/verification', created_at: now - 3 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_admin, type: 'success', title: 'Verifikasi Selesai', description: 'Laporan SDN 2 Sukamaju telah diverifikasi', is_read: 1, related_link: '/reports', created_at: now - 10 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_operator, type: 'info', title: 'Tenggat Laporan', description: 'Laporan bulan Maret 2026 harus segera dikirim', is_read: 0, related_link: '/reports/create', created_at: now },
-    { id: crypto.randomUUID(), user_id: usr_operator, type: 'error', title: 'Laporan Ditolak', description: 'Laporan PAUD Melati bulan Februari ditolak oleh Admin', is_read: 0, related_link: '/reports', created_at: now - 3 * 24 * 60 * 60 * 1000 },
-    { id: crypto.randomUUID(), user_id: usr_pegawai, type: 'info', title: 'Dokumen Terverifikasi', description: 'Ijazah Anda telah diverifikasi oleh Admin Kecamatan', is_read: 1, related_link: '/documents', created_at: now - 20 * 24 * 60 * 60 * 1000 },
-  ])
+  // ════════════════════════════════════════════
+  // NOTIFICATIONS (sample)
+  // ════════════════════════════════════════════
 
+  console.log('\nSeeding notifications...')
+  await db.insert(notifications).values([
+    { id: crypto.randomUUID(), user_id: adminId, type: 'info', title: 'Database Siap', description: 'Seed data dari JSON berhasil dimuat.', is_read: 0, created_at: now },
+  ])
   console.log('  ✓ Notifications seeded')
-  console.log('Seed completed successfully')
+
+  // ════════════════════════════════════════════
+  // DONE
+  // ════════════════════════════════════════════
+
+  console.log('\n══════════════════════════════════════════')
+  console.log('  Seed completed successfully!')
+  console.log(`  Schools:     ${schoolRows.length}`)
+  console.log(`  Employees:   ${employeeRows.length}`)
+  console.log(`  Users:       ${userRows.length} (1 admin, ${sekolahList.length} operators, ${pegawaiList.length} pegawai)`)
+  console.log(`  Documents:   ${docRows.length}`)
+  console.log(`  Students:    ${studentRows.length}`)
+  console.log(`  Recaps:      ${recapRows.length}`)
+  console.log('══════════════════════════════════════════')
+  console.log('\n⚠  Pegawai users use existing bcrypt passwords from the old system.')
+  console.log('   Login: username = NIP (or NIK if no NIP), password = existing password.')
 }
+
+import { eq } from 'drizzle-orm'
 
 main().catch((err) => {
   console.error('Seed failed:', err)
