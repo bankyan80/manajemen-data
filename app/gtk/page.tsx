@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
+import { Loader2 } from 'lucide-react'
 
 const TABS = ['Data Kepala Sekolah', 'Data Guru', 'Data Tenaga Kependidikan', 'Status Pegawai', 'Sertifikasi', 'Pendidikan Terakhir', 'BUP/Pensiun']
 
@@ -14,7 +15,36 @@ export default function GtkPage() {
   const [activeTab, setActiveTab] = useState(0)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<any | null>(null)
-  const { data: employees, loading } = useData<any[]>('employees', () => fetchJson('/api/employees'))
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState<any>({})
+  const { data: employees, loading, error } = useData<any[]>('employees', () => fetchJson('/api/employees'))
+  const refresh = useData<any[]>('employees-r', () => fetchJson('/api/employees'))
+
+  const openDetail = (e: any) => { setSelected(e); setEditing(false); setForm({}) }
+  const closeDetail = () => { setSelected(null); setEditing(false); setForm({}) }
+
+  const startEdit = () => { setForm({ ...selected }); setEditing(true) }
+
+  const handleSave = useCallback(async () => {
+    if (!selected) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/employees/${selected.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) throw new Error('Gagal menyimpan')
+      setSelected({ ...selected, ...form })
+      setEditing(false)
+      refresh.data = null // bust cache
+    } catch (err: any) {
+      alert('Gagal menyimpan: ' + err.message)
+    } finally {
+      setSaving(false)
+    }
+  }, [selected, form])
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -108,7 +138,7 @@ export default function GtkPage() {
                     </td>
                     <td className="px-4 py-3">{e.jenis_kelamin || '-'}</td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setSelected(e)} className="text-blue-600 hover:underline text-xs">Detail</button>
+                      <button onClick={() => openDetail(e)} className="text-blue-600 hover:underline text-xs">Detail</button>
                     </td>
                   </tr>
                 ))}
@@ -129,29 +159,64 @@ export default function GtkPage() {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelected(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeDetail}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-              <h3 className="font-semibold text-zinc-900">Detail Pegawai</h3>
-              <button onClick={() => setSelected(null)} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
+              <h3 className="font-semibold text-zinc-900">{editing ? 'Edit Pegawai' : 'Detail Pegawai'}</h3>
+              <button onClick={closeDetail} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
             </div>
             <div className="px-6 py-4 space-y-3 text-sm">
-              <Row label="Nama" value={selected.nama} />
-              <Row label="NIK" value={selected.nik} />
-              <Row label="NIP" value={selected.nip || '-'} />
-              <Row label="NUPTK" value={selected.nuptk || '-'} />
-              <Row label="Jenis Kelamin" value={selected.jenis_kelamin || '-'} />
-              <Row label="Tempat Lahir" value={selected.tempat_lahir || '-'} />
-              <Row label="Tanggal Lahir" value={selected.tanggal_lahir || '-'} />
-              <Row label="Jabatan" value={selected.jabatan || '-'} />
-              <Row label="Status Pegawai" value={selected.status_pegawai || '-'} />
-              <Row label="Pangkat/Golongan" value={selected.pangkat_golongan || '-'} />
-              <Row label="Pendidikan Terakhir" value={selected.pendidikan_terakhir || '-'} />
-              <Row label="Sertifikasi" value={selected.sertifikasi || '-'} />
-              <Row label="TMT Kerja" value={selected.tmt_kerja || '-'} />
-              <Row label="Email" value={selected.email || '-'} />
-              <Row label="No HP" value={selected.no_hp || '-'} />
-              <Row label="Unit Kerja" value={selected.school_nama || '-'} />
+              {editing ? (
+                <>
+                  <Field label="Nama" value={form.nama} onChange={v => setForm({ ...form, nama: v })} />
+                  <Field label="NIK" value={form.nik} onChange={v => setForm({ ...form, nik: v })} />
+                  <Field label="NIP" value={form.nip || ''} onChange={v => setForm({ ...form, nip: v })} />
+                  <Field label="NUPTK" value={form.nuptk || ''} onChange={v => setForm({ ...form, nuptk: v })} />
+                  <Select label="Jenis Kelamin" value={form.jenis_kelamin || ''} onChange={v => setForm({ ...form, jenis_kelamin: v })} options={['', 'laki-laki', 'perempuan']} />
+                  <Field label="Tempat Lahir" value={form.tempat_lahir || ''} onChange={v => setForm({ ...form, tempat_lahir: v })} />
+                  <Field label="Tanggal Lahir" value={form.tanggal_lahir || ''} onChange={v => setForm({ ...form, tanggal_lahir: v })} />
+                  <Field label="Jabatan" value={form.jabatan || ''} onChange={v => setForm({ ...form, jabatan: v })} />
+                  <Select label="Status Pegawai" value={form.status_pegawai || ''} onChange={v => setForm({ ...form, status_pegawai: v })} options={['', 'pns', 'pppk', 'non_asn']} />
+                  <Field label="Pangkat/Golongan" value={form.pangkat_golongan || ''} onChange={v => setForm({ ...form, pangkat_golongan: v })} />
+                  <Field label="Pendidikan Terakhir" value={form.pendidikan_terakhir || ''} onChange={v => setForm({ ...form, pendidikan_terakhir: v })} />
+                  <Select label="Sertifikasi" value={form.sertifikasi || ''} onChange={v => setForm({ ...form, sertifikasi: v })} options={['', 'sudah', 'belum']} />
+                  <Field label="TMT Kerja" value={form.tmt_kerja || ''} onChange={v => setForm({ ...form, tmt_kerja: v })} />
+                  <Field label="Email" value={form.email || ''} onChange={v => setForm({ ...form, email: v })} />
+                  <Field label="No HP" value={form.no_hp || ''} onChange={v => setForm({ ...form, no_hp: v })} />
+                </>
+              ) : (
+                <>
+                  <Row label="Nama" value={selected.nama} />
+                  <Row label="NIK" value={selected.nik} />
+                  <Row label="NIP" value={selected.nip || '-'} />
+                  <Row label="NUPTK" value={selected.nuptk || '-'} />
+                  <Row label="Jenis Kelamin" value={selected.jenis_kelamin || '-'} />
+                  <Row label="Tempat Lahir" value={selected.tempat_lahir || '-'} />
+                  <Row label="Tanggal Lahir" value={selected.tanggal_lahir || '-'} />
+                  <Row label="Jabatan" value={selected.jabatan || '-'} />
+                  <Row label="Status Pegawai" value={selected.status_pegawai || '-'} />
+                  <Row label="Pangkat/Golongan" value={selected.pangkat_golongan || '-'} />
+                  <Row label="Pendidikan Terakhir" value={selected.pendidikan_terakhir || '-'} />
+                  <Row label="Sertifikasi" value={selected.sertifikasi || '-'} />
+                  <Row label="TMT Kerja" value={selected.tmt_kerja || '-'} />
+                  <Row label="Email" value={selected.email || '-'} />
+                  <Row label="No HP" value={selected.no_hp || '-'} />
+                  <Row label="Unit Kerja" value={selected.school_nama || '-'} />
+                </>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200">
+              {editing ? (
+                <>
+                  <button onClick={() => setEditing(false)} className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-900">Batal</button>
+                  <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {saving ? 'Menyimpan...' : 'Simpan'}
+                  </button>
+                </>
+              ) : (
+                <button onClick={startEdit} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Edit</button>
+              )}
             </div>
           </div>
         </div>
@@ -165,6 +230,26 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-start gap-4">
       <span className="w-36 shrink-0 text-zinc-500">{label}</span>
       <span className="text-zinc-900 font-medium">{value}</span>
+    </div>
+  )
+}
+
+function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-start gap-4">
+      <span className="w-36 shrink-0 text-zinc-500 pt-2">{label}</span>
+      <input type="text" value={value} onChange={e => onChange(e.target.value)} className="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </div>
+  )
+}
+
+function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <div className="flex items-start gap-4">
+      <span className="w-36 shrink-0 text-zinc-500 pt-2">{label}</span>
+      <select value={value} onChange={e => onChange(e.target.value)} className="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        {options.map(o => <option key={o} value={o}>{o || 'Pilih...'}</option>)}
+      </select>
     </div>
   )
 }
