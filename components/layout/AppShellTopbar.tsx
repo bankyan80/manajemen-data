@@ -40,7 +40,7 @@ export default function AppShellTopbar({ children }: AppShellTopbarProps) {
       </div>
       <main className="min-h-screen bg-zinc-50 pt-16">
         <div className="hidden sm:block">
-          <div className="h-12" />
+          <div className="h-16" />
         </div>
         <div className="sm:hidden">
           <div className="h-14" />

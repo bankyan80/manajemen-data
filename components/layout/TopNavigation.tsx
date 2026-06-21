@@ -122,29 +122,24 @@ export default function TopNavigation({
   userRole,
 }: TopNavigationProps) {
   return (
-    <nav className="fixed top-16 left-0 right-0 z-40 flex h-12 items-center border-b border-zinc-200 bg-white shadow-sm">
-      <div className="flex w-full items-center gap-1 overflow-x-auto px-4 scrollbar-none">
+    <nav className="fixed top-16 left-0 right-0 z-40 border-b border-zinc-200 bg-white shadow-sm">
+      <div className="flex w-full flex-wrap items-center justify-center gap-x-1 gap-y-0 px-2 py-1.5">
         {navItems.map((item) => {
           const isActive = currentPath === item.href
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors whitespace-nowrap ${
                 isActive
-                  ? 'text-teal-700'
+                  ? 'text-teal-700 bg-teal-50'
                   : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
               }`}
             >
-              <span
-                className={`${isActive ? 'text-teal-600' : 'text-zinc-400'}`}
-              >
+              <span className={`${isActive ? 'text-teal-600' : 'text-zinc-400'}`}>
                 {item.icon}
               </span>
-              <span>{item.label}</span>
-              {isActive && (
-                <span className="absolute bottom-0 left-1/2 h-0.5 w-3/4 -translate-x-1/2 rounded-full bg-teal-600" />
-              )}
+              <span className="hidden sm:inline">{item.label}</span>
             </Link>
           )
         })}
