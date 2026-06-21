@@ -5,7 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { PackageOpen, CheckCircle2, AlertCircle, Loader2, Plus } from 'lucide-react'
+import { PackageOpen, CheckCircle2, AlertCircle, Loader2, Plus, ArrowLeft } from 'lucide-react'
 
 const TABS = ['Ruang Kelas', 'Perpustakaan', 'UKS', 'Toilet/WC', 'Meja Kursi', 'APE PAUD', 'Sanitasi', 'Rumah Dinas', 'Usulan Rehab']
 const JENIS_LIST = ['Ruang Kelas', 'Perpustakaan', 'UKS', 'Toilet/WC', 'Meja Kursi', 'APE PAUD', 'Sanitasi', 'Rumah Dinas', 'Usulan Rehab']
@@ -15,6 +15,7 @@ export default function SarprasPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(0)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [detailSekolah, setDetailSekolah] = useState<any | null>(null)
   const [editing, setEditing] = useState<any | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
@@ -82,7 +83,7 @@ export default function SarprasPage() {
         </div>
 
         {/* Admin view */}
-        {role === 'admin_kecamatan' && (
+        {role === 'admin_kecamatan' && !detailSekolah && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -115,7 +116,7 @@ export default function SarprasPage() {
                         </td>
                         <td className="px-4 py-3 text-xs text-zinc-500">{jenisDiisi.length ? jenisDiisi.join(', ') : '-'}</td>
                         <td className="px-4 py-3">
-                          <button onClick={() => setActiveTab(0)} className="text-blue-600 hover:underline text-xs">Lihat Detail</button>
+                          <button onClick={() => setDetailSekolah(s)} className="text-blue-600 hover:underline text-xs">Lihat Detail</button>
                         </td>
                       </tr>
                     )
@@ -124,6 +125,54 @@ export default function SarprasPage() {
               </table>
             </div>
           </div>
+        )}
+
+        {/* Admin detail view */}
+        {role === 'admin_kecamatan' && detailSekolah && (
+          <>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setDetailSekolah(null)} className="text-zinc-500 hover:text-zinc-800"><ArrowLeft className="w-5 h-5" /></button>
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-900">{detailSekolah.nama}</h2>
+                <p className="text-sm text-zinc-500">NPSN: {detailSekolah.npsn} &middot; {detailSekolah.jenjang}</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jenis</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Tahun</th>
+                      <th className="text-center px-2 py-3 font-semibold text-zinc-700 text-xs">Jumlah</th>
+                      <th className="text-center px-2 py-3 font-semibold text-zinc-700 text-xs">Baik</th>
+                      <th className="text-center px-2 py-3 font-semibold text-zinc-700 text-xs">RR</th>
+                      <th className="text-center px-2 py-3 font-semibold text-zinc-700 text-xs">RS</th>
+                      <th className="text-center px-2 py-3 font-semibold text-zinc-700 text-xs">RB</th>
+                      <th className="text-center px-2 py-3 font-semibold text-zinc-700 text-xs">Kebutuhan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.filter(s => s.school_id === detailSekolah.id).map((s: any, i: number) => (
+                      <tr key={s.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
+                        <td className="px-4 py-3 font-medium text-zinc-900">{s.jenis_sarpras}</td>
+                        <td className="px-4 py-3">{s.tahun_pelajaran}</td>
+                        <td className="text-center px-2 py-3">{s.jumlah}</td>
+                        <td className="text-center px-2 py-3 text-green-700">{s.kondisi_baik}</td>
+                        <td className="text-center px-2 py-3 text-amber-700">{s.rusak_ringan}</td>
+                        <td className="text-center px-2 py-3 text-orange-700">{s.rusak_sedang}</td>
+                        <td className="text-center px-2 py-3 text-red-700">{s.rusak_berat}</td>
+                        <td className="text-center px-2 py-3">{s.kebutuhan}</td>
+                      </tr>
+                    ))}
+                    {filtered.filter(s => s.school_id === detailSekolah.id).length === 0 && (
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-zinc-400">Belum ada data sarpras untuk sekolah ini</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Operator view */}
