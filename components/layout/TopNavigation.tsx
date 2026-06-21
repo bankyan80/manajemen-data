@@ -121,12 +121,10 @@ export default function TopNavigation({
   currentPath,
   userRole,
 }: TopNavigationProps) {
-  const filteredItems = navItems.filter((item) => item.roles.includes(userRole))
-
   return (
     <nav className="fixed top-16 left-0 right-0 z-40 flex h-12 items-center border-b border-zinc-200 bg-white shadow-sm">
       <div className="flex w-full items-center gap-1 overflow-x-auto px-4 scrollbar-none">
-        {filteredItems.map((item) => {
+        {navItems.map((item) => {
           const isActive = currentPath === item.href
           return (
             <Link
