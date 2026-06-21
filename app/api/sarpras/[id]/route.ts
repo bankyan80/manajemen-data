@@ -10,11 +10,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const body = await req.json()
 
-  const allowed = ['tahun_pelajaran','jenis_sarpras','jumlah','kondisi_baik','rusak_ringan','rusak_sedang','rusak_berat','kebutuhan','keterangan']
   const update: Record<string, any> = {}
-  for (const key of allowed) {
-    if (body[key] !== undefined) update[key] = body[key]
-  }
+  if (body.tahun_pelajaran !== undefined) update.tahun_pelajaran = body.tahun_pelajaran
+  if (body.kategori !== undefined) update.kategori = body.kategori
+  if (body.data !== undefined) update.data = typeof body.data === 'string' ? body.data : JSON.stringify(body.data)
+  if (body.keterangan !== undefined) update.keterangan = body.keterangan
   update.updated_at = Date.now()
 
   await db.update(infrastructure).set(update).where(eq(infrastructure.id, id))

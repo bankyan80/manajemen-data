@@ -155,18 +155,16 @@ export const studentRecaps = sqliteTable('student_recaps', {
 // INFRASTRUCTURE
 // ============================================================
 
+// Kategori Dapodik: Tanah, Bangunan, Ruang Kelas, Ruang Kantor,
+// Laboratorium, Perpustakaan, Sanitasi, Penunjang, Alat & Buku
+// Kolom `data` berisi JSON spesifik per kategori.
+
 export const infrastructure = sqliteTable('infrastructure', {
   ...id,
   school_id: text('school_id').notNull().references(() => schools.id),
   tahun_pelajaran: text('tahun_pelajaran').notNull(),
-  jenis_sarpras: text('jenis_sarpras').notNull(),
-  jumlah: integer('jumlah').notNull().default(0),
-  kondisi_baik: integer('kondisi_baik').notNull().default(0),
-  rusak_ringan: integer('rusak_ringan').notNull().default(0),
-  rusak_sedang: integer('rusak_sedang').notNull().default(0),
-  rusak_berat: integer('rusak_berat').notNull().default(0),
-  kebutuhan: integer('kebutuhan').notNull().default(0),
-  foto_url: text('foto_url'),
+  kategori: text('kategori').notNull(),
+  data: text('data').notNull().default('{}'),
   keterangan: text('keterangan'),
   ...timestamps,
 })

@@ -8,6 +8,13 @@
       "when": 1782041001930,
       "tag": "0000_sharp_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1782500000000,
+      "tag": "0001_fresh_infrastructure",
+      "breakpoints": true
     }
   ]
 }

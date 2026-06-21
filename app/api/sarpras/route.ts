@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const schoolId = searchParams.get('school_id')
-  const jenis = searchParams.get('jenis_sarpras')
+  const kategori = searchParams.get('kategori')
 
   let effectiveSchoolId = schoolId
   if (role === 'operator_sekolah' && userSekolahId) {
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   let filters = sql`1=1`
   if (effectiveSchoolId) filters = sql`${filters} AND ${eq(infrastructure.school_id, effectiveSchoolId)}`
-  if (jenis) filters = sql`${filters} AND ${eq(infrastructure.jenis_sarpras, jenis)}`
+  if (kategori) filters = sql`${filters} AND ${eq(infrastructure.kategori, kategori)}`
 
   const data = await db
     .select({
@@ -34,19 +34,14 @@ export async function GET(req: NextRequest) {
       school_nama: schools.nama,
       school_npsn: schools.npsn,
       tahun_pelajaran: infrastructure.tahun_pelajaran,
-      jenis_sarpras: infrastructure.jenis_sarpras,
-      jumlah: infrastructure.jumlah,
-      kondisi_baik: infrastructure.kondisi_baik,
-      rusak_ringan: infrastructure.rusak_ringan,
-      rusak_sedang: infrastructure.rusak_sedang,
-      rusak_berat: infrastructure.rusak_berat,
-      kebutuhan: infrastructure.kebutuhan,
+      kategori: infrastructure.kategori,
+      data: infrastructure.data,
       keterangan: infrastructure.keterangan,
     })
     .from(infrastructure)
     .leftJoin(schools, eq(infrastructure.school_id, schools.id))
     .where(filters)
-    .orderBy(desc(infrastructure.created_at))
+    .orderBy(infrastructure.kategori, desc(infrastructure.created_at))
 
   return NextResponse.json(data)
 }
@@ -59,14 +54,32 @@ export async function POST(req: NextRequest) {
   const userSekolahId = (session?.user as any)?.sekolah_id
 
   const body = await req.json()
-  let { school_id, tahun_pelajaran, jenis_sarpras, jumlah, kondisi_baik, rusak_ringan, rusak_sedang, rusak_berat, kebutuhan, keterangan } = body
+  let { school_id, tahun_pelajaran, kategori, data, keterangan } = body
 
   if (role === 'operator_sekolah' && userSekolahId) {
     school_id = userSekolahId
   }
 
-  if (!school_id || !tahun_pelajaran || !jenis_sarpras) {
-    return NextResponse.json({ error: 'school_id, tahun_pelajaran, jenis_sarpras required' }, { status: 400 })
+  if (!school_id || !tahun_pelajaran || !kategori) {
+    return NextResponse.json({ error: 'school_id, tahun_pelajaran, kategori required' }, { status: 400 })
+  }
+
+  // Cek apakah sudah ada — update instead of insert
+  const existing = await db
+    .select({ id: infrastructure.id })
+    .from(infrastructure)
+    .where(sql`${eq(infrastructure.school_id, school_id)} AND ${eq(infrastructure.kategori, kategori)} AND ${eq(infrastructure.tahun_pelajaran, tahun_pelajaran)}`)
+    .limit(1)
+
+  if (existing.length > 0) {
+    await db.update(infrastructure)
+      .set({
+        data: typeof data === 'string' ? data : JSON.stringify(data || {}),
+        keterangan: keterangan || null,
+        updated_at: Date.now(),
+      })
+      .where(eq(infrastructure.id, existing[0].id))
+    return NextResponse.json({ success: true, id: existing[0].id, updated: true })
   }
 
   const id = crypto.randomUUID()
@@ -76,13 +89,8 @@ export async function POST(req: NextRequest) {
     id,
     school_id,
     tahun_pelajaran,
-    jenis_sarpras,
-    jumlah: jumlah || 0,
-    kondisi_baik: kondisi_baik || 0,
-    rusak_ringan: rusak_ringan || 0,
-    rusak_sedang: rusak_sedang || 0,
-    rusak_berat: rusak_berat || 0,
-    kebutuhan: kebutuhan || 0,
+    kategori,
+    data: typeof data === 'string' ? data : JSON.stringify(data || {}),
     keterangan: keterangan || null,
     created_at: now,
     updated_at: now,
