@@ -113,45 +113,108 @@ export default function GtkPage() {
           </select>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-zinc-50 border-b border-zinc-200">
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama</th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700">NIK</th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700">NIP</th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jabatan</th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700">Unit Kerja</th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700">Status</th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jenis Kelamin</th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayData.map((e, i) => (
-                  <tr key={e.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
-                    <td className="px-4 py-3 font-medium text-zinc-900">{e.nama}</td>
-                    <td className="px-4 py-3">{e.nik}</td>
-                    <td className="px-4 py-3">{e.nip || '-'}</td>
-                    <td className="px-4 py-3">{e.jabatan || '-'}</td>
-                    <td className="px-4 py-3">{e.school_nama || '-'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[e.status_pegawai] || 'bg-zinc-100 text-zinc-700'}`}>{STATUS_LABELS[e.status_pegawai] || e.status_pegawai || '-'}</span>
-                    </td>
-                    <td className="px-4 py-3">{e.jenis_kelamin || '-'}</td>
-                    <td className="px-4 py-3">
-                      <button onClick={() => openDetail(e)} className="text-blue-600 hover:underline text-xs">Detail</button>
-                    </td>
-                  </tr>
-                ))}
-                {displayData.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-zinc-400">Tidak ada data</td></tr>
-                )}
-              </tbody>
-            </table>
+        {activeTab !== 6 && (
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  {activeTab === 3 ? (
+                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">NIK</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jabatan</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Unit Kerja</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Status Pegawai</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jenis Kelamin</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>
+                    </tr>
+                  ) : activeTab === 4 ? (
+                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">NIK</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">NIP</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jabatan</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Unit Kerja</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Sertifikasi</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>
+                    </tr>
+                  ) : activeTab === 5 ? (
+                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">NIK</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jabatan</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Unit Kerja</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Pendidikan Terakhir</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>
+                    </tr>
+                  ) : (
+                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">NIK</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">NIP</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jabatan</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Unit Kerja</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Status</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jenis Kelamin</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>
+                    </tr>
+                  )}
+                </thead>
+                <tbody>
+                  {displayData.map((e, i) => (
+                    <tr key={e.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
+                      <td className="px-4 py-3 font-medium text-zinc-900">{e.nama}</td>
+                      <td className="px-4 py-3">{e.nik}</td>
+                      {activeTab === 3 ? (
+                        <>
+                          <td className="px-4 py-3">{e.jabatan || '-'}</td>
+                          <td className="px-4 py-3">{e.school_nama || '-'}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[e.status_pegawai] || 'bg-zinc-100 text-zinc-700'}`}>{STATUS_LABELS[e.status_pegawai] || e.status_pegawai || '-'}</span>
+                          </td>
+                          <td className="px-4 py-3">{e.jenis_kelamin || '-'}</td>
+                        </>
+                      ) : activeTab === 4 ? (
+                        <>
+                          <td className="px-4 py-3">{e.nip || '-'}</td>
+                          <td className="px-4 py-3">{e.jabatan || '-'}</td>
+                          <td className="px-4 py-3">{e.school_nama || '-'}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.sertifikasi === 'sudah' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-700'}`}>{e.sertifikasi || '-'}</span>
+                          </td>
+                        </>
+                      ) : activeTab === 5 ? (
+                        <>
+                          <td className="px-4 py-3">{e.jabatan || '-'}</td>
+                          <td className="px-4 py-3">{e.school_nama || '-'}</td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">{e.pendidikan_terakhir || '-'}</span>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-4 py-3">{e.nip || '-'}</td>
+                          <td className="px-4 py-3">{e.jabatan || '-'}</td>
+                          <td className="px-4 py-3">{e.school_nama || '-'}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[e.status_pegawai] || 'bg-zinc-100 text-zinc-700'}`}>{STATUS_LABELS[e.status_pegawai] || e.status_pegawai || '-'}</span>
+                          </td>
+                          <td className="px-4 py-3">{e.jenis_kelamin || '-'}</td>
+                        </>
+                      )}
+                      <td className="px-4 py-3">
+                        <button onClick={() => openDetail(e)} className="text-blue-600 hover:underline text-xs">Detail</button>
+                      </td>
+                    </tr>
+                  ))}
+                  {displayData.length === 0 && (
+                    <tr><td colSpan={activeTab === 3 ? 7 : activeTab === 4 ? 7 : activeTab === 5 ? 6 : 8} className="px-4 py-8 text-center text-sm text-zinc-400">Tidak ada data</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
 
         {activeTab === 5 && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
