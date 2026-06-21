@@ -18,6 +18,7 @@ export default function GtkPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [statusFilter, setStatusFilter] = useState('')
+  const [pendidikanFilter, setPendidikanFilter] = useState('')
   const [form, setForm] = useState<any>({})
   const { data: employees, loading, error } = useData<any[]>('employees', () => fetchJson('/api/employees'))
   const refresh = useData<any[]>('employees-r', () => fetchJson('/api/employees'))
@@ -54,7 +55,8 @@ export default function GtkPage() {
     (e.nama.toLowerCase().includes(search.toLowerCase()) ||
     e.nik.includes(search) ||
     (e.nip && e.nip.includes(search))) &&
-    (!statusFilter || e.status_pegawai === statusFilter)
+    (!statusFilter || e.status_pegawai === statusFilter) &&
+    (!pendidikanFilter || (e.pendidikan_terakhir || '') === pendidikanFilter)
   )
 
   const dataKepsek = filtered.filter(e => e.jabatan?.toLowerCase().includes('kepala sekolah'))
@@ -69,6 +71,7 @@ export default function GtkPage() {
   const belumSertifikasi = filtered.filter(e => e.sertifikasi === 'belum')
 
   const dataGuruDanKepsek = filtered.filter(e => e.jabatan?.toLowerCase().includes('guru') || e.jabatan?.toLowerCase().includes('kepala'))
+  const pendidikanGroups = [...new Set((employees || []).map(e => e.pendidikan_terakhir || '').filter(Boolean))].sort()
   const displayData = activeTab === 0 ? dataKepsek : activeTab === 1 ? dataGuru : activeTab === 2 ? dataTendik : activeTab === 4 ? dataGuruDanKepsek : filtered
 
   if (loading) return <div className="p-8 text-center text-zinc-500">Memuat data...</div>
@@ -102,6 +105,10 @@ export default function GtkPage() {
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
             <option value="">Semua Status</option>
             {STATUS_KEYS.map(k => <option key={k} value={k}>{STATUS_LABELS[k]}</option>)}
+          </select>
+          <select value={pendidikanFilter} onChange={e => setPendidikanFilter(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
+            <option value="">Semua Pendidikan</option>
+            {pendidikanGroups.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
         </div>
 
@@ -144,6 +151,27 @@ export default function GtkPage() {
             </table>
           </div>
         </div>
+
+        {activeTab === 5 && (
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
+            <h3 className="font-semibold text-zinc-900 mb-3">Ringkasan Pendidikan Terakhir</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {pendidikanGroups.map(k => {
+                const c = (employees || []).filter(e => (e.pendidikan_terakhir || '') === k).length
+                return (
+                  <div key={k} className="border border-zinc-200 rounded-lg p-3 text-center">
+                    <p className="text-lg font-bold text-blue-700">{c}</p>
+                    <p className="text-xs text-zinc-500">{k}</p>
+                  </div>
+                )
+              })}
+              <div className="border border-zinc-200 rounded-lg p-3 text-center">
+                <p className="text-lg font-bold text-zinc-400">{(employees || []).filter(e => !e.pendidikan_terakhir).length}</p>
+                <p className="text-xs text-zinc-500">Belum diisi</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeTab === 6 && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
