@@ -152,20 +152,106 @@ export const studentRecaps = sqliteTable('student_recaps', {
 })
 
 // ============================================================
-// INFRASTRUCTURE
+// TANAH (Lahan)
 // ============================================================
 
-// Kategori Dapodik: Tanah, Bangunan, Ruang Kelas, Ruang Kantor,
-// Laboratorium, Perpustakaan, Sanitasi, Penunjang, Alat & Buku
-// Kolom `data` berisi JSON spesifik per kategori.
-
-export const infrastructure = sqliteTable('infrastructure', {
+export const tanah = sqliteTable('tanah', {
   ...id,
   school_id: text('school_id').notNull().references(() => schools.id),
-  tahun_pelajaran: text('tahun_pelajaran').notNull(),
-  kategori: text('kategori').notNull(),
-  data: text('data').notNull().default('{}'),
+  nama_tanah: text('nama_tanah').notNull(),
+  nomor_sertifikat: text('nomor_sertifikat'),
+  jenis_lahan: text('jenis_lahan').notNull().default('induk'), // induk | sekat
+  panjang: real('panjang').default(0),
+  lebar: real('lebar').default(0),
+  luas: real('luas').default(0),
+  status_kepemilikan: text('status_kepemilikan').notNull().default('milik_sendiri'), // milik_sendiri | sewa | pinjam | bukan_milik
+  pemilik: text('pemilik'),
+  luas_siap_bangun: real('luas_siap_bangun').default(0),
+  ...timestamps,
+})
+
+// ============================================================
+// BANGUNAN (Gedung)
+// ============================================================
+
+export const bangunan = sqliteTable('bangunan', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  nama_gedung: text('nama_gedung').notNull(),
+  jenis_prasarana: text('jenis_prasarana'),
+  jumlah_lantai: integer('jumlah_lantai').default(1),
+  panjang: real('panjang').default(0),
+  lebar: real('lebar').default(0),
+  luas_tapak: real('luas_tapak').default(0),
+  tahun_dibangun: integer('tahun_dibangun'),
+  tahun_renovasi: integer('tahun_renovasi'),
+  nilai_perolehan: real('nilai_perolehan').default(0),
+  kondisi_pondasi: integer('kondisi_pondasi').default(0), // persen kerusakan
+  kondisi_kolom: integer('kondisi_kolom').default(0),
+  kondisi_balok: integer('kondisi_balok').default(0),
+  kondisi_pelat_lantai: integer('kondisi_pelat_lantai').default(0),
+  kondisi_atap: integer('kondisi_atap').default(0),
   keterangan: text('keterangan'),
+  ...timestamps,
+})
+
+// ============================================================
+// RUANG
+// ============================================================
+
+export const ruang = sqliteTable('ruang', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  bangunan_id: text('bangunan_id').references(() => bangunan.id),
+  kode_ruang: text('kode_ruang'),
+  nama_ruang: text('nama_ruang').notNull(),
+  lantai_ke: integer('lantai_ke').default(1),
+  panjang: real('panjang').default(0),
+  lebar: real('lebar').default(0),
+  kapasitas_siswa: integer('kapasitas_siswa').default(0),
+  kondisi_non_struktur: text('kondisi_non_struktur'), // plesteran, plafon, kaca, pintu, kusen
+  jenis_ruang: text('jenis_ruang').default('umum'), // umum | wc | dapur | kantin
+  peruntukan_wc: text('peruntukan_wc'), // guru_l | guru_p | siswa_l | siswa_p | difabel
+  ...timestamps,
+})
+
+// ============================================================
+// SUB-RUANG (sekat/bilik dalam ruangan)
+// ============================================================
+
+export const subRuang = sqliteTable('sub_ruang', {
+  ...id,
+  ruang_id: text('ruang_id').notNull().references(() => ruang.id),
+  nama: text('nama').notNull(),
+  jumlah: integer('jumlah').default(1),
+  ...timestamps,
+})
+
+// ============================================================
+// SARANA (Alat, APE, inventaris)
+// ============================================================
+
+export const sarana = sqliteTable('sarana', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  ruang_id: text('ruang_id').references(() => ruang.id),
+  nama_sarana: text('nama_sarana').notNull(),
+  jenis: text('jenis').notNull().default('alat'), // alat | ape
+  jumlah: integer('jumlah').default(0),
+  kondisi: text('kondisi').default('baik'), // baik | rusak
+  ...timestamps,
+})
+
+// ============================================================
+// BUKU (Perpustakaan)
+// ============================================================
+
+export const buku = sqliteTable('buku', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  jenis_buku: text('jenis_buku').notNull(), // teks_pelajaran | panduan_guru | pengayaan | fiksi | non_fiksi
+  jumlah_judul: integer('jumlah_judul').default(0),
+  jumlah_eksemplar: integer('jumlah_eksemplar').default(0),
   ...timestamps,
 })
 

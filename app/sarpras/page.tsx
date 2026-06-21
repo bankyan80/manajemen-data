@@ -5,83 +5,97 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { PackageOpen, CheckCircle2, AlertCircle, Loader2, Plus, ArrowLeft } from 'lucide-react'
+import { PackageOpen, CheckCircle2, AlertCircle, Loader2, Plus, ArrowLeft, Pencil, Trash2 } from 'lucide-react'
 
-const KATEGORI = ['Tanah', 'Bangunan', 'Ruang Kelas', 'Ruang Kantor', 'Laboratorium', 'Perpustakaan', 'Sanitasi', 'Penunjang', 'Alat & Buku']
+type TabKey = 'tanah' | 'bangunan' | 'ruang' | 'sarana' | 'buku'
 
-const FIELDS: Record<string, { key: string; label: string; type: 'text' | 'number' | 'select' | 'checkbox'; options?: string[] }[]> = {
-  Tanah: [
-    { key: 'kepemilikan', label: 'Status Kepemilikan', type: 'select', options: ['', 'Milik Sendiri', 'Sewa', 'Hibah'] },
-    { key: 'luas_lahan', label: 'Luas Lahan (m²)', type: 'number' },
-    { key: 'luas_bangunan', label: 'Luas Bangunan (m²)', type: 'number' },
+interface FieldDef {
+  key: string
+  label: string
+  type: 'text' | 'number' | 'select' | 'checkbox'
+  options?: string[]
+  required?: boolean
+}
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'tanah', label: 'Tanah' },
+  { key: 'bangunan', label: 'Bangunan' },
+  { key: 'ruang', label: 'Ruang' },
+  { key: 'sarana', label: 'Sarana' },
+  { key: 'buku', label: 'Buku' },
+]
+
+const TABLE_FIELDS: Record<TabKey, FieldDef[]> = {
+  tanah: [
+    { key: 'nama_tanah', label: 'Nama Tanah', type: 'text', required: true },
+    { key: 'nomor_sertifikat', label: 'No Sertifikat', type: 'text' },
+    { key: 'jenis_lahan', label: 'Jenis Lahan', type: 'select', options: ['induk', 'sekat'] },
+    { key: 'panjang', label: 'Panjang (m)', type: 'number' },
+    { key: 'lebar', label: 'Lebar (m)', type: 'number' },
+    { key: 'luas', label: 'Luas (m²)', type: 'number' },
+    { key: 'status_kepemilikan', label: 'Status Kepemilikan', type: 'select', options: ['milik_sendiri', 'sewa', 'pinjam', 'bukan_milik'] },
+    { key: 'pemilik', label: 'Pemilik', type: 'text' },
+    { key: 'luas_siap_bangun', label: 'Luas Siap Bangun (m²)', type: 'number' },
   ],
-  Bangunan: [
-    { key: 'kondisi', label: 'Kondisi', type: 'select', options: ['', 'Baik', 'Rusak Ringan', 'Rusak Sedang', 'Rusak Berat'] },
-    { key: 'tahun_bangun', label: 'Tahun Bangun', type: 'number' },
-    { key: 'tingkat_kerusakan', label: 'Tingkat Kerusakan', type: 'text' },
+  bangunan: [
+    { key: 'nama_gedung', label: 'Nama Gedung', type: 'text', required: true },
+    { key: 'jenis_prasarana', label: 'Jenis Prasarana', type: 'text' },
+    { key: 'jumlah_lantai', label: 'Jumlah Lantai', type: 'number' },
+    { key: 'panjang', label: 'Panjang (m)', type: 'number' },
+    { key: 'lebar', label: 'Lebar (m)', type: 'number' },
+    { key: 'luas_tapak', label: 'Luas Tapak (m²)', type: 'number' },
+    { key: 'tahun_dibangun', label: 'Tahun Dibangun', type: 'number' },
+    { key: 'tahun_renovasi', label: 'Tahun Renovasi', type: 'number' },
+    { key: 'nilai_perolehan', label: 'Nilai Perolehan', type: 'number' },
+    { key: 'kondisi_pondasi', label: 'Kerusakan Pondasi (%)', type: 'number' },
+    { key: 'kondisi_kolom', label: 'Kerusakan Kolom (%)', type: 'number' },
+    { key: 'kondisi_balok', label: 'Kerusakan Balok (%)', type: 'number' },
+    { key: 'kondisi_pelat_lantai', label: 'Kerusakan Pelat Lantai (%)', type: 'number' },
+    { key: 'kondisi_atap', label: 'Kerusakan Atap (%)', type: 'number' },
+    { key: 'keterangan', label: 'Keterangan', type: 'text' },
   ],
-  'Ruang Kelas': [
+  ruang: [
+    { key: 'kode_ruang', label: 'Kode Ruang', type: 'text' },
+    { key: 'nama_ruang', label: 'Nama Ruang', type: 'text', required: true },
+    { key: 'bangunan_id', label: 'Bangunan ID', type: 'text' },
+    { key: 'lantai_ke', label: 'Lantai Ke-', type: 'number' },
+    { key: 'panjang', label: 'Panjang (m)', type: 'number' },
+    { key: 'lebar', label: 'Lebar (m)', type: 'number' },
+    { key: 'kapasitas_siswa', label: 'Kapasitas Siswa', type: 'number' },
+    { key: 'jenis_ruang', label: 'Jenis Ruang', type: 'select', options: ['umum', 'wc', 'dapur', 'kantin'] },
+    { key: 'peruntukan_wc', label: 'Peruntukan WC', type: 'select', options: ['', 'guru_l', 'guru_p', 'siswa_l', 'siswa_p', 'difabel'] },
+    { key: 'kondisi_non_struktur', label: 'Kondisi Non-Struktur', type: 'text' },
+  ],
+  sarana: [
+    { key: 'nama_sarana', label: 'Nama Sarana', type: 'text', required: true },
+    { key: 'jenis', label: 'Jenis', type: 'select', options: ['alat', 'ape'] },
     { key: 'jumlah', label: 'Jumlah', type: 'number' },
-    { key: 'kondisi', label: 'Kondisi', type: 'select', options: ['', 'Baik', 'Rusak Ringan', 'Rusak Sedang', 'Rusak Berat'] },
-    { key: 'luas', label: 'Luas (m²)', type: 'number' },
+    { key: 'kondisi', label: 'Kondisi', type: 'select', options: ['baik', 'rusak'] },
+    { key: 'ruang_id', label: 'Ruang ID', type: 'text' },
   ],
-  'Ruang Kantor': [
-    { key: 'ruang_kepsek', label: 'Ruang Kepala Sekolah', type: 'number' },
-    { key: 'ruang_guru', label: 'Ruang Guru', type: 'number' },
-    { key: 'ruang_tu', label: 'Ruang TU', type: 'number' },
-    { key: 'ruang_bk', label: 'Ruang BK', type: 'number' },
-  ],
-  Laboratorium: [
-    { key: 'ipa', label: 'IPA', type: 'number' },
-    { key: 'komputer', label: 'Komputer', type: 'number' },
-    { key: 'bahasa', label: 'Bahasa', type: 'number' },
-    { key: 'multimedia', label: 'Multimedia', type: 'number' },
-  ],
-  Perpustakaan: [
-    { key: 'ada', label: 'Ada', type: 'checkbox' },
-    { key: 'luas', label: 'Luas (m²)', type: 'number' },
-    { key: 'jumlah_buku', label: 'Jumlah Buku', type: 'number' },
-  ],
-  Sanitasi: [
-    { key: 'toilet_guru', label: 'Toilet Guru', type: 'number' },
-    { key: 'toilet_siswa_l', label: 'Toilet Siswa Laki-laki', type: 'number' },
-    { key: 'toilet_siswa_p', label: 'Toilet Siswa Perempuan', type: 'number' },
-    { key: 'sumber_air', label: 'Sumber Air', type: 'text' },
-  ],
-  Penunjang: [
-    { key: 'uks', label: 'UKS', type: 'checkbox' },
-    { key: 'ibadah', label: 'Tempat Ibadah', type: 'checkbox' },
-    { key: 'kantin', label: 'Kantin', type: 'checkbox' },
-    { key: 'gudang', label: 'Gudang', type: 'checkbox' },
-    { key: 'parkir', label: 'Parkir', type: 'checkbox' },
-  ],
-  'Alat & Buku': [
-    { key: 'meja', label: 'Meja', type: 'number' },
-    { key: 'kursi', label: 'Kursi', type: 'number' },
-    { key: 'papan_tulis', label: 'Papan Tulis', type: 'number' },
-    { key: 'laptop', label: 'Laptop', type: 'number' },
-    { key: 'buku_teks', label: 'Buku Teks', type: 'number' },
+  buku: [
+    { key: 'jenis_buku', label: 'Jenis Buku', type: 'select', options: ['teks_pelajaran', 'panduan_guru', 'pengayaan', 'fiksi', 'non_fiksi'], required: true },
+    { key: 'jumlah_judul', label: 'Jumlah Judul', type: 'number' },
+    { key: 'jumlah_eksemplar', label: 'Jumlah Eksemplar', type: 'number' },
   ],
 }
 
-const DEFAULT_VALUES: Record<string, any> = {
-  Tanah: { kepemilikan: '', luas_lahan: 0, luas_bangunan: 0 },
-  Bangunan: { kondisi: '', tahun_bangun: 0, tingkat_kerusakan: '' },
-  'Ruang Kelas': { jumlah: 0, kondisi: '', luas: 0 },
-  'Ruang Kantor': { ruang_kepsek: 0, ruang_guru: 0, ruang_tu: 0, ruang_bk: 0 },
-  Laboratorium: { ipa: 0, komputer: 0, bahasa: 0, multimedia: 0 },
-  Perpustakaan: { ada: false, luas: 0, jumlah_buku: 0 },
-  Sanitasi: { toilet_guru: 0, toilet_siswa_l: 0, toilet_siswa_p: 0, sumber_air: '' },
-  Penunjang: { uks: false, ibadah: false, kantin: false, gudang: false, parkir: false },
-  'Alat & Buku': { meja: 0, kursi: 0, papan_tulis: 0, laptop: 0, buku_teks: 0 },
+const TABLE_COLUMNS: Record<TabKey, string[]> = {
+  tanah: ['Nama Tanah', 'No Sertifikat', 'Jenis', 'Luas', 'Kepemilikan', 'Pemilik'],
+  bangunan: ['Nama Gedung', 'Lantai', 'Luas Tapak', 'Tahun', 'Kondisi Atap'],
+  ruang: ['Kode', 'Nama Ruang', 'Lantai', 'Kapasitas', 'Jenis'],
+  sarana: ['Nama Sarana', 'Jenis', 'Jumlah', 'Kondisi'],
+  buku: ['Jenis Buku', 'Jumlah Judul', 'Jumlah Eksemplar'],
 }
 
-function hasData(obj: any): boolean {
-  if (!obj) return false
-  if (obj.ada !== undefined) return obj.ada === true || obj.luas > 0 || obj.jumlah_buku > 0
-  if (obj.kepemilikan !== undefined) return obj.kepemilikan !== '' || obj.luas_lahan > 0
-  if (obj.kondisi !== undefined) return obj.kondisi !== '' || obj.jumlah > 0
-  return Object.values(obj).some(v => v !== '' && v !== 0 && v !== false)
+function cellValue(row: any, tab: TabKey): string[] {
+  switch (tab) {
+    case 'tanah': return [row.nama_tanah, row.nomor_sertifikat || '-', row.jenis_lahan, `${row.luas || 0} m²`, row.status_kepemilikan, row.pemilik || '-']
+    case 'bangunan': return [row.nama_gedung, `${row.jumlah_lantai}`, `${row.luas_tapak || 0} m²`, `${row.tahun_dibangun || '-'}`, `${row.kondisi_atap || 0}%`]
+    case 'ruang': return [row.kode_ruang || '-', row.nama_ruang, `Lt.${row.lantai_ke}`, `${row.kapasitas_siswa || 0}`, row.jenis_ruang]
+    case 'sarana': return [row.nama_sarana, row.jenis, `${row.jumlah || 0}`, row.kondisi]
+    case 'buku': return [row.jenis_buku, `${row.jumlah_judul || 0}`, `${row.jumlah_eksemplar || 0}`]
+  }
 }
 
 export default function SarprasPage() {
@@ -89,13 +103,25 @@ export default function SarprasPage() {
   const router = useRouter()
   const [refreshKey, setRefreshKey] = useState(0)
   const [detailSekolah, setDetailSekolah] = useState<any | null>(null)
-  const [editingKat, setEditingKat] = useState<string | null>(null)
-  const [formData, setFormData] = useState<any>({})
-  const [formKeterangan, setFormKeterangan] = useState('')
+  const [subTab, setSubTab] = useState<TabKey>('tanah')
+  const [editing, setEditing] = useState<string | null>(null)
+  const [editRow, setEditRow] = useState<any | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const { data: sarpras } = useData<any[]>(`sarpras-${refreshKey}`, () => fetchJson('/api/sarpras'))
   const { data: allSchools } = useData<any[]>('schools', () => fetchJson('/api/schools'))
+  const { data: tanahData } = useData<any[]>(`tanah-${refreshKey}`, () => fetchJson(`/api/sarpras/tanah`))
+  const { data: bangunanData } = useData<any[]>(`bangunan-${refreshKey}`, () => fetchJson(`/api/sarpras/bangunan`))
+  const { data: ruangData } = useData<any[]>(`ruang-${refreshKey}`, () => fetchJson(`/api/sarpras/ruang`))
+  const { data: saranaData } = useData<any[]>(`sarana-${refreshKey}`, () => fetchJson(`/api/sarpras/sarana`))
+  const { data: bukuData } = useData<any[]>(`buku-${refreshKey}`, () => fetchJson(`/api/sarpras/buku`))
+
+  const ALL_DATA: Record<TabKey, any[]> = {
+    tanah: tanahData || [],
+    bangunan: bangunanData || [],
+    ruang: ruangData || [],
+    sarana: saranaData || [],
+    buku: bukuData || [],
+  }
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -103,41 +129,38 @@ export default function SarprasPage() {
   const role = session.user?.role
   const userSchoolId = session.user?.sekolah_id
 
-  const sekolahList = (allSchools || []).filter(s => role !== 'operator_sekolah' || s.id === userSchoolId)
+  const isOperator = role === 'operator_sekolah'
+  const sekolahList = (allSchools || []).filter(s => !isOperator || s.id === userSchoolId)
+  const currentData = ALL_DATA[subTab] || []
 
-  const openEdit = (kategori: string) => {
-    const existing = (sarpras || []).find(s => s.kategori === kategori && (role !== 'operator_sekolah' || s.school_id === userSchoolId))
-    if (existing) {
-      setFormData(JSON.parse(existing.data || '{}'))
-      setFormKeterangan(existing.keterangan || '')
-    } else {
-      setFormData({ ...DEFAULT_VALUES[kategori] })
-      setFormKeterangan('')
-    }
-    setEditingKat(kategori)
+  const openAdd = () => {
+    setEditing('new')
+    setEditRow({})
   }
 
-  const closeEdit = () => { setEditingKat(null); setFormData({}); setFormKeterangan('') }
+  const openEdit = (row: any) => {
+    setEditing(row.id)
+    setEditRow({ ...row })
+  }
+
+  const closeForm = () => { setEditing(null); setEditRow(null) }
 
   const handleSave = async () => {
+    if (!editRow) return
     setSaving(true)
     try {
-      const existing = (sarpras || []).find(s => s.kategori === editingKat && (role !== 'operator_sekolah' || s.school_id === userSchoolId))
-      const body = {
-        school_id: userSchoolId,
-        tahun_pelajaran: '2025/2026',
-        kategori: editingKat,
-        data: formData,
-        keterangan: formKeterangan || null,
-      }
-      if (existing) {
-        const res = await fetch(`/api/sarpras/${existing.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const body = { ...editRow }
+      delete body.id; delete body.created_at; delete body.updated_at
+      if (isOperator) body.school_id = userSchoolId
+
+      if (editing === 'new') {
+        const res = await fetch(`/api/sarpras/${subTab}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         if (!res.ok) throw new Error('Gagal menyimpan')
       } else {
-        const res = await fetch('/api/sarpras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        const res = await fetch(`/api/sarpras/${subTab}/${editing}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         if (!res.ok) throw new Error('Gagal menyimpan')
       }
-      closeEdit()
+      closeForm()
       setRefreshKey(k => k + 1)
     } catch (err: any) {
       alert('Gagal: ' + err.message)
@@ -146,17 +169,39 @@ export default function SarprasPage() {
     }
   }
 
-  const getDataForSchool = (schoolId: string, kategori: string) => {
-    const s = (sarpras || []).find(x => x.school_id === schoolId && x.kategori === kategori)
-    return s ? JSON.parse(s.data || '{}') : null
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus data ini?')) return
+    try {
+      const res = await fetch(`/api/sarpras/${subTab}/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Gagal menghapus')
+      setRefreshKey(k => k + 1)
+    } catch (err: any) {
+      alert('Gagal: ' + err.message)
+    }
   }
 
-  const getDataForKat = (kategori: string) => {
-    const s = (sarpras || []).find(x => x.kategori === kategori && (role !== 'operator_sekolah' || x.school_id === userSchoolId))
-    return s ? JSON.parse(s.data || '{}') : null
+  const sekolahHasData = (schoolId: string) => {
+    return ['tanah', 'bangunan', 'ruang', 'sarana', 'buku'].some(t => (ALL_DATA[t as TabKey] || []).some((d: any) => d.school_id === schoolId))
   }
 
-  const sekolahWithData = new Set((sarpras || []).filter(s => hasData(JSON.parse(s.data || '{}'))).map(s => s.school_id))
+  const renderFormField = (f: FieldDef) => {
+    const val = editRow?.[f.key] ?? ''
+    if (f.type === 'select') {
+      return (
+        <select value={val} onChange={e => setEditRow({ ...editRow, [f.key]: e.target.value })} className="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg bg-white text-sm">
+          {f.options?.map(o => <option key={o} value={o}>{o || 'Pilih...'}</option>)}
+        </select>
+      )
+    }
+    if (f.type === 'checkbox') {
+      return <input type="checkbox" checked={!!val} onChange={e => setEditRow({ ...editRow, [f.key]: e.target.checked })} className="mt-2 w-4 h-4" />
+    }
+    return (
+      <input type={f.type} value={val} onChange={e => setEditRow({ ...editRow, [f.key]: f.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value })} className="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg bg-white text-sm" />
+    )
+  }
+
+  const currentFields = TABLE_FIELDS[subTab] || []
 
   return (
     <AppShellTopbar>
@@ -174,16 +219,12 @@ export default function SarprasPage() {
                     <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama Sekolah</th>
                     <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jenjang</th>
                     <th className="text-left px-4 py-3 font-semibold text-zinc-700">Status Input</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Kategori Terisi</th>
                     <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sekolahList.map(s => {
-                    const ada = sekolahWithData.has(s.id)
-                    const katTerisi = (sarpras || [])
-                      .filter(x => x.school_id === s.id && hasData(JSON.parse(x.data || '{}')))
-                      .map(x => x.kategori)
+                    const ada = sekolahHasData(s.id)
                     return (
                       <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3">{s.npsn}</td>
@@ -196,7 +237,6 @@ export default function SarprasPage() {
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700"><AlertCircle className="w-3 h-3" />Belum Input</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-xs text-zinc-500">{katTerisi.length ? katTerisi.join(', ') : '-'}</td>
                         <td className="px-4 py-3">
                           <button onClick={() => setDetailSekolah(s)} className="text-blue-600 hover:underline text-xs">Lihat Detail</button>
                         </td>
@@ -209,105 +249,83 @@ export default function SarprasPage() {
           </div>
         )}
 
-        {/* Admin: detail per sekolah */}
-        {role === 'admin_kecamatan' && detailSekolah && (
+        {/* Detail / Operator view */}
+        {(role === 'admin_kecamatan' && detailSekolah) || isOperator ? (
           <>
-            <div className="flex items-center gap-3">
-              <button onClick={() => setDetailSekolah(null)} className="text-zinc-500 hover:text-zinc-800"><ArrowLeft className="w-5 h-5" /></button>
-              <div>
-                <h2 className="text-lg font-semibold text-zinc-900">{detailSekolah.nama}</h2>
-                <p className="text-sm text-zinc-500">NPSN: {detailSekolah.npsn} &middot; {detailSekolah.jenjang}</p>
+            {/* Header */}
+            {detailSekolah && (
+              <div className="flex items-center gap-3">
+                <button onClick={() => setDetailSekolah(null)} className="text-zinc-500 hover:text-zinc-800"><ArrowLeft className="w-5 h-5" /></button>
+                <div>
+                  <h2 className="text-lg font-semibold text-zinc-900">{detailSekolah.nama}</h2>
+                  <p className="text-sm text-zinc-500">NPSN: {detailSekolah.npsn} &middot; {detailSekolah.jenjang}</p>
+                </div>
               </div>
+            )}
+
+            {/* Sub-tabs */}
+            <div className="flex gap-1 bg-zinc-100 p-1 rounded-lg w-fit flex-wrap">
+              {TABS.map(t => (
+                <button key={t.key} onClick={() => setSubTab(t.key)} className={`px-4 py-2 rounded-md text-sm font-medium ${subTab === t.key ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>{t.label}</button>
+              ))}
             </div>
-            <div className="grid gap-4">
-              {KATEGORI.map(kat => {
-                const d = getDataForSchool(detailSekolah.id, kat)
+
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {TABS.map(t => {
+                const count = (ALL_DATA[t.key] || []).filter((d: any) => !isOperator || d.school_id === (detailSekolah?.id || userSchoolId)).length
                 return (
-                  <div key={kat} className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-zinc-900">{kat}</h3>
-                      {d && hasData(d) ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Terisi</span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-500">Kosong</span>
-                      )}
-                    </div>
-                    {d && hasData(d) ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                        {FIELDS[kat].map(f => {
-                          const val = d[f.key]
-                          if (f.type === 'checkbox') {
-                            return val ? <span key={f.key} className="text-zinc-700"><span className="text-zinc-400">{f.label}:</span> ✓</span> : null
-                          }
-                          if (!val && val !== 0) return null
-                          return <span key={f.key} className="text-zinc-700"><span className="text-zinc-400">{f.label}:</span> {val}</span>
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-zinc-400">Belum diisi</p>
-                    )}
+                  <div key={t.key} className="bg-white border border-zinc-200 rounded-xl p-4 text-center cursor-pointer hover:shadow-sm" onClick={() => setSubTab(t.key)}>
+                    <p className={`text-2xl font-bold ${subTab === t.key ? 'text-blue-700' : 'text-zinc-600'}`}>{count}</p>
+                    <p className="text-xs text-zinc-500">{t.label}</p>
                   </div>
                 )
               })}
             </div>
-          </>
-        )}
 
-        {/* Operator: ringkasan + tabel */}
-        {role === 'operator_sekolah' && (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-blue-700">{KATEGORI.length}</p>
-                <p className="text-xs text-zinc-500">Total Kategori</p>
-              </div>
-              <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-green-700">{(sarpras || []).filter(s => s.school_id === userSchoolId && hasData(JSON.parse(s.data || '{}'))).length}</p>
-                <p className="text-xs text-zinc-500">Sudah Diinput</p>
-              </div>
-              <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-amber-700">{KATEGORI.length - (sarpras || []).filter(s => s.school_id === userSchoolId && hasData(JSON.parse(s.data || '{}'))).length}</p>
-                <p className="text-xs text-zinc-500">Belum Diinput</p>
-              </div>
-              <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center" />
-            </div>
-
+            {/* Table */}
             <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200">
+                <h3 className="font-semibold text-zinc-900">{TABS.find(t => t.key === subTab)?.label}</h3>
+                {role === 'operator_sekolah' && (
+                  <button onClick={openAdd} className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex items-center gap-1"><Plus className="w-4 h-4" />Tambah</button>
+                )}
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-zinc-50 border-b border-zinc-200">
-                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Kategori</th>
-                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Status</th>
-                      <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>
+                      {TABLE_COLUMNS[subTab].map(col => <th key={col} className="text-left px-4 py-3 font-semibold text-zinc-700">{col}</th>)}
+                      {role === 'operator_sekolah' && <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {KATEGORI.map(kat => {
-                      const d = getDataForKat(kat)
-                      const filled = d && hasData(d)
-                      return (
-                        <tr key={kat} className="border-b border-zinc-100 hover:bg-zinc-50">
-                          <td className="px-4 py-3 font-medium text-zinc-900">{kat}</td>
+                    {currentData.filter((d: any) => {
+                      if (isOperator) return d.school_id === userSchoolId
+                      if (detailSekolah) return d.school_id === detailSekolah.id
+                      return true
+                    }).map((row: any) => (
+                      <tr key={row.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                        {cellValue(row, subTab).map((v, i) => <td key={i} className="px-4 py-3">{v}</td>)}
+                        {role === 'operator_sekolah' && (
                           <td className="px-4 py-3">
-                            {filled ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><CheckCircle2 className="w-3 h-3" />Sudah</span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700"><AlertCircle className="w-3 h-3" />Belum</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => openEdit(row)} className="text-blue-600 hover:text-blue-800"><Pencil className="w-4 h-4" /></button>
+                              <button onClick={() => handleDelete(row.id)} className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
+                            </div>
                           </td>
-                          <td className="px-4 py-3">
-                            <button onClick={() => openEdit(kat)} className="text-blue-600 hover:underline text-xs">{filled ? 'Edit' : 'Input'}</button>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                        )}
+                      </tr>
+                    ))}
+                    {currentData.length === 0 && (
+                      <tr><td colSpan={10} className="px-4 py-8 text-center text-sm text-zinc-400">Belum ada data</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </>
-        )}
+        ) : null}
 
         {/* Fallback */}
         {role !== 'admin_kecamatan' && role !== 'operator_sekolah' && (
@@ -318,36 +336,24 @@ export default function SarprasPage() {
           </div>
         )}
 
-        {/* Modal form per kategori */}
-        {editingKat && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeEdit}>
+        {/* Modal */}
+        {editing && editRow && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeForm}>
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-                <h3 className="font-semibold text-zinc-900">{editingKat}</h3>
-                <button onClick={closeEdit} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
+                <h3 className="font-semibold text-zinc-900">{editing === 'new' ? 'Tambah' : 'Edit'} {TABS.find(t => t.key === subTab)?.label}</h3>
+                <button onClick={closeForm} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
               </div>
-              <div className="px-6 py-4 space-y-4 text-sm">
-                {FIELDS[editingKat].map(f => (
+              <div className="px-6 py-4 space-y-4 text-sm max-h-[60vh] overflow-y-auto">
+                {currentFields.map(f => (
                   <div key={f.key} className="flex items-start gap-4">
-                    <span className="w-36 shrink-0 text-zinc-500 pt-2">{f.label}</span>
-                    {f.type === 'select' ? (
-                      <select value={formData[f.key] ?? ''} onChange={e => setFormData({ ...formData, [f.key]: e.target.value })} className="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg bg-white">
-                        {f.options?.map(o => <option key={o} value={o}>{o || 'Pilih...'}</option>)}
-                      </select>
-                    ) : f.type === 'checkbox' ? (
-                      <input type="checkbox" checked={!!formData[f.key]} onChange={e => setFormData({ ...formData, [f.key]: e.target.checked })} className="mt-2 w-4 h-4 rounded border-zinc-300" />
-                    ) : (
-                      <input type={f.type} value={formData[f.key] ?? ''} onChange={e => setFormData({ ...formData, [f.key]: f.type === 'number' ? parseInt(e.target.value) || 0 : e.target.value })} className="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg bg-white" />
-                    )}
+                    <span className="w-36 shrink-0 text-zinc-500 pt-2">{f.label}{f.required ? ' *' : ''}</span>
+                    {renderFormField(f)}
                   </div>
                 ))}
-                <div className="flex items-start gap-4">
-                  <span className="w-36 shrink-0 text-zinc-500 pt-2">Keterangan</span>
-                  <textarea value={formKeterangan} onChange={e => setFormKeterangan(e.target.value)} className="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg bg-white" rows={2} />
-                </div>
               </div>
               <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200">
-                <button onClick={closeEdit} className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-900">Batal</button>
+                <button onClick={closeForm} className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-900">Batal</button>
                 <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   {saving ? 'Menyimpan...' : 'Simpan'}
