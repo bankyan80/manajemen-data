@@ -19,9 +19,9 @@ export default function GtkPage() {
   const [saving, setSaving] = useState(false)
   const [statusFilter, setStatusFilter] = useState('')
   const [pendidikanFilter, setPendidikanFilter] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
   const [form, setForm] = useState<any>({})
-  const { data: employees, loading, error } = useData<any[]>('employees', () => fetchJson('/api/employees'))
-  const refresh = useData<any[]>('employees-r', () => fetchJson('/api/employees'))
+  const { data: employees, loading, error } = useData<any[]>(`employees-${refreshKey}`, () => fetchJson('/api/employees'))
 
   const openDetail = (e: any) => { setSelected(e); setEditing(false); setForm({}) }
   const closeDetail = () => { setSelected(null); setEditing(false); setForm({}) }
@@ -40,7 +40,7 @@ export default function GtkPage() {
       if (!res.ok) throw new Error('Gagal menyimpan')
       setSelected({ ...selected, ...form })
       setEditing(false)
-      refresh.data = null // bust cache
+      setRefreshKey(k => k + 1)
     } catch (err: any) {
       alert('Gagal menyimpan: ' + err.message)
     } finally {
