@@ -313,3 +313,24 @@ export const notifications = sqliteTable('notifications', {
   related_link: text('related_link'),
   created_at: integer('created_at').notNull().$defaultFn(() => Date.now()),
 })
+
+// ============================================================
+// TRANSITIONS (SD → SMP)
+// ============================================================
+
+export const transitions = sqliteTable('transitions', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  student_id: text('student_id').references(() => students.id),
+  tahun_pelajaran: text('tahun_pelajaran').notNull(),
+  nama: text('nama').notNull(),
+  nisn: text('nisn'),
+  jenis_kelamin: text('jenis_kelamin'),
+  kelas: text('kelas').notNull(),
+  status_transisi: text('status_transisi').notNull().default('calon_masuk'),
+  smp_tujuan: text('smp_tujuan'),
+  kesiapan: text('kesiapan'),
+  kegiatan_transisi: text('kegiatan_transisi'),
+  keterangan: text('keterangan'),
+  ...timestamps,
+})
