@@ -8,8 +8,8 @@ import {
   LogOut,
   User,
   Settings,
-  GraduationCap,
 } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 
@@ -72,8 +72,8 @@ export default function Topbar({ user }: TopbarProps) {
     <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-4 shadow-sm sm:px-6">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-600 text-white">
-            <GraduationCap className="h-5 w-5" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-600 p-1.5">
+            <Image src="/tutwuri.png" alt="Tut Wuri" width={24} height={24} className="h-full w-full object-contain" />
           </div>
           <span className="hidden text-sm font-semibold text-zinc-900 sm:block md:text-base">
             Manajemen Satu Data
@@ -83,7 +83,7 @@ export default function Topbar({ user }: TopbarProps) {
           </span>
         </div>
         <span className="hidden rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700 sm:inline-block">
-          SD & PAUD
+          SD & KB
         </span>
       </div>
 

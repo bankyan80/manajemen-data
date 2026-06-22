@@ -9,6 +9,7 @@ import StatCard from '@/components/dashboard/StatCard'
 import CompletionDonutChart from '@/components/dashboard/CompletionDonutChart'
 import MonthlyReportChart from '@/components/dashboard/MonthlyReportChart'
 import DistrictRecapCard from '@/components/dashboard/DistrictRecapCard'
+import Image from 'next/image'
 import { School, Users, BookOpen, FileText } from 'lucide-react'
 import { useData, fetchJson } from '@/lib/useData'
 
@@ -48,9 +49,14 @@ export default function DashboardPage() {
   return (
     <AppShellTopbar>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-zinc-500">Selamat datang, {session.user?.name || 'Pengguna'}</p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-600 p-2">
+            <Image src="/tutwuri.png" alt="Tut Wuri" width={28} height={28} className="h-full w-full object-contain" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Dashboard</h1>
+            <p className="mt-1 text-sm text-zinc-500">Selamat datang, {session.user?.name || 'Pengguna'}</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

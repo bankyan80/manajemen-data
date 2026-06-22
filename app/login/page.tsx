@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { GraduationCap, AlertCircle, Eye, EyeOff, LogIn } from 'lucide-react'
+import Image from 'next/image'
+import { AlertCircle, Eye, EyeOff, LogIn } from 'lucide-react'
 import { Suspense } from 'react'
 
 function LoginContent() {
@@ -52,8 +53,8 @@ function LoginContent() {
       <div className="w-full max-w-md">
         <div className="rounded-xl bg-white px-8 py-10 shadow-2xl sm:px-12">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100">
-              <GraduationCap className="h-8 w-8 text-teal-700" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 p-2">
+              <Image src="/tutwuri.png" alt="Tut Wuri" width={40} height={40} className="h-full w-full object-contain" />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
               Manajemen Satu Data

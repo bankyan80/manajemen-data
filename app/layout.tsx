@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Manajemen Satu Data",
   description: "Manajemen Satu Data",
+  icons: { icon: '/tutwuri.png' },
 };
 
 export default function RootLayout({
