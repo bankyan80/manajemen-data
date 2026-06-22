@@ -8,7 +8,6 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import StatCard from '@/components/dashboard/StatCard'
 import CompletionDonutChart from '@/components/dashboard/CompletionDonutChart'
 import MonthlyReportChart from '@/components/dashboard/MonthlyReportChart'
-import LatestDocumentTable from '@/components/dashboard/LatestDocumentTable'
 import DistrictRecapCard from '@/components/dashboard/DistrictRecapCard'
 import { School, Users, BookOpen, FileText } from 'lucide-react'
 import { useData, fetchJson } from '@/lib/useData'
@@ -64,7 +63,6 @@ export default function DashboardPage() {
           <CompletionDonutChart stats={stats?.completionStats} loading={statsLoading} />
           <MonthlyReportChart />
         </div>
-        <LatestDocumentTable docs={stats?.latestDocuments} loading={statsLoading} />
         <DistrictRecapCard stats={stats} loading={statsLoading} />
       </div>
     </AppShellTopbar>
