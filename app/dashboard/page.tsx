@@ -6,7 +6,6 @@ import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import StatCard from '@/components/dashboard/StatCard'
-import DocumentArchiveGrid from '@/components/dashboard/DocumentArchiveGrid'
 import CompletionDonutChart from '@/components/dashboard/CompletionDonutChart'
 import MonthlyReportChart from '@/components/dashboard/MonthlyReportChart'
 import LatestDocumentTable from '@/components/dashboard/LatestDocumentTable'
@@ -61,8 +60,6 @@ export default function DashboardPage() {
           <StatCard title="Total GTK" value={statsLoading ? '...' : String(stats?.totalGTK || 0)} icon={<BookOpen className="h-5 w-5" />} color="amber" description="Guru & Tenaga Kependidikan" />
           <StatCard title="Dokumen Pegawai" value={statsLoading ? '...' : String(stats?.totalDocuments || 0)} icon={<FileText className="h-5 w-5" />} color="purple" description="Total dokumen tersimpan" />
         </div>
-
-        <DocumentArchiveGrid archives={stats?.documentArchives} loading={statsLoading} />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <CompletionDonutChart stats={stats?.completionStats} loading={statsLoading} />
           <MonthlyReportChart />
