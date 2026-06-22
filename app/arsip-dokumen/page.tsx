@@ -6,14 +6,15 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { DOKUMEN_KATEGORI } from '@/types'
-
 const KATEGORI_KEYS = Object.keys(DOKUMEN_KATEGORI) as Array<keyof typeof DOKUMEN_KATEGORI>
 
 export default function ArsipDokumenPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<any | null>(null)
   const { data: docData, loading } = useData<any>('employee-documents', () => fetchJson('/api/employee-documents'))
+  const closeDetail = () => setSelected(null)
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -97,7 +98,7 @@ export default function ArsipDokumenPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button className="text-blue-600 hover:underline text-xs">Detail</button>
+                      <button onClick={() => setSelected(d)} className="text-blue-600 hover:underline text-xs">Detail</button>
                     </td>
                   </tr>
                 ))}
@@ -106,6 +107,41 @@ export default function ArsipDokumenPage() {
           </div>
         </div>
       </div>
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeDetail}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+              <h3 className="font-semibold text-zinc-900">Detail Dokumen</h3>
+              <button onClick={closeDetail} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="px-6 py-4 space-y-3 text-sm">
+              <Row label="Pegawai" value={selected.employee_nama || '-'} />
+              <Row label="Unit Kerja" value={selected.school_nama || '-'} />
+              <Row label="Jenis Dokumen" value={selected.jenis_dokumen || '-'} />
+              <Row label="Kategori" value={selected.kategori || '-'} />
+              <Row label="Status Upload" value={selected.status_upload === 'sudah_diupload' ? 'Sudah Upload' : 'Belum Upload'} />
+              <Row label="Status Verifikasi" value={selected.status_verifikasi === 'sudah_diverifikasi' ? 'Diverifikasi' : 'Belum Diverifikasi'} />
+              <Row label="Status Kelengkapan" value={selected.status_kelengkapan === 'lengkap' ? 'Lengkap' : 'Belum Lengkap'} />
+              <Row label="Nama File" value={selected.nama_file || '-'} />
+              <Row label="Catatan Revisi" value={selected.catatan_revisi || '-'} />
+              <Row label="Diupload" value={selected.uploaded_at ? new Date(selected.uploaded_at).toLocaleString('id-ID') : '-'} />
+              <Row label="Diverifikasi" value={selected.verified_at ? new Date(selected.verified_at).toLocaleString('id-ID') : '-'} />
+            </div>
+            <div className="flex items-center justify-end px-6 py-4 border-t border-zinc-200">
+              <button onClick={closeDetail} className="px-4 py-2 text-sm bg-zinc-100 text-zinc-700 rounded-lg hover:bg-zinc-200">Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShellTopbar>
+  )
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-4">
+      <span className="w-36 shrink-0 text-zinc-500">{label}</span>
+      <span className="text-zinc-900 font-medium">{value}</span>
+    </div>
   )
 }

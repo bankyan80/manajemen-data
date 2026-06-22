@@ -10,7 +10,9 @@ export default function KelembagaanPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [filterJenjang, setFilterJenjang] = useState('')
+  const [selected, setSelected] = useState<any | null>(null)
   const { data: schools, loading } = useData<any[]>('schools-all', () => fetchJson('/api/schools'))
+  const closeDetail = () => setSelected(null)
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -60,7 +62,7 @@ export default function KelembagaanPage() {
                     <td className="px-4 py-3">{d.desa || '-'}</td>
                     <td className="px-4 py-3">{d.kecamatan || '-'}</td>
                     <td className="px-4 py-3">
-                      <button className="text-blue-600 hover:underline text-xs">Detail</button>
+                      <button onClick={() => setSelected(d)} className="text-blue-600 hover:underline text-xs">Detail</button>
                     </td>
                   </tr>
                 ))}
@@ -70,6 +72,39 @@ export default function KelembagaanPage() {
         </div>
         )}
       </div>
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeDetail}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+              <h3 className="font-semibold text-zinc-900">Detail Lembaga</h3>
+              <button onClick={closeDetail} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
+            </div>
+            <div className="px-6 py-4 space-y-3 text-sm">
+              <Row label="Nama" value={selected.nama} />
+              <Row label="NPSN" value={selected.npsn} />
+              <Row label="Jenjang" value={selected.jenjang?.toUpperCase()} />
+              <Row label="Status" value={selected.status?.toUpperCase()} />
+              <Row label="Alamat" value={selected.alamat || '-'} />
+              <Row label="Desa" value={selected.desa || '-'} />
+              <Row label="Kecamatan" value={selected.kecamatan || '-'} />
+              <Row label="Latitude" value={selected.latitude != null ? String(selected.latitude) : '-'} />
+              <Row label="Longitude" value={selected.longitude != null ? String(selected.longitude) : '-'} />
+            </div>
+            <div className="flex items-center justify-end px-6 py-4 border-t border-zinc-200">
+              <button onClick={closeDetail} className="px-4 py-2 text-sm bg-zinc-100 text-zinc-700 rounded-lg hover:bg-zinc-200">Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShellTopbar>
+  )
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-4">
+      <span className="w-36 shrink-0 text-zinc-500">{label}</span>
+      <span className="text-zinc-900 font-medium">{value}</span>
+    </div>
   )
 }
