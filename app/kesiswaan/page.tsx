@@ -14,7 +14,7 @@ export default function KesiswaanPage() {
   const [filterSekolah, setFilterSekolah] = useState('')
   const [naikLoading, setNaikLoading] = useState(false)
   const [naikResult, setNaikResult] = useState<string | null>(null)
-  const { data: recaps, loading } = useData<any[]>('student-recaps', () => fetchJson('/api/student-recaps'))
+  const { data: recaps, loading } = useData<any[]>('kesiswaan-recap', () => fetchJson('/api/kesiswaan-recap'))
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -91,22 +91,20 @@ export default function KesiswaanPage() {
                   <th className="text-left px-4 py-3 font-semibold text-zinc-700">Laki-laki</th>
                   <th className="text-left px-4 py-3 font-semibold text-zinc-700">Perempuan</th>
                   <th className="text-left px-4 py-3 font-semibold text-zinc-700">Total</th>
-                  <th className="text-left px-4 py-3 font-semibold text-zinc-700">Semester</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((d, i) => (
-                  <tr key={d.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
+                  <tr key={d.school_id + d.kelas_kelompok || i} className="border-b border-zinc-100 hover:bg-zinc-50">
                     <td className="px-4 py-3">{d.tahun_pelajaran}</td>
                     <td className="px-4 py-3 font-medium text-zinc-900">{d.school_nama}</td>
                     <td className="px-4 py-3">{d.kelas_kelompok}</td>
                     <td className="px-4 py-3">{d.laki_laki}</td>
                     <td className="px-4 py-3">{d.perempuan}</td>
                     <td className="px-4 py-3 font-semibold">{d.total}</td>
-                    <td className="px-4 py-3">{d.semester}</td>
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-zinc-400">Tidak ada data</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-zinc-400">Tidak ada data</td></tr>}
               </tbody>
             </table>
           </div>
