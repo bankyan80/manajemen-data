@@ -5,7 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { PackageOpen, CheckCircle2, AlertCircle, Loader2, Plus, ArrowLeft, Pencil, Trash2 } from 'lucide-react'
+import { PackageOpen, Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
 
 type TabKey = 'tanah' | 'bangunan' | 'ruang' | 'sarana' | 'buku'
 
@@ -17,7 +17,7 @@ interface FieldDef {
   required?: boolean
 }
 
-const TABS: { key: TabKey; label: string }[] = [
+const TABS: { key: TabKey; label: string; icon?: string }[] = [
   { key: 'tanah', label: 'Tanah' },
   { key: 'bangunan', label: 'Bangunan' },
   { key: 'ruang', label: 'Ruang' },
@@ -81,20 +81,21 @@ const TABLE_FIELDS: Record<TabKey, FieldDef[]> = {
 }
 
 const TABLE_COLUMNS: Record<TabKey, string[]> = {
-  tanah: ['Nama Tanah', 'No Sertifikat', 'Jenis', 'Luas', 'Kepemilikan', 'Pemilik'],
-  bangunan: ['Nama Gedung', 'Lantai', 'Luas Tapak', 'Tahun', 'Kondisi Atap'],
-  ruang: ['Kode', 'Nama Ruang', 'Lantai', 'Kapasitas', 'Jenis'],
-  sarana: ['Nama Sarana', 'Jenis', 'Jumlah', 'Kondisi'],
-  buku: ['Jenis Buku', 'Jumlah Judul', 'Jumlah Eksemplar'],
+  tanah: ['Sekolah', 'Nama Tanah', 'No Sertifikat', 'Jenis', 'Luas', 'Kepemilikan', 'Pemilik'],
+  bangunan: ['Sekolah', 'Nama Gedung', 'Lantai', 'Luas Tapak', 'Tahun', 'Kondisi Atap'],
+  ruang: ['Sekolah', 'Kode', 'Nama Ruang', 'Lantai', 'Kapasitas', 'Jenis'],
+  sarana: ['Sekolah', 'Nama Sarana', 'Jenis', 'Jumlah', 'Kondisi'],
+  buku: ['Sekolah', 'Jenis Buku', 'Jumlah Judul', 'Jumlah Eksemplar'],
 }
 
-function cellValue(row: any, tab: TabKey): string[] {
+function cellValue(row: any, sekolahNama: string, tab: TabKey): string[] {
+  const prefix = [sekolahNama]
   switch (tab) {
-    case 'tanah': return [row.nama_tanah, row.nomor_sertifikat || '-', row.jenis_lahan, `${row.luas || 0} m²`, row.status_kepemilikan, row.pemilik || '-']
-    case 'bangunan': return [row.nama_gedung, `${row.jumlah_lantai}`, `${row.luas_tapak || 0} m²`, `${row.tahun_dibangun || '-'}`, `${row.kondisi_atap || 0}%`]
-    case 'ruang': return [row.kode_ruang || '-', row.nama_ruang, `Lt.${row.lantai_ke}`, `${row.kapasitas_siswa || 0}`, row.jenis_ruang]
-    case 'sarana': return [row.nama_sarana, row.jenis, `${row.jumlah || 0}`, row.kondisi]
-    case 'buku': return [row.jenis_buku, `${row.jumlah_judul || 0}`, `${row.jumlah_eksemplar || 0}`]
+    case 'tanah': return [...prefix, row.nama_tanah, row.nomor_sertifikat || '-', row.jenis_lahan, `${row.luas || 0} m²`, row.status_kepemilikan, row.pemilik || '-']
+    case 'bangunan': return [...prefix, row.nama_gedung, `${row.jumlah_lantai}`, `${row.luas_tapak || 0} m²`, `${row.tahun_dibangun || '-'}`, `${row.kondisi_atap || 0}%`]
+    case 'ruang': return [...prefix, row.kode_ruang || '-', row.nama_ruang, `Lt.${row.lantai_ke}`, `${row.kapasitas_siswa || 0}`, row.jenis_ruang]
+    case 'sarana': return [...prefix, row.nama_sarana, row.jenis, `${row.jumlah || 0}`, row.kondisi]
+    case 'buku': return [...prefix, row.jenis_buku, `${row.jumlah_judul || 0}`, `${row.jumlah_eksemplar || 0}`]
   }
 }
 
@@ -102,11 +103,11 @@ export default function SarprasPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [refreshKey, setRefreshKey] = useState(0)
-  const [detailSekolah, setDetailSekolah] = useState<any | null>(null)
-  const [subTab, setSubTab] = useState<TabKey>('tanah')
   const [editing, setEditing] = useState<string | null>(null)
   const [editRow, setEditRow] = useState<any | null>(null)
+  const [editTab, setEditTab] = useState<TabKey>('tanah')
   const [saving, setSaving] = useState(false)
+  const [filterSekolah, setFilterSekolah] = useState('')
 
   const { data: allSchools } = useData<any[]>('schools', () => fetchJson('/api/schools'))
   const { data: tanahData } = useData<any[]>(`tanah-${refreshKey}`, () => fetchJson(`/api/sarpras/tanah`))
@@ -128,17 +129,20 @@ export default function SarprasPage() {
 
   const role = session.user?.role
   const userSchoolId = session.user?.sekolah_id
-
   const isOperator = role === 'operator_sekolah'
-  const sekolahList = (allSchools || []).filter(s => !isOperator || s.id === userSchoolId)
-  const currentData = ALL_DATA[subTab] || []
 
-  const openAdd = () => {
+  const sekolahMap = new Map((allSchools || []).map((s: any) => [s.id, s.nama]))
+
+  const sekolahList = (allSchools || []).filter(s => !isOperator || s.id === userSchoolId)
+
+  const openAdd = (tab: TabKey) => {
+    setEditTab(tab)
     setEditing('new')
     setEditRow({})
   }
 
-  const openEdit = (row: any) => {
+  const openEdit = (tab: TabKey, row: any) => {
+    setEditTab(tab)
     setEditing(row.id)
     setEditRow({ ...row })
   }
@@ -154,10 +158,10 @@ export default function SarprasPage() {
       if (isOperator) body.school_id = userSchoolId
 
       if (editing === 'new') {
-        const res = await fetch(`/api/sarpras/${subTab}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        const res = await fetch(`/api/sarpras/${editTab}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         if (!res.ok) throw new Error('Gagal menyimpan')
       } else {
-        const res = await fetch(`/api/sarpras/${subTab}/${editing}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        const res = await fetch(`/api/sarpras/${editTab}/${editing}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         if (!res.ok) throw new Error('Gagal menyimpan')
       }
       closeForm()
@@ -169,19 +173,15 @@ export default function SarprasPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (tab: TabKey, id: string) => {
     if (!confirm('Hapus data ini?')) return
     try {
-      const res = await fetch(`/api/sarpras/${subTab}/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/sarpras/${tab}/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Gagal menghapus')
       setRefreshKey(k => k + 1)
     } catch (err: any) {
       alert('Gagal: ' + err.message)
     }
-  }
-
-  const sekolahHasData = (schoolId: string) => {
-    return ['tanah', 'bangunan', 'ruang', 'sarana', 'buku'].some(t => (ALL_DATA[t as TabKey] || []).some((d: any) => d.school_id === schoolId))
   }
 
   const renderFormField = (f: FieldDef) => {
@@ -201,160 +201,104 @@ export default function SarprasPage() {
     )
   }
 
-  const currentFields = TABLE_FIELDS[subTab] || []
-
   return (
     <AppShellTopbar>
-      <div className="max-w-7xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold text-zinc-900">Sarana Prasarana</h1>
+      <div className="container-page space-y-6">
+        <div className="page-header">
+          <h1>Sarana Prasarana</h1>
+        </div>
 
-        {/* Admin: daftar sekolah */}
-        {role === 'admin_kecamatan' && !detailSekolah && (
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-zinc-50 border-b border-zinc-200">
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">NPSN</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama Sekolah</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jenjang</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Status Input</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sekolahList.map(s => {
-                    const ada = sekolahHasData(s.id)
-                    return (
-                      <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                        <td className="px-4 py-3">{s.npsn}</td>
-                        <td className="px-4 py-3 font-medium text-zinc-900">{s.nama}</td>
-                        <td className="px-4 py-3">{s.jenjang || '-'}</td>
-                        <td className="px-4 py-3">
-                          {ada ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700"><CheckCircle2 className="w-3 h-3" />Sudah Input</span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700"><AlertCircle className="w-3 h-3" />Belum Input</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <button onClick={() => setDetailSekolah(s)} className="text-blue-600 hover:underline text-xs">Lihat Detail</button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+        {/* School filter for admin */}
+        {!isOperator && (
+          <div className="flex items-center gap-4">
+            <select value={filterSekolah} onChange={e => setFilterSekolah(e.target.value)} className="max-w-xs px-3 py-2 rounded-[10px] border border-border bg-white text-sm">
+              <option value="">Semua Sekolah</option>
+              {sekolahList.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.nama} ({s.npsn})</option>
+              ))}
+            </select>
+            <span className="text-sm text-text-muted">{sekolahList.length} sekolah</span>
           </div>
         )}
 
-        {/* Detail / Operator view */}
-        {(role === 'admin_kecamatan' && detailSekolah) || isOperator ? (
-          <>
-            {/* Header */}
-            {detailSekolah && (
-              <div className="flex items-center gap-3">
-                <button onClick={() => setDetailSekolah(null)} className="text-zinc-500 hover:text-zinc-800"><ArrowLeft className="w-5 h-5" /></button>
-                <div>
-                  <h2 className="text-lg font-semibold text-zinc-900">{detailSekolah.nama}</h2>
-                  <p className="text-sm text-zinc-500">NPSN: {detailSekolah.npsn} &middot; {detailSekolah.jenjang}</p>
-                </div>
-              </div>
-            )}
+        {/* All category tables stacked */}
+        {TABS.map(tab => {
+          const data = (ALL_DATA[tab.key] || []).filter((d: any) => {
+            if (isOperator) return d.school_id === userSchoolId
+            if (filterSekolah) return d.school_id === filterSekolah
+            return true
+          })
 
-            {/* Sub-tabs */}
-            <div className="flex gap-1 bg-zinc-100 p-1 rounded-lg w-fit flex-wrap">
-              {TABS.map(t => (
-                <button key={t.key} onClick={() => setSubTab(t.key)} className={`px-4 py-2 rounded-md text-sm font-medium ${subTab === t.key ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>{t.label}</button>
-              ))}
-            </div>
-
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {TABS.map(t => {
-                const count = (ALL_DATA[t.key] || []).filter((d: any) => !isOperator || d.school_id === (detailSekolah?.id || userSchoolId)).length
-                return (
-                  <div key={t.key} className="bg-white border border-zinc-200 rounded-xl p-4 text-center cursor-pointer hover:shadow-sm" onClick={() => setSubTab(t.key)}>
-                    <p className={`text-2xl font-bold ${subTab === t.key ? 'text-blue-700' : 'text-zinc-600'}`}>{count}</p>
-                    <p className="text-xs text-zinc-500">{t.label}</p>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200">
-                <h3 className="font-semibold text-zinc-900">{TABS.find(t => t.key === subTab)?.label}</h3>
-                {role === 'operator_sekolah' && (
-                  <button onClick={openAdd} className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 flex items-center gap-1"><Plus className="w-4 h-4" />Tambah</button>
+          return (
+            <div key={tab.key} className="card overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <h3 className="font-semibold text-text-main">{tab.label}</h3>
+                {isOperator && (
+                  <button onClick={() => openAdd(tab.key)} className="btn-primary btn-sm flex items-center gap-1"><Plus className="w-3.5 h-3.5" />Tambah</button>
                 )}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-zinc-50 border-b border-zinc-200">
-                      {TABLE_COLUMNS[subTab].map(col => <th key={col} className="text-left px-4 py-3 font-semibold text-zinc-700">{col}</th>)}
-                      {role === 'operator_sekolah' && <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>}
+                    <tr className="bg-zinc-50 border-b border-border">
+                      {TABLE_COLUMNS[tab.key].map(col => <th key={col} className="text-left px-4 py-3 font-semibold text-text-muted">{col}</th>)}
+                      {isOperator && <th className="text-left px-4 py-3 font-semibold text-text-muted">Aksi</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {currentData.filter((d: any) => {
-                      if (isOperator) return d.school_id === userSchoolId
-                      if (detailSekolah) return d.school_id === detailSekolah.id
-                      return true
-                    }).map((row: any) => (
-                      <tr key={row.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                        {cellValue(row, subTab).map((v, i) => <td key={i} className="px-4 py-3">{v}</td>)}
-                        {role === 'operator_sekolah' && (
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => openEdit(row)} className="text-blue-600 hover:text-blue-800"><Pencil className="w-4 h-4" /></button>
-                              <button onClick={() => handleDelete(row.id)} className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                    {currentData.length === 0 && (
-                      <tr><td colSpan={10} className="px-4 py-8 text-center text-sm text-zinc-400">Belum ada data</td></tr>
-                    )}
+                    {data.length === 0 ? (
+                      <tr><td colSpan={10} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data {tab.label.toLowerCase()}</td></tr>
+                    ) : data.map((row: any) => {
+                      const sekolahNama = sekolahMap.get(row.school_id) || 'Unknown'
+                      return (
+                        <tr key={row.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                          {cellValue(row, sekolahNama, tab.key).map((v, i) => <td key={i} className="px-4 py-3 text-text-main">{v}</td>)}
+                          {isOperator && (
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => openEdit(tab.key, row)} className="text-primary-light hover:text-primary"><Pencil className="w-4 h-4" /></button>
+                                <button onClick={() => handleDelete(tab.key, row.id)} className="text-danger hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
-          </>
-        ) : null}
+          )
+        })}
 
         {/* Fallback */}
         {role !== 'admin_kecamatan' && role !== 'operator_sekolah' && (
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-12 text-center">
+          <div className="card p-12 text-center">
             <PackageOpen className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
-            <h3 className="font-semibold text-zinc-900 mb-2">Belum Ada Data Sarpras</h3>
-            <p className="text-sm text-zinc-500 max-w-md mx-auto">Data sarana dan prasarana sekolah/lembaga belum diinput.</p>
+            <h3 className="font-semibold text-text-main mb-2">Belum Ada Data Sarpras</h3>
+            <p className="text-sm text-text-muted max-w-md mx-auto">Data sarana dan prasarana sekolah/lembaga belum diinput.</p>
           </div>
         )}
 
         {/* Modal */}
         {editing && editRow && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeForm}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-                <h3 className="font-semibold text-zinc-900">{editing === 'new' ? 'Tambah' : 'Edit'} {TABS.find(t => t.key === subTab)?.label}</h3>
-                <button onClick={closeForm} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
+          <div className="modal-overlay" onClick={closeForm}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                <h3 className="font-semibold text-text-main">{editing === 'new' ? 'Tambah' : 'Edit'} {TABS.find(t => t.key === editTab)?.label}</h3>
+                <button onClick={closeForm} className="text-text-muted hover:text-text-main text-xl leading-none">&times;</button>
               </div>
               <div className="px-6 py-4 space-y-4 text-sm max-h-[60vh] overflow-y-auto">
-                {currentFields.map(f => (
+                {(TABLE_FIELDS[editTab] || []).map(f => (
                   <div key={f.key} className="flex items-start gap-4">
-                    <span className="w-36 shrink-0 text-zinc-500 pt-2">{f.label}{f.required ? ' *' : ''}</span>
+                    <span className="w-36 shrink-0 text-text-muted pt-2">{f.label}{f.required ? ' *' : ''}</span>
                     {renderFormField(f)}
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200">
-                <button onClick={closeForm} className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-900">Batal</button>
-                <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
+                <button onClick={closeForm} className="btn-ghost btn-sm">Batal</button>
+                <button onClick={handleSave} disabled={saving} className="btn-primary btn-sm flex items-center gap-2">
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   {saving ? 'Menyimpan...' : 'Simpan'}
                 </button>
