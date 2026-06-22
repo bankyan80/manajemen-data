@@ -46,11 +46,14 @@ export default function TransisiSdSmpPage() {
   )
 
   function groupBySchool(data: any[]) {
-    const map = new Map<string, { school_nama: string; total: number }>()
+    const map = new Map<string, { school_nama: string; laki: number; perempuan: number; total: number }>()
     for (const d of data) {
       const key = d.school_id
-      if (!map.has(key)) map.set(key, { school_nama: d.school_nama || 'Unknown', total: 0 })
-      map.get(key)!.total++
+      if (!map.has(key)) map.set(key, { school_nama: d.school_nama || 'Unknown', laki: 0, perempuan: 0, total: 0 })
+      const entry = map.get(key)!
+      if (d.jenis_kelamin === 'laki-laki') entry.laki++
+      else if (d.jenis_kelamin === 'perempuan') entry.perempuan++
+      entry.total++
     }
     return Array.from(map.values()).sort((a, b) => a.school_nama.localeCompare(b.school_nama))
   }
@@ -116,7 +119,7 @@ export default function TransisiSdSmpPage() {
                 <thead>
                   <tr className="bg-zinc-50 border-b border-border">
                     {isAdmin ? (
-                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Jumlah Calon Masuk</th></>
+                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-center px-4 py-3 font-semibold text-text-muted">L</th><th className="text-center px-4 py-3 font-semibold text-text-muted">P</th><th className="text-center px-4 py-3 font-semibold text-text-muted">Jumlah</th></>
                     ) : (
                       <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">NISN</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Jenis Kelamin</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Kelas</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Status</th></>
                     )}
@@ -124,14 +127,16 @@ export default function TransisiSdSmpPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={isAdmin ? 2 : 6} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
+                    <tr><td colSpan={isAdmin ? 4 : 6} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
                   ) : isAdmin ? (
                     calonMasukSekolah.length === 0 ? (
-                      <tr><td colSpan={2} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data calon masuk SMP</td></tr>
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data calon masuk SMP</td></tr>
                     ) : calonMasukSekolah.map((s, i) => (
                       <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{s.school_nama}</td>
-                        <td className="px-4 py-3 font-bold text-primary">{s.total}</td>
+                        <td className="px-4 py-3 text-center text-text-muted">{s.laki}</td>
+                        <td className="px-4 py-3 text-center text-text-muted">{s.perempuan}</td>
+                        <td className="px-4 py-3 text-center font-bold text-primary">{s.total}</td>
                       </tr>
                     ))
                   ) : (
@@ -164,7 +169,7 @@ export default function TransisiSdSmpPage() {
                 <thead>
                   <tr className="bg-zinc-50 border-b border-border">
                     {isAdmin ? (
-                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Jumlah Anak Lanjut</th></>
+                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-center px-4 py-3 font-semibold text-text-muted">L</th><th className="text-center px-4 py-3 font-semibold text-text-muted">P</th><th className="text-center px-4 py-3 font-semibold text-text-muted">Jumlah</th></>
                     ) : (
                       <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">NISN</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah Asal</th><th className="text-left px-4 py-3 font-semibold text-text-muted">SMP Tujuan</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Status</th></>
                     )}
@@ -172,14 +177,16 @@ export default function TransisiSdSmpPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={isAdmin ? 2 : 5} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
+                    <tr><td colSpan={isAdmin ? 4 : 5} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
                   ) : isAdmin ? (
                     anakLanjutSekolah.length === 0 ? (
-                      <tr><td colSpan={2} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data anak lanjut SMP</td></tr>
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data anak lanjut SMP</td></tr>
                     ) : anakLanjutSekolah.map((s, i) => (
                       <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{s.school_nama}</td>
-                        <td className="px-4 py-3 font-bold text-primary">{s.total}</td>
+                        <td className="px-4 py-3 text-center text-text-muted">{s.laki}</td>
+                        <td className="px-4 py-3 text-center text-text-muted">{s.perempuan}</td>
+                        <td className="px-4 py-3 text-center font-bold text-primary">{s.total}</td>
                       </tr>
                     ))
                   ) : (
@@ -240,7 +247,7 @@ export default function TransisiSdSmpPage() {
                 <thead>
                   <tr className="bg-zinc-50 border-b border-border">
                     {isAdmin ? (
-                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Jumlah Data Kesiapan</th></>
+                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-center px-4 py-3 font-semibold text-text-muted">L</th><th className="text-center px-4 py-3 font-semibold text-text-muted">P</th><th className="text-center px-4 py-3 font-semibold text-text-muted">Jumlah</th></>
                     ) : (
                       <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">NISN</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Kesiapan</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Keterangan</th></>
                     )}
@@ -248,14 +255,16 @@ export default function TransisiSdSmpPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={isAdmin ? 2 : 4} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
+                    <tr><td colSpan={isAdmin ? 4 : 4} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
                   ) : isAdmin ? (
                     kesiapanSekolah.length === 0 ? (
-                      <tr><td colSpan={2} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data kesiapan anak</td></tr>
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data kesiapan anak</td></tr>
                     ) : kesiapanSekolah.map((s, i) => (
                       <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{s.school_nama}</td>
-                        <td className="px-4 py-3 font-bold text-primary">{s.total}</td>
+                        <td className="px-4 py-3 text-center text-text-muted">{s.laki}</td>
+                        <td className="px-4 py-3 text-center text-text-muted">{s.perempuan}</td>
+                        <td className="px-4 py-3 text-center font-bold text-primary">{s.total}</td>
                       </tr>
                     ))
                   ) : (
@@ -284,7 +293,7 @@ export default function TransisiSdSmpPage() {
                 <thead>
                   <tr className="bg-zinc-50 border-b border-border">
                     {isAdmin ? (
-                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Jumlah Kegiatan</th></>
+                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-center px-4 py-3 font-semibold text-text-muted">L</th><th className="text-center px-4 py-3 font-semibold text-text-muted">P</th><th className="text-center px-4 py-3 font-semibold text-text-muted">Jumlah</th></>
                     ) : (
                       <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Kegiatan</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Keterangan</th></>
                     )}
@@ -292,14 +301,16 @@ export default function TransisiSdSmpPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={isAdmin ? 2 : 3} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
+                    <tr><td colSpan={isAdmin ? 4 : 3} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
                   ) : isAdmin ? (
                     kegiatanSekolah.length === 0 ? (
-                      <tr><td colSpan={2} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data kegiatan transisi</td></tr>
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data kegiatan transisi</td></tr>
                     ) : kegiatanSekolah.map((s, i) => (
                       <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{s.school_nama}</td>
-                        <td className="px-4 py-3 font-bold text-primary">{s.total}</td>
+                        <td className="px-4 py-3 text-center text-text-muted">{s.laki}</td>
+                        <td className="px-4 py-3 text-center text-text-muted">{s.perempuan}</td>
+                        <td className="px-4 py-3 text-center font-bold text-primary">{s.total}</td>
                       </tr>
                     ))
                   ) : (
