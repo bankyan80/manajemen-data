@@ -418,6 +418,7 @@ export default function GtkPage() {
                   <Field label="TMT Kerja" value={form.tmt_kerja || ''} onChange={v => setForm({ ...form, tmt_kerja: v })} />
                   <Field label="Email" value={form.email || ''} onChange={v => setForm({ ...form, email: v })} />
                   <Field label="No HP" value={form.no_hp || ''} onChange={v => setForm({ ...form, no_hp: v })} />
+                  <Select label="Status Aktif" value={form.is_active === 0 ? '0' : '1'} onChange={v => setForm({ ...form, is_active: v === '0' ? 0 : 1 })} options={['1', '0']} labels={{ '1': 'Aktif', '0': 'Nonaktif' }} />
                 </>
               ) : (
                 <>
@@ -437,6 +438,7 @@ export default function GtkPage() {
                   <Row label="Email" value={selected.email || '-'} />
                   <Row label="No HP" value={selected.no_hp || '-'} />
                   <Row label="Unit Kerja" value={selected.school_nama || '-'} />
+                  <Row label="Status" value={selected.is_active === 0 ? 'Nonaktif' : 'Aktif'} />
                 </>
               )}
             </div>
@@ -450,7 +452,60 @@ export default function GtkPage() {
                   </button>
                 </>
               ) : (
-                <button onClick={startEdit} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Edit</button>
+                <div className="flex items-center gap-2">
+                  {role === 'admin_kecamatan' && selected.is_active !== 0 && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Nonaktifkan ${selected.nama}?`)) return
+                        setSaving(true)
+                        try {
+                          const res = await fetch(`/api/employees/${selected.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ is_active: 0 }),
+                          })
+                          if (!res.ok) throw new Error('Gagal')
+                          closeDetail()
+                          setRefreshKey(k => k + 1)
+                        } catch (err: any) {
+                          alert('Gagal: ' + err.message)
+                        } finally {
+                          setSaving(false)
+                        }
+                      }}
+                      disabled={saving}
+                      className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {saving ? 'Memproses...' : 'Nonaktifkan'}
+                    </button>
+                  )}
+                  {role === 'admin_kecamatan' && selected.is_active === 0 && (
+                    <button
+                      onClick={async () => {
+                        setSaving(true)
+                        try {
+                          const res = await fetch(`/api/employees/${selected.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ is_active: 1 }),
+                          })
+                          if (!res.ok) throw new Error('Gagal')
+                          closeDetail()
+                          setRefreshKey(k => k + 1)
+                        } catch (err: any) {
+                          alert('Gagal: ' + err.message)
+                        } finally {
+                          setSaving(false)
+                        }
+                      }}
+                      disabled={saving}
+                      className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {saving ? 'Memproses...' : 'Aktifkan'}
+                    </button>
+                  )}
+                  <button onClick={startEdit} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Edit</button>
+                </div>
               )}
             </div>
           </div>
