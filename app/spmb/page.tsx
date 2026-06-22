@@ -112,7 +112,7 @@ export default function SpmbPage() {
 
   const openAdd = () => {
     setEditing('new')
-    setEditRow({ tahun_pelajaran })
+    setEditRow({ tahun_pelajaran: tahunPelajaran })
   }
 
   const openEdit = (row: any) => {
