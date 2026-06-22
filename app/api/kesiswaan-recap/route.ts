@@ -6,7 +6,6 @@ import { students, schools } from '@/db/schema'
 import { eq, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 60
 
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
@@ -42,5 +41,5 @@ export async function GET(req: NextRequest) {
     .groupBy(students.school_id, students.tahun_pelajaran, students.kelas_kelompok)
     .orderBy(schools.nama, students.kelas_kelompok)
 
-  return NextResponse.json(rows)
+  return NextResponse.json(rows, { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } })
 }

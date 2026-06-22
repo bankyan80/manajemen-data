@@ -22,9 +22,10 @@ export default function KesiswaanPage() {
   const role = (session?.user as any)?.role
 
   const filtered = (recaps || [])
+    .filter(r => r.school_jenjang === activeTab)
     .filter(r => !filterSekolah || r.school_id === filterSekolah)
 
-  const sekolahList = [...new Map((recaps || []).map(r => [r.school_id, { id: r.school_id, nama: r.school_nama }])).values()]
+  const sekolahList = [...new Map((recaps || []).filter(r => r.school_jenjang === activeTab).map(r => [r.school_id, { id: r.school_id, nama: r.school_nama }])).values()]
 
   const handleNaikKelas = async () => {
     if (!confirm('Naikkan semua siswa SD TP 2025/2026 ke TP 2026/2027?\nKelas VI akan masuk alumni.\nTK & KB tidak diproses (manual operator).')) return
