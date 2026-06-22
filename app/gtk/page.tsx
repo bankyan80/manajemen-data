@@ -5,7 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
 
 const TABS = ['Data Kepala Sekolah', 'Data Guru', 'Data Tenaga Kependidikan', 'Status Pegawai', 'Sertifikasi', 'Pendidikan Terakhir', 'BUP/Pensiun']
 
@@ -21,7 +21,9 @@ export default function GtkPage() {
   const [pendidikanFilter, setPendidikanFilter] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [form, setForm] = useState<any>({})
-  const { data: employees, loading, error } = useData<any[]>(`employees-${refreshKey}`, () => fetchJson('/api/employees'))
+  const [cleanupLoading, setCleanupLoading] = useState(false)
+  const [cleanupResult, setCleanupResult] = useState<string | null>(null)
+  const { data: employees, loading, error } = useData<any[]>(`employees-${refreshKey}`, () => fetchJson('/api/employees?show_nonaktif=1'))
 
   const openDetail = (e: any) => { setSelected(e); setEditing(false); setForm({}) }
   const closeDetail = () => { setSelected(null); setEditing(false); setForm({}) }
@@ -57,10 +59,11 @@ export default function GtkPage() {
     (!statusFilter || e.status_pegawai === statusFilter) &&
     (!pendidikanFilter || (e.pendidikan_terakhir || '') === pendidikanFilter)
   )
+  const aktif = filtered.filter(e => e.is_active !== 0)
 
-  const dataKepsek = filtered.filter(e => e.jabatan?.toLowerCase().includes('kepala sekolah'))
-  const dataGuru = filtered.filter(e => e.jabatan?.toLowerCase().includes('guru'))
-  const dataTendik = filtered.filter(e => !e.jabatan?.toLowerCase().includes('guru') && !e.jabatan?.toLowerCase().includes('kepala'))
+  const dataKepsek = aktif.filter(e => e.jabatan?.toLowerCase().includes('kepala sekolah'))
+  const dataGuru = aktif.filter(e => e.jabatan?.toLowerCase().includes('guru'))
+  const dataTendik = aktif.filter(e => !e.jabatan?.toLowerCase().includes('guru') && !e.jabatan?.toLowerCase().includes('kepala'))
 
   const STATUS_LABELS: Record<string, string> = { pns: 'PNS', pppk: 'PPPK', pppk_paruh_waktu: 'PPPK Paruh Waktu', honorer: 'Honorer', gty: 'GTY', gtt: 'GTT' }
   const STATUS_COLORS: Record<string, string> = { pns: 'bg-green-100 text-green-700', pppk: 'bg-blue-100 text-blue-700', pppk_paruh_waktu: 'bg-indigo-100 text-indigo-700', honorer: 'bg-amber-100 text-amber-700', gty: 'bg-orange-100 text-orange-700', gtt: 'bg-red-100 text-red-700' }
@@ -68,11 +71,11 @@ export default function GtkPage() {
 
   const PENDIDIKAN_OPTIONS = ['SD Sederajat', 'SMP Sederajat', 'SMA Sederajat', 'D.1', 'D.2', 'D.3', 'S.1', 'S.2', 'S.3']
 
-  const tersertifikasi = filtered.filter(e => e.sertifikasi === 'sudah')
-  const belumSertifikasi = filtered.filter(e => e.sertifikasi === 'belum')
+  const tersertifikasi = aktif.filter(e => e.sertifikasi === 'sudah')
+  const belumSertifikasi = aktif.filter(e => e.sertifikasi === 'belum')
 
-  const dataGuruDanKepsek = filtered.filter(e => e.jabatan?.toLowerCase().includes('guru') || e.jabatan?.toLowerCase().includes('kepala'))
-  const displayData = activeTab === 0 ? dataKepsek : activeTab === 1 ? dataGuru : activeTab === 2 ? dataTendik : activeTab === 4 ? dataGuruDanKepsek : filtered
+  const dataGuruDanKepsek = aktif.filter(e => e.jabatan?.toLowerCase().includes('guru') || e.jabatan?.toLowerCase().includes('kepala'))
+  const displayData = activeTab === 6 ? filtered : activeTab === 0 ? dataKepsek : activeTab === 1 ? dataGuru : activeTab === 2 ? dataTendik : activeTab === 4 ? dataGuruDanKepsek : aktif
 
   if (loading) return <div className="p-8 text-center text-zinc-500">Memuat data...</div>
 
@@ -81,18 +84,20 @@ export default function GtkPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold text-zinc-900">GTK / Kepegawaian</h1>
 
+        {activeTab !== 6 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-blue-700">{filtered.length}</p>
+            <p className="text-2xl font-bold text-blue-700">{aktif.length}</p>
             <p className="text-xs text-zinc-500">Total GTK</p>
           </div>
           {STATUS_KEYS.map(k => (
             <div key={k} className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-              <p className={`text-2xl font-bold ${STATUS_COLORS[k].split(' ')[1]}`}>{filtered.filter(e => e.status_pegawai === k).length}</p>
+              <p className={`text-2xl font-bold ${STATUS_COLORS[k].split(' ')[1]}`}>{aktif.filter(e => e.status_pegawai === k).length}</p>
               <p className="text-xs text-zinc-500">{STATUS_LABELS[k]}</p>
             </div>
           ))}
         </div>
+        )}
 
         <div className="flex flex-wrap gap-1 bg-zinc-100 p-1 rounded-lg">
           {TABS.map((tab, i) => (
@@ -220,7 +225,7 @@ export default function GtkPage() {
             <h3 className="font-semibold text-zinc-900 mb-3">Ringkasan Pendidikan Terakhir</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {PENDIDIKAN_OPTIONS.map(k => {
-                const c = (employees || []).filter(e => e.pendidikan_terakhir === k).length
+                const c = (aktif || []).filter(e => e.pendidikan_terakhir === k).length
                 return (
                   <div key={k} className="border border-zinc-200 rounded-lg p-3 text-center">
                     <p className="text-lg font-bold text-blue-700">{c}</p>
@@ -229,7 +234,7 @@ export default function GtkPage() {
                 )
               })}
               <div className="border border-zinc-200 rounded-lg p-3 text-center">
-                <p className="text-lg font-bold text-zinc-400">{(employees || []).filter(e => !e.pendidikan_terakhir).length}</p>
+                <p className="text-lg font-bold text-zinc-400">{(aktif || []).filter(e => !e.pendidikan_terakhir).length}</p>
                 <p className="text-xs text-zinc-500">Belum diisi</p>
               </div>
             </div>
@@ -242,32 +247,97 @@ export default function GtkPage() {
               const now = new Date()
               const nowStr = now.toISOString().split('T')[0]
               const withBup = (employees || []).filter(e => e.tanggal_bup)
+              const sudahBup = withBup.filter(e => e.tanggal_bup <= nowStr)
+              const nonaktif = (employees || []).filter(e => e.is_active === 0)
               const akanPensiun = withBup.filter(e => e.tanggal_bup > nowStr).sort((a, b) => a.tanggal_bup.localeCompare(b.tanggal_bup))
-              const sudahPensiun = withBup.filter(e => e.tanggal_bup <= nowStr).sort((a, b) => b.tanggal_bup.localeCompare(a.tanggal_bup))
+              const sudahPensiun = sudahBup.filter(e => e.is_active !== 0).sort((a, b) => b.tanggal_bup.localeCompare(a.tanggal_bup))
               return (
                 <>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-                      <p className="text-2xl font-bold text-blue-700">{withBup.length}</p>
-                      <p className="text-xs text-zinc-500">Total dengan BUP</p>
+                  <div className="flex items-center justify-between">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1">
+                      <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+                        <p className="text-2xl font-bold text-blue-700">{withBup.length}</p>
+                        <p className="text-xs text-zinc-500">Total dengan BUP</p>
+                      </div>
+                      <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+                        <p className="text-2xl font-bold text-amber-700">{akanPensiun.length}</p>
+                        <p className="text-xs text-zinc-500">Akan Pensiun</p>
+                      </div>
+                      <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+                        <p className="text-2xl font-bold text-red-700">{sudahBup.length}</p>
+                        <p className="text-xs text-zinc-500">Sudah BUP</p>
+                      </div>
+                      <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+                        <p className="text-2xl font-bold text-green-700">{akanPensiun.filter(e => {
+                          const bup = new Date(e.tanggal_bup)
+                          const diff = (bup.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
+                          return diff <= 12
+                        }).length}</p>
+                        <p className="text-xs text-zinc-500">Pensiun &lt; 1 Thn</p>
+                      </div>
                     </div>
-                    <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-                      <p className="text-2xl font-bold text-amber-700">{akanPensiun.length}</p>
-                      <p className="text-xs text-zinc-500">Akan Pensiun</p>
-                    </div>
-                    <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-                      <p className="text-2xl font-bold text-red-700">{sudahPensiun.length}</p>
-                      <p className="text-xs text-zinc-500">Sudah Pensiun</p>
-                    </div>
-                    <div className="bg-white border border-zinc-200 rounded-xl p-4 text-center">
-                      <p className="text-2xl font-bold text-green-700">{akanPensiun.filter(e => {
-                        const bup = new Date(e.tanggal_bup)
-                        const diff = (bup.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.44)
-                        return diff <= 12
-                      }).length}</p>
-                      <p className="text-xs text-zinc-500">Pensiun &lt; 1 Thn</p>
-                    </div>
+                    {role === 'admin_kecamatan' && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Nonaktifkan semua pegawai yang sudah melewati BUP?')) return
+                          setCleanupLoading(true)
+                          setCleanupResult(null)
+                          try {
+                            const res = await fetch('/api/employees/cleanup-pensiun', { method: 'POST' })
+                            const data = await res.json()
+                            if (!res.ok) throw new Error(data.error || 'Gagal')
+                            setCleanupResult(data.message || `${data.nonaktifkan} pegawai dinonaktifkan`)
+                            setRefreshKey(k => k + 1)
+                          } catch (err: any) {
+                            setCleanupResult('Gagal: ' + err.message)
+                          } finally {
+                            setCleanupLoading(false)
+                          }
+                        }}
+                        disabled={cleanupLoading}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50 shrink-0"
+                      >
+                        {cleanupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        {cleanupLoading ? 'Memproses...' : 'Nonaktifkan Pensiun'}
+                      </button>
+                    )}
                   </div>
+                  {cleanupResult && (
+                    <div className={`px-4 py-3 rounded-xl text-sm ${cleanupResult.startsWith('Gagal') ? 'bg-danger-soft text-danger' : 'bg-success-soft text-green-700'}`}>
+                      {cleanupResult}
+                    </div>
+                  )}
+                  {nonaktif.length > 0 && (
+                    <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+                      <div className="px-4 py-3 bg-red-50 border-b border-zinc-200">
+                        <h3 className="font-semibold text-red-700 text-sm">Nonaktif ({nonaktif.length})</h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-zinc-50 border-b border-zinc-200">
+                              <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama</th>
+                              <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jabatan</th>
+                              <th className="text-left px-4 py-3 font-semibold text-zinc-700">Unit Kerja</th>
+                              <th className="text-left px-4 py-3 font-semibold text-zinc-700">Tanggal Lahir</th>
+                              <th className="text-left px-4 py-3 font-semibold text-zinc-700">BUP</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {nonaktif.map((e, i) => (
+                              <tr key={e.id || i} className="border-b border-zinc-100 text-zinc-400">
+                                <td className="px-4 py-3 font-medium">{e.nama}</td>
+                                <td className="px-4 py-3">{e.jabatan || '-'}</td>
+                                <td className="px-4 py-3">{e.school_nama || '-'}</td>
+                                <td className="px-4 py-3">{e.tanggal_lahir || '-'}</td>
+                                <td className="px-4 py-3">{e.tanggal_bup}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                   <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">

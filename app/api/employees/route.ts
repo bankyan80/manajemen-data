@@ -3,10 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { employees, schools } from '@/db/schema'
-import { eq, like, sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 60
 
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
@@ -19,6 +18,7 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get('q')
   const status_pegawai = searchParams.get('status_pegawai')
   const sekolah_id = searchParams.get('sekolah_id')
+  const showNonaktif = searchParams.get('show_nonaktif') === '1'
 
   let query = db
     .select({
@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
       tmt_kerja: employees.tmt_kerja,
       tanggal_bup: employees.tanggal_bup,
       foto_url: employees.foto_url,
+      is_active: employees.is_active,
       school_nama: schools.nama,
       school_npsn: schools.npsn,
       school_jenjang: schools.jenjang,
@@ -50,6 +51,9 @@ export async function GET(req: NextRequest) {
     .orderBy(employees.nama)
     .$dynamic()
 
+  if (!showNonaktif) {
+    query = query.where(eq(employees.is_active, 1))
+  }
   if (role === 'operator_sekolah' && userSekolahId) {
     query = query.where(eq(employees.sekolah_id, userSekolahId))
   } else if (sekolah_id) {
@@ -64,5 +68,5 @@ export async function GET(req: NextRequest) {
 
   const rows = await query
 
-  return NextResponse.json(rows)
+  return NextResponse.json(rows, { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } })
 }
