@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { Search, Plus } from 'lucide-react'
 
-const TABS = ['Calon Masuk SMP', 'Anak Lanjut SMP', 'SMP Tujuan', 'Anak Tidak Melanjutkan', 'Anak Lanjut Non Formal (Pesantren, dan lainnya)', 'Rekap Transisi Kecamatan']
+const TABS = ['Calon Masuk SMP', 'Anak Lanjut SMP', 'SMP Tujuan', 'Anak Tidak Melanjutkan', 'Anak Lanjut Non Formal', 'Rekap Transisi Kecamatan']
 
 const STATUS_LABELS: Record<string, string> = {
   calon_masuk: 'Calon Masuk',
@@ -287,7 +287,7 @@ export default function TransisiSdSmpPage() {
 
         {activeTab === 4 && (
           <div className="card overflow-hidden">
-            <div className="px-4 py-3 border-b border-border font-semibold text-text-main">Anak Lanjut Non Formal (Pesantren, dan lainnya)</div>
+            <div className="px-4 py-3 border-b border-border font-semibold text-text-main">Anak Lanjut Non Formal</div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
