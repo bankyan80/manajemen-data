@@ -583,36 +583,11 @@ async function main() {
   console.log('  ✓ Notifications seeded')
 
   // ════════════════════════════════════════════
-  // TRANSITIONS (SD → SMP)
+  // TRANSITIONS (SD → SMP) — dikosongkan, diisi manual oleh operator
   // ════════════════════════════════════════════
 
-  console.log('\nSeeding transitions...')
+  console.log('\nSeeding transitions... (skipped — diisi manual oleh operator)')
   const transitionRows: any[] = []
-  const sdStudents = studentRows.filter((s: any) => s.jenjang === 'sd' && s.kelas_kelompok === 'Kelas VI')
-  const smpTujuanList = ['SMP Negeri 1 Lemahabang', 'SMP Negeri 2 Lemahabang', 'SMP Negeri 3 Lemahabang', 'SMP Swasta Bina Bangsa', 'SMP Swasta Al-Ihsan']
-  const statuses = ['calon_masuk', 'calon_masuk', 'calon_masuk', 'sudah_mendaftar', 'diterima']
-
-  for (const s of sdStudents.slice(0, 30)) {
-    const smp = smpTujuanList[Math.floor(Math.random() * smpTujuanList.length)]
-    const st = statuses[Math.floor(Math.random() * statuses.length)]
-    transitionRows.push({
-      id: crypto.randomUUID(),
-      school_id: s.school_id,
-      student_id: s.id,
-      tahun_pelajaran: '2025/2026',
-      nama: s.nama,
-      nisn: s.nisn || null,
-      jenis_kelamin: s.jenis_kelamin || null,
-      kelas: s.kelas_kelompok,
-      status_transisi: st,
-      smp_tujuan: st !== 'calon_masuk' ? smp : null,
-      kesiapan: Math.random() > 0.5 ? 'Siap' : 'Cukup Siap',
-      kegiatan_transisi: Math.random() > 0.6 ? 'Sosialisasi SMP, Bimbingan Akademik' : null,
-      keterangan: null,
-    })
-  }
-  if (transitionRows.length > 0) await batchInsert(transitions, transitionRows)
-  console.log(`  ✓ ${transitionRows.length} transitions seeded`)
 
   // ════════════════════════════════════════════
   // DONE
