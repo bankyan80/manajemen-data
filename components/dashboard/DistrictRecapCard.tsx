@@ -5,7 +5,7 @@ import { School, Users, BookOpen, FileText } from 'lucide-react'
 export default function DistrictRecapCard({ stats, loading }: { stats?: any; loading?: boolean }) {
   const items = [
     { icon: <School className="h-4 w-4" />, label: 'SD', value: stats?.totalSD ?? '...', color: 'text-blue-600 bg-blue-100' },
-    { icon: <Users className="h-4 w-4" />, label: 'KB', value: stats?.totalPAUD ?? '...', color: 'text-teal-600 bg-teal-100' },
+    { icon: <Users className="h-4 w-4" />, label: 'KB', value: stats?.totalKB ?? '...', color: 'text-teal-600 bg-teal-100' },
     { icon: <BookOpen className="h-4 w-4" />, label: 'GTK', value: stats?.totalGTK ?? '...', color: 'text-amber-600 bg-amber-100' },
     { icon: <FileText className="h-4 w-4" />, label: 'Dokumen', value: stats?.totalDocuments ?? '...', color: 'text-purple-600 bg-purple-100' },
   ]
