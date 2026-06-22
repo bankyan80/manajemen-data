@@ -107,7 +107,7 @@ export default function SpmbPage() {
 
   const role = session.user?.role
   const isOperator = role === 'operator_sekolah'
-  const rows = ppdbData || []
+  const rows = ppdbData?.data || []
   const activeTabKey = TABS[activeTab].key
 
   const openAdd = () => {
