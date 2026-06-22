@@ -5,12 +5,15 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
+import { GraduationCap, Loader2 } from 'lucide-react'
 
 export default function KesiswaanPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'sd' | 'kb'>('sd')
   const [filterSekolah, setFilterSekolah] = useState('')
+  const [naikLoading, setNaikLoading] = useState(false)
+  const [naikResult, setNaikResult] = useState<string | null>(null)
   const { data: recaps, loading } = useData<any[]>('student-recaps', () => fetchJson('/api/student-recaps'))
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
@@ -24,12 +27,43 @@ export default function KesiswaanPage() {
 
   const sekolahList = [...new Map((recaps || []).filter(r => r.school_jenjang === activeTab).map(r => [r.school_id, { id: r.school_id, nama: r.school_nama }])).values()]
 
+  const handleNaikKelas = async () => {
+    if (!confirm('Naikkan semua siswa SD TP 2025/2026 ke TP 2026/2027?\nKelas VI akan masuk alumni.\nKB tidak diproses (manual operator).')) return
+    setNaikLoading(true)
+    setNaikResult(null)
+    try {
+      const res = await fetch('/api/naik-kelas', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setNaikResult('Gagal: ' + (data.error || ''))
+      } else {
+        setNaikResult(`Naik kelas: ${data.naik_kelas}, Lulus: ${data.lulus_alumni}, Skip KB: ${data.skip_kb}`)
+      }
+    } catch (err: any) {
+      setNaikResult('Gagal: ' + err.message)
+    } finally {
+      setNaikLoading(false)
+    }
+  }
+
   return (
     <AppShellTopbar>
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-zinc-900">Kesiswaan - SD &amp; PAUD</h1>
+          <h1 className="text-2xl font-bold text-zinc-900">Kesiswaan</h1>
+          {role === 'admin_kecamatan' && (
+            <button onClick={handleNaikKelas} disabled={naikLoading} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+              {naikLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GraduationCap className="w-4 h-4" />}
+              {naikLoading ? 'Memproses...' : 'Naik Kelas'}
+            </button>
+          )}
         </div>
+
+        {naikResult && (
+          <div className={`px-4 py-3 rounded-xl text-sm ${naikResult.startsWith('Gagal') ? 'bg-danger-soft text-danger' : 'bg-success-soft text-green-700'}`}>
+            {naikResult}
+          </div>
+        )}
 
         <div className="flex gap-1 bg-zinc-100 p-1 rounded-lg w-fit">
           <button onClick={() => setActiveTab('sd')} className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'sd' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>SD</button>

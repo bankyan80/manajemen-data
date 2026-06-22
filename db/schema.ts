@@ -315,6 +315,24 @@ export const notifications = sqliteTable('notifications', {
 })
 
 // ============================================================
+// ALUMNI
+// ============================================================
+
+export const alumni = sqliteTable('alumni', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  tahun_lulus: text('tahun_lulus').notNull(),
+  nama: text('nama').notNull(),
+  nisn: text('nisn'),
+  nik: text('nik'),
+  jenis_kelamin: text('jenis_kelamin'),
+  tempat_lahir: text('tempat_lahir'),
+  tanggal_lahir: text('tanggal_lahir'),
+  kelas: text('kelas').notNull(),
+  ...timestamps,
+})
+
+// ============================================================
 // PPDB / SPMB
 // ============================================================
 
