@@ -315,6 +315,25 @@ export const notifications = sqliteTable('notifications', {
 })
 
 // ============================================================
+// PPDB / SPMB
+// ============================================================
+
+export const ppdb = sqliteTable('ppdb', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  tahun_pelajaran: text('tahun_pelajaran').notNull(),
+  daya_tampung: integer('daya_tampung').default(0),
+  jumlah_pendaftar: integer('jumlah_pendaftar').default(0),
+  jumlah_diterima: integer('jumlah_diterima').default(0),
+  jalur_domisili: integer('jalur_domisili').default(0),
+  jalur_afirmasi: integer('jalur_afirmasi').default(0),
+  jalur_mutasi: integer('jalur_mutasi').default(0),
+  rekap_usia: text('rekap_usia'),
+  kekurangan_kelebihan_kuota: integer('kekurangan_kelebihan_kuota').default(0),
+  ...timestamps,
+})
+
+// ============================================================
 // TRANSITIONS (SD → SMP)
 // ============================================================
 
