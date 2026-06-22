@@ -18,34 +18,47 @@ const TABS = [
   { key: 'kekurangan_kelebihan_kuota', label: 'Kekurangan/Kelebihan Kuota' },
 ]
 
-const TAB_COLUMNS: Record<string, { key: string; label: string }[]> = {
+interface ColDef { key: string; label: string }
+
+const TAB_COLUMNS: Record<string, ColDef[]> = {
   daya_tampung: [
     { key: 'school_nama', label: 'Sekolah' },
     { key: 'daya_tampung', label: 'Daya Tampung' },
   ],
   jumlah_pendaftar: [
     { key: 'school_nama', label: 'Sekolah' },
-    { key: 'jumlah_pendaftar', label: 'Jumlah Pendaftar' },
+    { key: 'l', label: 'L' },
+    { key: 'p', label: 'P' },
+    { key: 'jumlah_pendaftar', label: 'Jumlah' },
   ],
   jumlah_diterima: [
     { key: 'school_nama', label: 'Sekolah' },
-    { key: 'jumlah_diterima', label: 'Jumlah Diterima' },
+    { key: 'l', label: 'L' },
+    { key: 'p', label: 'P' },
+    { key: 'jumlah_diterima', label: 'Jumlah' },
   ],
   jalur_domisili: [
     { key: 'school_nama', label: 'Sekolah' },
-    { key: 'jalur_domisili', label: 'Jalur Domisili' },
+    { key: 'l', label: 'L' },
+    { key: 'p', label: 'P' },
+    { key: 'jalur_domisili', label: 'Jumlah' },
   ],
   jalur_afirmasi: [
     { key: 'school_nama', label: 'Sekolah' },
-    { key: 'jalur_afirmasi', label: 'Jalur Afirmasi' },
+    { key: 'l', label: 'L' },
+    { key: 'p', label: 'P' },
+    { key: 'jalur_afirmasi', label: 'Jumlah' },
   ],
   jalur_mutasi: [
     { key: 'school_nama', label: 'Sekolah' },
-    { key: 'jalur_mutasi', label: 'Jalur Mutasi' },
+    { key: 'l', label: 'L' },
+    { key: 'p', label: 'P' },
+    { key: 'jalur_mutasi', label: 'Jumlah' },
   ],
   rekap_usia: [
     { key: 'school_nama', label: 'Sekolah' },
-    { key: 'rekap_usia', label: 'Rekap Usia' },
+    { key: 'l', label: 'L (Usia)' },
+    { key: 'p', label: 'P (Usia)' },
   ],
   kekurangan_kelebihan_kuota: [
     { key: 'school_nama', label: 'Sekolah' },
@@ -55,24 +68,32 @@ const TAB_COLUMNS: Record<string, { key: string; label: string }[]> = {
   ],
 }
 
+function renderUsia(json?: string | null): string {
+  if (!json) return '-'
+  try {
+    const obj = JSON.parse(json)
+    return Object.entries(obj).map(([u, c]) => `${u} th: ${c}`).join(', ')
+  } catch {
+    return json
+  }
+}
+
 function cellValue(row: any, tabKey: string): (string | number)[] {
   switch (tabKey) {
     case 'daya_tampung':
       return [row.school_nama, row.daya_tampung ?? 0]
     case 'jumlah_pendaftar':
-      return [row.school_nama, row.jumlah_pendaftar ?? 0]
+      return [row.school_nama, row.jumlah_pendaftar_l ?? 0, row.jumlah_pendaftar_p ?? 0, row.jumlah_pendaftar ?? 0]
     case 'jumlah_diterima':
-      return [row.school_nama, row.jumlah_diterima ?? 0]
+      return [row.school_nama, row.jumlah_diterima_l ?? 0, row.jumlah_diterima_p ?? 0, row.jumlah_diterima ?? 0]
     case 'jalur_domisili':
-      return [row.school_nama, row.jalur_domisili ?? 0]
+      return [row.school_nama, row.jalur_domisili_l ?? 0, row.jalur_domisili_p ?? 0, row.jalur_domisili ?? 0]
     case 'jalur_afirmasi':
-      return [row.school_nama, row.jalur_afirmasi ?? 0]
+      return [row.school_nama, row.jalur_afirmasi_l ?? 0, row.jalur_afirmasi_p ?? 0, row.jalur_afirmasi ?? 0]
     case 'jalur_mutasi':
-      return [row.school_nama, row.jalur_mutasi ?? 0]
-    case 'rekap_usia': {
-      const usia = row.rekap_usia ? (() => { try { return JSON.parse(row.rekap_usia) } catch { return row.rekap_usia } })() : null
-      return [row.school_nama, usia ? Object.entries(usia).map(([u, c]) => `${u} th: ${c}`).join(', ') : '-']
-    }
+      return [row.school_nama, row.jalur_mutasi_l ?? 0, row.jalur_mutasi_p ?? 0, row.jalur_mutasi ?? 0]
+    case 'rekap_usia':
+      return [row.school_nama, renderUsia(row.rekap_usia_l), renderUsia(row.rekap_usia_p)]
     case 'kekurangan_kelebihan_kuota':
       return [row.school_nama, row.daya_tampung ?? 0, row.jumlah_diterima ?? 0, row.kekurangan_kelebihan_kuota ?? 0]
     default:
@@ -89,6 +110,14 @@ function generateTahunPelajaran(start: number, count: number): string[] {
 }
 
 const ALL_TAHUN = generateTahunPelajaran(2026, 10)
+
+const GENDER_FIELDS: { key: string; label: string; lKey: string; pKey: string }[] = [
+  { key: 'jumlah_pendaftar', label: 'Pendaftar', lKey: 'jumlah_pendaftar_l', pKey: 'jumlah_pendaftar_p' },
+  { key: 'jumlah_diterima', label: 'Diterima', lKey: 'jumlah_diterima_l', pKey: 'jumlah_diterima_p' },
+  { key: 'jalur_domisili', label: 'Domisili', lKey: 'jalur_domisili_l', pKey: 'jalur_domisili_p' },
+  { key: 'jalur_afirmasi', label: 'Afirmasi', lKey: 'jalur_afirmasi_l', pKey: 'jalur_afirmasi_p' },
+  { key: 'jalur_mutasi', label: 'Mutasi', lKey: 'jalur_mutasi_l', pKey: 'jalur_mutasi_p' },
+]
 
 export default function SpmbPage() {
   const { data: session, status } = useSession()
@@ -159,6 +188,25 @@ export default function SpmbPage() {
   const tab = TABS[activeTab]
   const columns = TAB_COLUMNS[tab.key] || []
 
+  function upd(field: string, val: any) {
+    setEditRow({ ...editRow, [field]: val === '' ? '' : Number(val) })
+  }
+
+  function renderLpInput(lKey: string, pKey: string, lVal: any, pVal: any) {
+    return (
+      <div className="flex gap-2">
+        <div className="flex-1 flex items-center gap-2">
+          <span className="text-xs font-semibold text-text-muted w-4">L</span>
+          <input type="number" value={lVal ?? ''} onChange={e => upd(lKey, e.target.value)} className="w-full px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
+        </div>
+        <div className="flex-1 flex items-center gap-2">
+          <span className="text-xs font-semibold text-text-muted w-4">P</span>
+          <input type="number" value={pVal ?? ''} onChange={e => upd(pKey, e.target.value)} className="w-full px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <AppShellTopbar>
       <div className="container-page space-y-6">
@@ -166,7 +214,6 @@ export default function SpmbPage() {
           <h1>SPMB / PPDB</h1>
         </div>
 
-        {/* Tahun Pelajaran filter */}
         <div className="flex items-center gap-3">
           <label className="text-sm font-semibold text-text-muted">Tahun Pelajaran</label>
           <select value={tahunPelajaran} onChange={e => setTahunPelajaran(e.target.value)} className="max-w-48 px-3 py-2 rounded-[10px] border border-border bg-white text-sm">
@@ -174,14 +221,12 @@ export default function SpmbPage() {
           </select>
         </div>
 
-        {/* Tabs */}
         <div className="flex flex-wrap gap-1 bg-zinc-100 p-1 rounded-lg">
           {TABS.map((t, i) => (
             <button key={t.key} onClick={() => setActiveTab(i)} className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap ${activeTab === i ? 'bg-white text-primary shadow-sm' : 'text-text-muted hover:text-text-main'}`}>{t.label}</button>
           ))}
         </div>
 
-        {/* Table */}
         <div className="card overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="font-semibold text-text-main">{tab.label}</h3>
@@ -233,35 +278,25 @@ export default function SpmbPage() {
                 </div>
                 <div className="flex items-start gap-4">
                   <span className="w-36 shrink-0 text-text-muted pt-2">Daya Tampung</span>
-                  <input type="number" value={editRow.daya_tampung ?? ''} onChange={e => setEditRow({ ...editRow, daya_tampung: e.target.value === '' ? '' : Number(e.target.value) })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
+                  <input type="number" value={editRow.daya_tampung ?? ''} onChange={e => upd('daya_tampung', e.target.value)} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
+                </div>
+                {GENDER_FIELDS.map(f => (
+                  <div key={f.key} className="flex items-start gap-4">
+                    <span className="w-36 shrink-0 text-text-muted pt-2">{f.label}</span>
+                    {renderLpInput(f.lKey, f.pKey, editRow[f.lKey], editRow[f.pKey])}
+                  </div>
+                ))}
+                <div className="flex items-start gap-4">
+                  <span className="w-36 shrink-0 text-text-muted pt-2">Rekap Usia L (JSON)</span>
+                  <textarea value={editRow.rekap_usia_l || ''} onChange={e => setEditRow({ ...editRow, rekap_usia_l: e.target.value })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" rows={2} placeholder='{"6": 5, "7": 10}' />
                 </div>
                 <div className="flex items-start gap-4">
-                  <span className="w-36 shrink-0 text-text-muted pt-2">Jumlah Pendaftar</span>
-                  <input type="number" value={editRow.jumlah_pendaftar ?? ''} onChange={e => setEditRow({ ...editRow, jumlah_pendaftar: e.target.value === '' ? '' : Number(e.target.value) })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
-                </div>
-                <div className="flex items-start gap-4">
-                  <span className="w-36 shrink-0 text-text-muted pt-2">Jumlah Diterima</span>
-                  <input type="number" value={editRow.jumlah_diterima ?? ''} onChange={e => setEditRow({ ...editRow, jumlah_diterima: e.target.value === '' ? '' : Number(e.target.value) })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
-                </div>
-                <div className="flex items-start gap-4">
-                  <span className="w-36 shrink-0 text-text-muted pt-2">Jalur Domisili</span>
-                  <input type="number" value={editRow.jalur_domisili ?? ''} onChange={e => setEditRow({ ...editRow, jalur_domisili: e.target.value === '' ? '' : Number(e.target.value) })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
-                </div>
-                <div className="flex items-start gap-4">
-                  <span className="w-36 shrink-0 text-text-muted pt-2">Jalur Afirmasi</span>
-                  <input type="number" value={editRow.jalur_afirmasi ?? ''} onChange={e => setEditRow({ ...editRow, jalur_afirmasi: e.target.value === '' ? '' : Number(e.target.value) })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
-                </div>
-                <div className="flex items-start gap-4">
-                  <span className="w-36 shrink-0 text-text-muted pt-2">Jalur Mutasi</span>
-                  <input type="number" value={editRow.jalur_mutasi ?? ''} onChange={e => setEditRow({ ...editRow, jalur_mutasi: e.target.value === '' ? '' : Number(e.target.value) })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
-                </div>
-                <div className="flex items-start gap-4">
-                  <span className="w-36 shrink-0 text-text-muted pt-2">Rekap Usia (JSON)</span>
-                  <textarea value={editRow.rekap_usia || ''} onChange={e => setEditRow({ ...editRow, rekap_usia: e.target.value })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" rows={3} placeholder='{"6": 10, "7": 15}' />
+                  <span className="w-36 shrink-0 text-text-muted pt-2">Rekap Usia P (JSON)</span>
+                  <textarea value={editRow.rekap_usia_p || ''} onChange={e => setEditRow({ ...editRow, rekap_usia_p: e.target.value })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" rows={2} placeholder='{"6": 4, "7": 8}' />
                 </div>
                 <div className="flex items-start gap-4">
                   <span className="w-36 shrink-0 text-text-muted pt-2">Kekurangan/Kelebihan</span>
-                  <input type="number" value={editRow.kekurangan_kelebihan_kuota ?? ''} onChange={e => setEditRow({ ...editRow, kekurangan_kelebihan_kuota: e.target.value === '' ? '' : Number(e.target.value) })} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
+                  <input type="number" value={editRow.kekurangan_kelebihan_kuota ?? ''} onChange={e => upd('kekurangan_kelebihan_kuota', e.target.value)} className="flex-1 px-3 py-1.5 border border-border rounded-lg bg-white text-sm" />
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
