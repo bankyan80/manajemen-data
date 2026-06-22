@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { Search, Plus } from 'lucide-react'
 
-const TABS = ['Calon Masuk SMP', 'Anak Lanjut SMP', 'SMP Tujuan', 'Kesiapan Anak', 'Kegiatan Transisi', 'Rekap Transisi Kecamatan']
+const TABS = ['Calon Masuk SMP', 'Anak Lanjut SMP', 'SMP Tujuan', 'Anak Tidak Melanjutkan', 'Anak Lanjut Non Formal (Pesantren, dan lainnya)', 'Rekap Transisi Kecamatan']
 
 const STATUS_LABELS: Record<string, string> = {
   calon_masuk: 'Calon Masuk',
@@ -61,20 +61,20 @@ export default function TransisiSdSmpPage() {
   const calonMasuk = filtered.filter((d: any) => d.status_transisi === 'calon_masuk' || d.status_transisi === 'belum_mendaftar')
   const anakLanjut = filtered.filter((d: any) => d.status_transisi === 'lanjut' || d.status_transisi === 'sudah_mendaftar' || d.status_transisi === 'diterima')
   const smpTujuan = Array.from(new Set(filtered.map((d: any) => d.smp_tujuan).filter(Boolean))) as string[]
-  const kesiapanData = filtered.filter((d: any) => d.kesiapan)
-  const kegiatanData = filtered.filter((d: any) => d.kegiatan_transisi)
+  const tidakMelanjutkan = filtered.filter((d: any) => !d.smp_tujuan && d.status_transisi !== 'diterima')
+  const lanjutNonFormal = filtered.filter((d: any) => d.kegiatan_transisi)
 
   const calonMasukSekolah = groupBySchool(calonMasuk)
   const anakLanjutSekolah = groupBySchool(anakLanjut)
-  const kesiapanSekolah = groupBySchool(kesiapanData)
-  const kegiatanSekolah = groupBySchool(kegiatanData)
+  const tidakMelanjutkanSekolah = groupBySchool(tidakMelanjutkan)
+  const lanjutNonFormalSekolah = groupBySchool(lanjutNonFormal)
 
   const summaryRecap = TABS.map((tab, i) => {
     if (i === 0) return { tab, sd: isAdmin ? calonMasukSekolah.length : calonMasuk.length, kb: 0 }
     if (i === 1) return { tab, sd: isAdmin ? anakLanjutSekolah.length : anakLanjut.length, kb: 0 }
     if (i === 2) return { tab, sd: smpTujuan.length, kb: 0 }
-    if (i === 3) return { tab, sd: isAdmin ? kesiapanSekolah.length : kesiapanData.length, kb: 0 }
-    if (i === 4) return { tab, sd: isAdmin ? kegiatanSekolah.length : kegiatanData.length, kb: 0 }
+    if (i === 3) return { tab, sd: isAdmin ? tidakMelanjutkanSekolah.length : tidakMelanjutkan.length, kb: 0 }
+    if (i === 4) return { tab, sd: isAdmin ? lanjutNonFormalSekolah.length : lanjutNonFormal.length, kb: 0 }
     if (i === 5) return { tab, sd: recap.reduce((s: number, r: any) => s + r.total, 0), kb: 0 }
     return { tab, sd: 0, kb: 0 }
   })
@@ -241,7 +241,7 @@ export default function TransisiSdSmpPage() {
 
         {activeTab === 3 && (
           <div className="card overflow-hidden">
-            <div className="px-4 py-3 border-b border-border font-semibold text-text-main">Kesiapan Anak</div>
+            <div className="px-4 py-3 border-b border-border font-semibold text-text-main">Anak Tidak Melanjutkan</div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -249,7 +249,7 @@ export default function TransisiSdSmpPage() {
                     {isAdmin ? (
                       <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-center px-4 py-3 font-semibold text-text-muted">L</th><th className="text-center px-4 py-3 font-semibold text-text-muted">P</th><th className="text-center px-4 py-3 font-semibold text-text-muted">Jumlah</th></>
                     ) : (
-                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">NISN</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Kesiapan</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Keterangan</th></>
+                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">NISN</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Kelas</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th></>
                     )}
                   </tr>
                 </thead>
@@ -257,9 +257,9 @@ export default function TransisiSdSmpPage() {
                   {loading ? (
                     <tr><td colSpan={isAdmin ? 4 : 4} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
                   ) : isAdmin ? (
-                    kesiapanSekolah.length === 0 ? (
-                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data kesiapan anak</td></tr>
-                    ) : kesiapanSekolah.map((s, i) => (
+                    tidakMelanjutkanSekolah.length === 0 ? (
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data anak tidak melanjutkan</td></tr>
+                    ) : tidakMelanjutkanSekolah.map((s, i) => (
                       <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{s.school_nama}</td>
                         <td className="px-4 py-3 text-center text-text-muted">{s.laki}</td>
@@ -268,14 +268,14 @@ export default function TransisiSdSmpPage() {
                       </tr>
                     ))
                   ) : (
-                    kesiapanData.length === 0 ? (
-                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data kesiapan anak</td></tr>
-                    ) : kesiapanData.map((d: any, i: number) => (
+                    tidakMelanjutkan.length === 0 ? (
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data anak tidak melanjutkan</td></tr>
+                    ) : tidakMelanjutkan.map((d: any, i: number) => (
                       <tr key={d.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{d.nama}</td>
                         <td className="px-4 py-3">{d.nisn || '-'}</td>
-                        <td className="px-4 py-3">{d.kesiapan}</td>
-                        <td className="px-4 py-3">{d.keterangan || '-'}</td>
+                        <td className="px-4 py-3">{d.kelas}</td>
+                        <td className="px-4 py-3">{d.school_nama || '-'}</td>
                       </tr>
                     ))
                   )}
@@ -287,7 +287,7 @@ export default function TransisiSdSmpPage() {
 
         {activeTab === 4 && (
           <div className="card overflow-hidden">
-            <div className="px-4 py-3 border-b border-border font-semibold text-text-main">Kegiatan Transisi</div>
+            <div className="px-4 py-3 border-b border-border font-semibold text-text-main">Anak Lanjut Non Formal (Pesantren, dan lainnya)</div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -295,7 +295,7 @@ export default function TransisiSdSmpPage() {
                     {isAdmin ? (
                       <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-center px-4 py-3 font-semibold text-text-muted">L</th><th className="text-center px-4 py-3 font-semibold text-text-muted">P</th><th className="text-center px-4 py-3 font-semibold text-text-muted">Jumlah</th></>
                     ) : (
-                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Kegiatan</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Keterangan</th></>
+                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Kegiatan Transisi</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Keterangan</th></>
                     )}
                   </tr>
                 </thead>
@@ -303,9 +303,9 @@ export default function TransisiSdSmpPage() {
                   {loading ? (
                     <tr><td colSpan={isAdmin ? 4 : 3} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
                   ) : isAdmin ? (
-                    kegiatanSekolah.length === 0 ? (
-                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data kegiatan transisi</td></tr>
-                    ) : kegiatanSekolah.map((s, i) => (
+                    lanjutNonFormalSekolah.length === 0 ? (
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data anak lanjut non formal</td></tr>
+                    ) : lanjutNonFormalSekolah.map((s, i) => (
                       <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{s.school_nama}</td>
                         <td className="px-4 py-3 text-center text-text-muted">{s.laki}</td>
@@ -314,9 +314,9 @@ export default function TransisiSdSmpPage() {
                       </tr>
                     ))
                   ) : (
-                    kegiatanData.length === 0 ? (
-                      <tr><td colSpan={3} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data kegiatan transisi</td></tr>
-                    ) : kegiatanData.map((d: any, i: number) => (
+                    lanjutNonFormal.length === 0 ? (
+                      <tr><td colSpan={3} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data anak lanjut non formal</td></tr>
+                    ) : lanjutNonFormal.map((d: any, i: number) => (
                       <tr key={d.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{d.nama}</td>
                         <td className="px-4 py-3">{d.kegiatan_transisi}</td>
