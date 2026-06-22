@@ -100,7 +100,7 @@ export default function SpmbPage() {
   const [saving, setSaving] = useState(false)
   const [tahunPelajaran, setTahunPelajaran] = useState('2026/2027')
 
-  const { data: ppdbData } = useData<any[]>(`ppdb-${tahunPelajaran}-${refreshKey}`, () => fetchJson(`/api/ppdb?tahun_pelajaran=${encodeURIComponent(tahunPelajaran)}`))
+  const { data: ppdbData } = useData<{ data: any[] }>(`ppdb-${tahunPelajaran}-${refreshKey}`, () => fetchJson(`/api/ppdb?tahun_pelajaran=${encodeURIComponent(tahunPelajaran)}`))
 
   if (status === 'loading') return <div className="p-8 text-center text-text-muted">Memuat...</div>
   if (!session) { router.push('/login'); return null }
