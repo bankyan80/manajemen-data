@@ -76,10 +76,10 @@ export default function Topbar({ user }: TopbarProps) {
             <GraduationCap className="h-5 w-5" />
           </div>
           <span className="hidden text-sm font-semibold text-zinc-900 sm:block md:text-base">
-            Aplikasi Laporan Pendidikan Kecamatan
+            Manajemen Satu Data
           </span>
           <span className="text-sm font-semibold text-zinc-900 sm:hidden">
-            ALPK
+            MSD
           </span>
         </div>
         <span className="hidden rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700 sm:inline-block">

@@ -1,4 +1,4 @@
-# Aplikasi Laporan Pendidikan Kecamatan
+# Manajemen Satu Data
 
 Sistem informasi manajemen laporan pendidikan tingkat kecamatan yang memfasilitasi pengelolaan data sekolah, pegawai, dokumen, dan laporan bulanan.
 

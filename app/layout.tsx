@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aplikasi Laporan Pendidikan Kecamatan | SD & PAUD",
-  description: "Sistem Terpadu Laporan SD & PAUD Tingkat Kecamatan",
+  title: "Manajemen Satu Data",
+  description: "Manajemen Satu Data",
 };
 
 export default function RootLayout({

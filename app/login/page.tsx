@@ -56,7 +56,7 @@ function LoginContent() {
               <GraduationCap className="h-8 w-8 text-teal-700" />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
-              Aplikasi Laporan Pendidikan Kecamatan
+              Manajemen Satu Data
             </h1>
             <p className="mt-2 text-sm text-zinc-500">
               Sistem Terpadu Laporan SD & PAUD Tingkat Kecamatan

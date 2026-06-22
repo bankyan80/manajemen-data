@@ -1,4 +1,4 @@
-# Aplikasi Laporan Pendidikan Kecamatan
+# Manajemen Satu Data
 
 ## Tech Stack
 - **Framework:** Next.js 16 (App Router)
