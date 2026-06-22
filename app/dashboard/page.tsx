@@ -3,13 +3,13 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import Image from 'next/image'
 import { Loader2 } from 'lucide-react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import StatCard from '@/components/dashboard/StatCard'
 import CompletionDonutChart from '@/components/dashboard/CompletionDonutChart'
 import MonthlyReportChart from '@/components/dashboard/MonthlyReportChart'
 import DistrictRecapCard from '@/components/dashboard/DistrictRecapCard'
-import Image from 'next/image'
 import { School, Users, BookOpen, FileText } from 'lucide-react'
 import { useData, fetchJson } from '@/lib/useData'
 
@@ -35,10 +35,10 @@ export default function DashboardPage() {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+      <div className="flex min-h-screen items-center justify-center" style={{background: 'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(30,58,138,0.1), transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(20,184,166,0.08), transparent 50%), linear-gradient(180deg, #f8fafc 0%, #eef6ff 100%)'}}>
         <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-teal-600" />
-          <p className="mt-2 text-sm text-zinc-500">Memuat...</p>
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+          <p className="mt-2 text-sm text-text-muted">Memuat...</p>
         </div>
       </div>
     )
@@ -48,14 +48,14 @@ export default function DashboardPage() {
 
   return (
     <AppShellTopbar>
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-600 p-2">
-            <Image src="/tutwuri.png" alt="Tut Wuri" width={28} height={28} className="h-full w-full object-contain" />
+      <div className="container-page space-y-6">
+        <div className="page-header">
+          <div className="logo-icon">
+            <Image src="/tutwuri.png" alt="Tut Wuri" width={24} height={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Dashboard</h1>
-            <p className="mt-1 text-sm text-zinc-500">Selamat datang, {session.user?.name || 'Pengguna'}</p>
+            <h1>Dashboard</h1>
+            <p className="text-sm text-text-muted">Selamat datang, {session.user?.name || 'Pengguna'}</p>
           </div>
         </div>
 

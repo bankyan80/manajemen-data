@@ -11,12 +11,12 @@ interface StatCardProps {
 }
 
 const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
-  blue: { bg: 'bg-blue-100', text: 'text-blue-700', ring: 'ring-blue-200' },
-  teal: { bg: 'bg-teal-100', text: 'text-teal-700', ring: 'ring-teal-200' },
-  amber: { bg: 'bg-amber-100', text: 'text-amber-700', ring: 'ring-amber-200' },
+  blue: { bg: 'bg-primary-soft', text: 'text-primary', ring: 'ring-primary-soft' },
+  teal: { bg: 'bg-secondary-soft', text: 'text-secondary-dark', ring: 'ring-secondary-soft' },
+  amber: { bg: 'bg-warning-soft', text: 'text-warning', ring: 'ring-warning-soft' },
   purple: { bg: 'bg-purple-100', text: 'text-purple-700', ring: 'ring-purple-200' },
-  green: { bg: 'bg-green-100', text: 'text-green-700', ring: 'ring-green-200' },
-  red: { bg: 'bg-red-100', text: 'text-red-700', ring: 'ring-red-200' },
+  green: { bg: 'bg-success-soft', text: 'text-success', ring: 'ring-success-soft' },
+  red: { bg: 'bg-danger-soft', text: 'text-danger', ring: 'ring-danger-soft' },
   indigo: { bg: 'bg-indigo-100', text: 'text-indigo-700', ring: 'ring-indigo-200' },
 }
 
@@ -24,20 +24,20 @@ export default function StatCard({ title, value, icon, color, description }: Sta
   const colors = colorMap[color] || colorMap.blue
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5">
+    <div className="stat-card">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${colors.bg} ${colors.text} ring-2 ${colors.ring}`}>
+          <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${colors.bg} ${colors.text} ring-2 ${colors.ring}`}>
             {icon}
           </div>
           <div>
-            <p className="text-2xl font-bold text-zinc-900">{value}</p>
-            <p className="text-xs font-medium text-zinc-500">{title}</p>
+            <p className="text-2xl font-bold text-text-main">{value}</p>
+            <p className="text-xs font-medium text-text-muted">{title}</p>
           </div>
         </div>
       </div>
       {description && (
-        <p className="mt-2 text-xs text-zinc-400">{description}</p>
+        <p className="mt-2 text-xs text-text-muted">{description}</p>
       )}
     </div>
   )
