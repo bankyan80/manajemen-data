@@ -5,7 +5,7 @@ import { getToken } from "next-auth/jwt";
 const protectedPaths = [
   "/dashboard", "/kesiswaan", "/gtk", "/arsip-dokumen",
   "/kurikulum", "/sarpras", "/kelembagaan", "/spmb",
-  "/transisi-paud-sd", "/kegiatan-prestasi", "/monitoring",
+  "/transisi-sd-smp", "/kegiatan-prestasi", "/monitoring",
   "/rekap-kecamatan", "/cetak-export", "/pengaturan",
 ];
 
@@ -51,7 +51,7 @@ export const config = {
     "/sarpras/:path*",
     "/kelembagaan/:path*",
     "/spmb/:path*",
-    "/transisi-paud-sd/:path*",
+    "/transisi-sd-smp/:path*",
     "/kegiatan-prestasi/:path*",
     "/monitoring/:path*",
     "/rekap-kecamatan/:path*",

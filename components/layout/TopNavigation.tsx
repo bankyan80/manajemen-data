@@ -60,8 +60,8 @@ const navItems: NavItem[] = [
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
-    label: 'Transisi PAUD-SD',
-    href: '/transisi-paud-sd',
+    label: 'Transisi SD-SMP',
+    href: '/transisi-sd-smp',
     icon: <ArrowRightLeft className="h-4 w-4" />,
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
