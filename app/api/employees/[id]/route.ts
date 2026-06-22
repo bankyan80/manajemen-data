@@ -15,7 +15,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
     'jabatan', 'status_pegawai', 'pangkat_golongan',
     'pendidikan_terakhir', 'jurusan', 'sertifikasi',
-    'tmt_kerja', 'tanggal_bup', 'is_active',
+    'tmt_kerja', 'tanggal_bup', 'is_active', 'sekolah_id',
   ]
 
   const update: Record<string, any> = {}

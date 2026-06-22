@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -24,6 +24,8 @@ export default function GtkPage() {
   const [cleanupLoading, setCleanupLoading] = useState(false)
   const [cleanupResult, setCleanupResult] = useState<string | null>(null)
   const { data: employees, loading, error } = useData<any[]>(`employees-${refreshKey}`, () => fetchJson('/api/employees?show_nonaktif=1'))
+  const [schools, setSchools] = useState<any[]>([])
+  useEffect(() => { fetchJson('/api/schools').then(setSchools).catch(() => {}) }, [])
 
   const openDetail = (e: any) => { setSelected(e); setEditing(false); setForm({}) }
   const closeDetail = () => { setSelected(null); setEditing(false); setForm({}) }
@@ -418,6 +420,7 @@ export default function GtkPage() {
                   <Field label="TMT Kerja" value={form.tmt_kerja || ''} onChange={v => setForm({ ...form, tmt_kerja: v })} />
                   <Field label="Email" value={form.email || ''} onChange={v => setForm({ ...form, email: v })} />
                   <Field label="No HP" value={form.no_hp || ''} onChange={v => setForm({ ...form, no_hp: v })} />
+                  <Select label="Unit Kerja" value={form.sekolah_id || ''} onChange={v => setForm({ ...form, sekolah_id: v })} options={['', ...schools.map(s => s.id)]} labels={{ '': 'Pilih Sekolah...', ...Object.fromEntries(schools.map(s => [s.id, s.nama])) }} />
                   <Select label="Status Aktif" value={form.is_active === 0 ? '0' : '1'} onChange={v => setForm({ ...form, is_active: v === '0' ? 0 : 1 })} options={['1', '0']} labels={{ '1': 'Aktif', '0': 'Nonaktif' }} />
                 </>
               ) : (
