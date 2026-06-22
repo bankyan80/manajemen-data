@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
 
-  const insert: Record<string, any> = {
+  const insert = {
     school_id: body.school_id || userSekolahId,
     tahun_pelajaran: body.tahun_pelajaran,
     nama: body.nama,
@@ -83,9 +83,8 @@ export async function POST(req: NextRequest) {
     kesiapan: body.kesiapan || null,
     kegiatan_transisi: body.kegiatan_transisi || null,
     keterangan: body.keterangan || null,
-  }
-
-  if (body.student_id) insert.student_id = body.student_id
+    student_id: body.student_id || null,
+  } as const
 
   const [result] = await db.insert(transitions).values(insert).returning()
 
