@@ -30,8 +30,8 @@ export async function GET() {
     : await db.select({ value: count() }).from(schools).where(eq(schools.jenjang, 'sd'))
 
   const [paudCount] = isOperator
-    ? await db.select({ value: count() }).from(schools).where(sql`${schools.id} = ${userSekolahId} AND ${schools.jenjang} = 'paud'`)
-    : await db.select({ value: count() }).from(schools).where(eq(schools.jenjang, 'paud'))
+    ? await db.select({ value: count() }).from(schools).where(sql`${schools.id} = ${userSekolahId} AND ${schools.jenjang} = 'kb'`)
+    : await db.select({ value: count() }).from(schools).where(eq(schools.jenjang, 'kb'))
 
   const empCount = await filterCount(employees, employees.sekolah_id)
   const docCount = await filterCount(employeeDocuments, employeeDocuments.school_id)

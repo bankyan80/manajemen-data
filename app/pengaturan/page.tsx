@@ -248,7 +248,7 @@ export default function PengaturanPage() {
             <div className="space-y-3">
               {[
                 { nama: 'Template Laporan Bulanan SD', format: 'DOCX', ukuran: '45 KB' },
-                { nama: 'Template Laporan Bulanan PAUD', format: 'DOCX', ukuran: '42 KB' },
+                { nama: 'Template Laporan Bulanan KB', format: 'DOCX', ukuran: '42 KB' },
                 { nama: 'Template Rekap Kecamatan', format: 'XLSX', ukuran: '68 KB' },
               ].map((t, i) => (
                 <div key={i} className="border border-zinc-200 rounded-lg p-4 flex items-center justify-between">

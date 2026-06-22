@@ -21,11 +21,11 @@ export default function RekapKecamatanPage() {
   if (!session) { router.push('/login'); return null }
 
   const sdSchools = (schools || []).filter((s: any) => s.jenjang === 'sd')
-  const paudSchools = (schools || []).filter((s: any) => s.jenjang === 'paud')
+  const kbSchools = (schools || []).filter((s: any) => s.jenjang === 'kb')
   const sdNegeri = sdSchools.filter((s: any) => s.status === 'negeri').length
   const sdSwasta = sdSchools.filter((s: any) => s.status === 'swasta').length
-  const paudNegeri = paudSchools.filter((s: any) => s.status === 'negeri').length
-  const paudSwasta = paudSchools.filter((s: any) => s.status === 'swasta').length
+  const kbNegeri = kbSchools.filter((s: any) => s.status === 'negeri').length
+  const kbSwasta = kbSchools.filter((s: any) => s.status === 'swasta').length
 
   const docs = docData?.data || []
   const verifiedDocs = docs.filter((d: any) => d.status_verifikasi === 'sudah_diverifikasi').length
@@ -40,7 +40,7 @@ export default function RekapKecamatanPage() {
             <p className="text-2xl font-bold text-blue-700">{sdSchools.length}</p><p className="text-xs text-zinc-500">Total SD</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 text-center">
-            <p className="text-2xl font-bold text-purple-700">{paudSchools.length}</p><p className="text-xs text-zinc-500">Total PAUD</p>
+            <p className="text-2xl font-bold text-purple-700">{kbSchools.length}</p><p className="text-xs text-zinc-500">Total KB</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 text-center">
             <p className="text-2xl font-bold text-green-700">{stats?.totalGTK || 0}</p><p className="text-xs text-zinc-500">Total GTK</p>
@@ -66,7 +66,7 @@ export default function RekapKecamatanPage() {
           <select value={filterJenjang} onChange={e => setFilterJenjang(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
             <option value="">Semua Jenjang</option>
             <option value="sd">SD</option>
-            <option value="paud">PAUD</option>
+            <option value="kb">KB</option>
           </select>
         </div>
 
@@ -92,19 +92,19 @@ export default function RekapKecamatanPage() {
                       <td className="px-4 py-3 font-bold">{sdSchools.length}</td>
                     </tr>
                   )}
-                  {(!filterJenjang || filterJenjang === 'paud') && (
+                  {(!filterJenjang || filterJenjang === 'kb') && (
                     <tr className="border-b border-zinc-100">
-                      <td className="px-4 py-3 font-medium">PAUD</td>
-                      <td className="px-4 py-3">{paudNegeri}</td>
-                      <td className="px-4 py-3">{paudSwasta}</td>
-                      <td className="px-4 py-3 font-bold">{paudSchools.length}</td>
+                      <td className="px-4 py-3 font-medium">KB</td>
+                      <td className="px-4 py-3">{kbNegeri}</td>
+                      <td className="px-4 py-3">{kbSwasta}</td>
+                      <td className="px-4 py-3 font-bold">{kbSchools.length}</td>
                     </tr>
                   )}
                   {!filterJenjang && (
                     <tr className="bg-blue-50 font-bold">
                       <td className="px-4 py-3">Total</td>
-                      <td className="px-4 py-3">{sdNegeri + paudNegeri}</td>
-                      <td className="px-4 py-3">{sdSwasta + paudSwasta}</td>
+                      <td className="px-4 py-3">{sdNegeri + kbNegeri}</td>
+                      <td className="px-4 py-3">{sdSwasta + kbSwasta}</td>
                       <td className="px-4 py-3">{schools?.length || 0}</td>
                     </tr>
                   )}

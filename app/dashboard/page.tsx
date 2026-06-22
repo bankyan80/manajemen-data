@@ -55,7 +55,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard title="Total SD" value={statsLoading ? '...' : String(stats?.totalSD || 0)} icon={<School className="h-5 w-5" />} color="blue" description="Sekolah Dasar" />
-          <StatCard title="Total PAUD" value={statsLoading ? '...' : String(stats?.totalPAUD || 0)} icon={<Users className="h-5 w-5" />} color="teal" description="PAUD & TK" />
+          <StatCard title="Total KB" value={statsLoading ? '...' : String(stats?.totalPAUD || 0)} icon={<Users className="h-5 w-5" />} color="teal" description="Kelompok Bermain" />
           <StatCard title="Total GTK" value={statsLoading ? '...' : String(stats?.totalGTK || 0)} icon={<BookOpen className="h-5 w-5" />} color="amber" description="Guru & Tenaga Kependidikan" />
           <StatCard title="Dokumen Pegawai" value={statsLoading ? '...' : String(stats?.totalDocuments || 0)} icon={<FileText className="h-5 w-5" />} color="purple" description="Total dokumen tersimpan" />
         </div>

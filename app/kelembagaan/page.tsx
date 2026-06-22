@@ -53,7 +53,7 @@ export default function KelembagaanPage() {
           <select value={filterJenjang} onChange={e => setFilterJenjang(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
             <option value="">Semua Jenjang</option>
             <option value="sd">SD</option>
-            <option value="paud">PAUD</option>
+            <option value="kb">KB</option>
           </select>
           <span className="text-sm text-zinc-500">{filtered.length} lembaga</span>
         </div>
@@ -110,7 +110,7 @@ export default function KelembagaanPage() {
                 <>
                   <Field label="Nama" value={form.nama} onChange={v => setForm({ ...form, nama: v })} />
                   <Field label="NPSN" value={form.npsn} onChange={v => setForm({ ...form, npsn: v })} />
-                  <Select label="Jenjang" value={form.jenjang} onChange={v => setForm({ ...form, jenjang: v })} options={['sd', 'paud']} labels={{ sd: 'SD', paud: 'PAUD' }} />
+                  <Select label="Jenjang" value={form.jenjang} onChange={v => setForm({ ...form, jenjang: v })} options={['sd', 'kb']} labels={{ sd: 'SD', kb: 'KB' }} />
                   <Select label="Status" value={form.status} onChange={v => setForm({ ...form, status: v })} options={['negeri', 'swasta']} labels={{ negeri: 'Negeri', swasta: 'Swasta' }} />
                   <Field label="Alamat" value={form.alamat} onChange={v => setForm({ ...form, alamat: v })} />
                   <Field label="Desa" value={form.desa} onChange={v => setForm({ ...form, desa: v })} />

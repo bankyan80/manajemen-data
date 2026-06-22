@@ -13,8 +13,8 @@ const CARDS = [
     options: ['Bulan: Januari 2026', 'Februari 2026', 'Maret 2026'],
   },
   {
-    title: 'Cetak Laporan PAUD',
-    desc: 'Cetak laporan bulanan PAUD dalam format PDF',
+    title: 'Cetak Laporan KB',
+    desc: 'Cetak laporan bulanan KB dalam format PDF',
     color: 'purple',
     options: ['Bulan: Januari 2026', 'Februari 2026', 'Maret 2026'],
   },
@@ -28,13 +28,13 @@ const CARDS = [
     title: 'Export Excel',
     desc: 'Export data ke format spreadsheet',
     color: 'emerald',
-    options: ['Pilih data untuk di-export', 'Data Kesiswaan SD', 'Data Kesiswaan PAUD', 'Data GTK', 'Data Sarpras', 'Data SPMB', 'Rekap Kecamatan'],
+    options: ['Pilih data untuk di-export', 'Data Kesiswaan SD', 'Data Kesiswaan KB', 'Data GTK', 'Data Sarpras', 'Data SPMB', 'Rekap Kecamatan'],
   },
   {
     title: 'Export PDF',
     desc: 'Export data ke format PDF',
     color: 'red',
-    options: ['Pilih data untuk di-export', 'Laporan Bulanan SD', 'Laporan Bulanan PAUD', 'Rekap Kecamatan', 'Data GTK', 'Data SPMB'],
+    options: ['Pilih data untuk di-export', 'Laporan Bulanan SD', 'Laporan Bulanan KB', 'Rekap Kecamatan', 'Data GTK', 'Data SPMB'],
   },
   {
     title: 'Sinkron Spreadsheet',

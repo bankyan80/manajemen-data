@@ -10,7 +10,7 @@ export enum Role {
 
 export enum Jenjang {
   SD = 'sd',
-  PAUD = 'paud',
+  KB = 'kb',
 }
 
 export enum StatusSekolah {

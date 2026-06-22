@@ -9,7 +9,7 @@ import { useData, fetchJson } from '@/lib/useData'
 export default function KesiswaanPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'sd' | 'paud'>('sd')
+  const [activeTab, setActiveTab] = useState<'sd' | 'kb'>('sd')
   const [filterSekolah, setFilterSekolah] = useState('')
   const { data: recaps, loading } = useData<any[]>('student-recaps', () => fetchJson('/api/student-recaps'))
 
@@ -33,7 +33,7 @@ export default function KesiswaanPage() {
 
         <div className="flex gap-1 bg-zinc-100 p-1 rounded-lg w-fit">
           <button onClick={() => setActiveTab('sd')} className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'sd' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>SD</button>
-          <button onClick={() => setActiveTab('paud')} className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'paud' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>PAUD</button>
+          <button onClick={() => setActiveTab('kb')} className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'kb' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>KB</button>
         </div>
 
         <div className="flex gap-4 items-center">

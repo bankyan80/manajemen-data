@@ -43,7 +43,7 @@ export const schools = sqliteTable('schools', {
   ...id,
   nama: text('nama').notNull(),
   npsn: text('npsn').notNull().unique(),
-  jenjang: text('jenjang').notNull(), // sd | paud
+  jenjang: text('jenjang').notNull(), // sd | kb
   status: text('status').notNull(), // negeri | swasta
   alamat: text('alamat').notNull(),
   desa: text('desa').notNull(),
@@ -118,7 +118,7 @@ export const students = sqliteTable('students', {
   ...id,
   school_id: text('school_id').notNull().references(() => schools.id),
   tahun_pelajaran: text('tahun_pelajaran').notNull(),
-  jenjang: text('jenjang').notNull(), // sd | paud
+  jenjang: text('jenjang').notNull(), // sd | kb
   kelas_kelompok: text('kelas_kelompok').notNull(),
   nama: text('nama').notNull(),
   nik: text('nik'),

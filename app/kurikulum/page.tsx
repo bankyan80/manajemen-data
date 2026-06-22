@@ -147,7 +147,7 @@ export default function KurikulumPage() {
               </div>
               <div className="text-center p-4 border border-zinc-200 rounded-lg">
                 <p className="text-2xl font-bold text-green-700">92%</p>
-                <p className="text-sm text-zinc-600">Ketuntasan PAUD</p>
+                <p className="text-sm text-zinc-600">Ketuntasan KB</p>
               </div>
               <div className="text-center p-4 border border-zinc-200 rounded-lg">
                 <p className="text-2xl font-bold text-amber-700">88%</p>
