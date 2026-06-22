@@ -46,7 +46,7 @@ export default function TransisiSdSmpPage() {
 
   const calonMasuk = filtered.filter((d: any) => d.status_transisi === 'calon_masuk' || d.status_transisi === 'belum_mendaftar')
   const anakLanjut = filtered.filter((d: any) => d.status_transisi === 'lanjut' || d.status_transisi === 'sudah_mendaftar' || d.status_transisi === 'diterima')
-  const smpTujuan: string[] = [...new Set(filtered.map((d: any) => d.smp_tujuan).filter(Boolean))]
+  const smpTujuan = Array.from(new Set(filtered.map((d: any) => d.smp_tujuan).filter(Boolean))) as string[]
   const kesiapanData = filtered.filter((d: any) => d.kesiapan)
   const kegiatanData = filtered.filter((d: any) => d.kegiatan_transisi)
 
