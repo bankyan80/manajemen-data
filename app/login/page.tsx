@@ -130,15 +130,6 @@ function LoginContent() {
           <p className="mt-6 text-center text-xs text-text-muted">
             Gunakan akun yang telah terdaftar oleh admin kecamatan
           </p>
-
-          <div className="mt-6 rounded-xl bg-zinc-50 border border-border p-4">
-            <p className="text-xs font-medium text-text-muted mb-2">Akun Demo:</p>
-            <div className="space-y-1 text-xs text-text-muted">
-              <p><span className="font-medium text-text-main">Admin:</span> admin_Tim / admin456</p>
-              <p><span className="font-medium text-text-main">Operator:</span> NPSN / spNPSN (contoh: 20210001 / sp20210001)</p>
-              <p><span className="font-medium text-text-main">Pegawai:</span> NIP / 6 digit terakhir NIP</p>
-            </div>
-          </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-text-muted">
