@@ -30,7 +30,7 @@ export default function GtkPage() {
   const [employeeDocs, setEmployeeDocs] = useState<any[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
   const [showAddDoc, setShowAddDoc] = useState(false)
-  const [docForm, setDocForm] = useState({ kategori: '', jenis_dokumen: '', drive_url: '' })
+  const [docForm, setDocForm] = useState<{ kategori: string; jenis_dokumen: string; file: File | null }>({ kategori: '', jenis_dokumen: '', file: null })
   const [savingDoc, setSavingDoc] = useState(false)
 
   useEffect(() => {
@@ -455,9 +455,9 @@ export default function GtkPage() {
                 <div className="bg-zinc-50 rounded-xl p-3 mb-3 space-y-2 border border-zinc-200">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-zinc-700">Tambah Dokumen</span>
-                    <button onClick={() => { setShowAddDoc(false); setDocForm({ kategori: '', jenis_dokumen: '', drive_url: '' }) }} className="text-zinc-400 hover:text-zinc-600"><X className="w-3 h-3" /></button>
+                    <button onClick={() => { setShowAddDoc(false); setDocForm({ kategori: '', jenis_dokumen: '', file: null }) }} className="text-zinc-400 hover:text-zinc-600"><X className="w-3 h-3" /></button>
                   </div>
-                  <select value={docForm.kategori} onChange={e => setDocForm({ kategori: e.target.value, jenis_dokumen: '', drive_url: '' })} className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white">
+                  <select value={docForm.kategori} onChange={e => setDocForm({ kategori: e.target.value, jenis_dokumen: '', file: null })} className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white">
                     <option value="">Pilih Kategori</option>
                     {Object.entries(DOKUMEN_KATEGORI).map(([key, val]) => (
                       <option key={key} value={key}>{val.label}</option>
@@ -469,28 +469,24 @@ export default function GtkPage() {
                       <option key={j} value={j}>{j}</option>
                     ))}
                   </select>
-                  <input type="text" value={docForm.drive_url} onChange={e => setDocForm({ ...docForm, drive_url: e.target.value })} placeholder="Link Google Drive..." className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white" />
+                  <input type="file" onChange={e => setDocForm({ ...docForm, file: e.target.files?.[0] || null })} className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-xs file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200" />
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => { setShowAddDoc(false); setDocForm({ kategori: '', jenis_dokumen: '', drive_url: '' }) }} className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900">Batal</button>
+                    <button onClick={() => { setShowAddDoc(false); setDocForm({ kategori: '', jenis_dokumen: '', file: null }) }} className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900">Batal</button>
                     <button
                       onClick={async () => {
-                        if (!docForm.kategori || !docForm.jenis_dokumen || !docForm.drive_url) return alert('Isi semua field')
+                        if (!docForm.kategori || !docForm.jenis_dokumen || !docForm.file) return alert('Pilih kategori, jenis dokumen, dan file')
                         setSavingDoc(true)
                         try {
-                          const res = await fetch('/api/employee-documents', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              employee_id: selected.id,
-                              sekolah_id: selected.sekolah_id,
-                              kategori: docForm.kategori,
-                              jenis_dokumen: docForm.jenis_dokumen,
-                              drive_url: docForm.drive_url,
-                            }),
-                          })
-                          if (!res.ok) throw new Error('Gagal')
+                          const fd = new FormData()
+                          fd.append('file', docForm.file)
+                          fd.append('employee_id', selected.id)
+                          fd.append('sekolah_id', selected.sekolah_id)
+                          fd.append('kategori', docForm.kategori)
+                          fd.append('jenis_dokumen', docForm.jenis_dokumen)
+                          const res = await fetch('/api/employee-documents/upload', { method: 'POST', body: fd })
+                          if (!res.ok) throw new Error('Gagal upload')
                           setShowAddDoc(false)
-                          setDocForm({ kategori: '', jenis_dokumen: '', drive_url: '' })
+                          setDocForm({ kategori: '', jenis_dokumen: '', file: null })
                           const updated = await fetchJson<any>(`/api/employee-documents?employee_id=${selected.id}`)
                           setEmployeeDocs(updated?.data || [])
                         } catch (err: any) {
@@ -502,7 +498,7 @@ export default function GtkPage() {
                       disabled={savingDoc}
                       className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
-                      {savingDoc ? 'Menyimpan...' : 'Simpan'}
+                      {savingDoc ? 'Mengupload...' : 'Simpan'}
                     </button>
                   </div>
                 </div>
@@ -539,7 +535,7 @@ export default function GtkPage() {
                           </td>
                           <td className="px-3 py-2">
                             {d.drive_url ? (
-                              <a href={d.drive_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1 text-xs">
+                              <a href={`/api/employee-documents/${d.id}/file`} className="text-blue-600 hover:underline inline-flex items-center gap-1 text-xs">
                                 <Download className="w-3 h-3" /> Unduh
                               </a>
                             ) : (
