@@ -5,7 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { Loader2, Trash2 } from 'lucide-react'
+import { Loader2, Trash2, FileText } from 'lucide-react'
 
 const TABS = ['Data Kepala Sekolah', 'Data Guru', 'Data Tenaga Kependidikan', 'Status Pegawai', 'Sertifikasi', 'Pendidikan Terakhir', 'BUP/Pensiun']
 
@@ -25,6 +25,21 @@ export default function GtkPage() {
   const { data: employees, loading, error } = useData<any[]>(`employees-${refreshKey}`, () => fetchJson('/api/employees?show_nonaktif=1'))
   const [schools, setSchools] = useState<any[]>([])
   useEffect(() => { fetchJson<any[]>('/api/schools').then(setSchools).catch(() => {}) }, [])
+
+  const [employeeDocs, setEmployeeDocs] = useState<any[]>([])
+  const [docsLoading, setDocsLoading] = useState(false)
+
+  useEffect(() => {
+    if (selected?.id) {
+      setDocsLoading(true)
+      fetchJson<any>(`/api/employee-documents?employee_id=${selected.id}`)
+        .then(res => setEmployeeDocs(res?.data || []))
+        .catch(() => setEmployeeDocs([]))
+        .finally(() => setDocsLoading(false))
+    } else {
+      setEmployeeDocs([])
+    }
+  }, [selected?.id])
 
   const openEdit = (e: any) => { setSelected(e); setForm({ ...e }) }
   const closeDetail = () => { setSelected(null); setForm({}) }
@@ -418,6 +433,48 @@ export default function GtkPage() {
               <Select label="Unit Kerja" value={form.sekolah_id || ''} onChange={v => setForm({ ...form, sekolah_id: v })} options={['', ...schools.map(s => s.id)]} labels={{ '': 'Pilih Sekolah...', ...Object.fromEntries(schools.map(s => [s.id, s.nama])) }} />
               <Select label="Status Aktif" value={form.is_active === 0 ? '0' : '1'} onChange={v => setForm({ ...form, is_active: v === '0' ? 0 : 1 })} options={['1', '0']} labels={{ '1': 'Aktif', '0': 'Nonaktif' }} />
             </div>
+
+            <div className="border-t border-zinc-200 px-6 py-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="w-4 h-4 text-zinc-500" />
+                <h4 className="font-semibold text-zinc-900 text-sm">Arsip Dokumen</h4>
+              </div>
+              {docsLoading ? (
+                <div className="text-center text-sm text-zinc-400 py-4">Memuat dokumen...</div>
+              ) : employeeDocs.length === 0 ? (
+                <div className="text-center text-sm text-zinc-400 py-4">Belum ada dokumen</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-zinc-50 border-b border-zinc-200">
+                        <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Dokumen</th>
+                        <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Upload</th>
+                        <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Verifikasi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {employeeDocs.map((d: any, i: number) => (
+                        <tr key={d.id || i} className="border-b border-zinc-100">
+                          <td className="px-3 py-2 text-zinc-900">{d.jenis_dokumen}</td>
+                          <td className="px-3 py-2">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.status_upload === 'sudah_diupload' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {d.status_upload === 'sudah_diupload' ? 'Sudah' : 'Belum'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.status_verifikasi === 'sudah_diverifikasi' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                              {d.status_verifikasi === 'sudah_diverifikasi' ? 'Diverifikasi' : 'Belum'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200">
               <div className="flex items-center gap-2">
                 {role === 'admin_kecamatan' && selected.is_active !== 0 && (

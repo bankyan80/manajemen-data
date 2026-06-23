@@ -94,7 +94,7 @@ export default function TopNavigation({
   userRole,
 }: TopNavigationProps) {
   return (
-    <nav className="fixed top-16 left-0 right-0 z-40 border-b border-border bg-surface shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+    <nav className="fixed top-16 left-0 right-0 z-40 border-b border-primary-dark bg-primary shadow-sm">
       <div className="flex w-full flex-wrap items-center justify-center gap-x-1 gap-y-0 px-2 py-1.5">
         {navItems.map((item) => {
           const isActive = currentPath === item.href
@@ -104,11 +104,11 @@ export default function TopNavigation({
               href={item.href}
               className={`flex items-center gap-1 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors whitespace-nowrap ${
                 isActive
-                  ? 'bg-primary-soft text-primary'
-                  : 'text-text-muted hover:bg-zinc-100 hover:text-text-main'
+                  ? 'bg-white/20 text-white'
+                  : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
-              <span className={isActive ? 'text-primary' : 'text-text-muted'}>
+              <span className={isActive ? 'text-white' : 'text-white/70'}>
                 {item.icon}
               </span>
               <span className="hidden sm:inline">{item.label}</span>

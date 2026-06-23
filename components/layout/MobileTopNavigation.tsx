@@ -94,7 +94,7 @@ export default function MobileTopNavigation({
   userRole,
 }: MobileTopNavigationProps) {
   return (
-    <nav className="fixed top-16 left-0 right-0 z-40 flex h-14 items-center border-b border-border bg-surface shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:hidden">
+    <nav className="fixed top-16 left-0 right-0 z-40 flex h-14 items-center border-b border-primary-dark bg-primary shadow-sm sm:hidden">
       <div className="flex w-full items-center gap-1 overflow-x-auto px-2 scrollbar-none">
         {navItems.map((item) => {
           const isActive = currentPath === item.href
@@ -104,8 +104,8 @@ export default function MobileTopNavigation({
               href={item.href}
               className={`flex shrink-0 flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 transition-colors ${
                 isActive
-                  ? 'text-primary'
-                  : 'text-text-muted hover:bg-zinc-100 hover:text-text-main'
+                  ? 'text-white'
+                  : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
               {item.icon}
