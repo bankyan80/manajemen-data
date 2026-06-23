@@ -5,7 +5,8 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { Loader2, Trash2, FileText } from 'lucide-react'
+import { Loader2, Trash2, FileText, Download, Plus, X } from 'lucide-react'
+import { DOKUMEN_KATEGORI } from '@/types'
 
 const TABS = ['Data Kepala Sekolah', 'Data Guru', 'Data Tenaga Kependidikan', 'Status Pegawai', 'Sertifikasi', 'Pendidikan Terakhir', 'BUP/Pensiun']
 
@@ -28,6 +29,9 @@ export default function GtkPage() {
 
   const [employeeDocs, setEmployeeDocs] = useState<any[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
+  const [showAddDoc, setShowAddDoc] = useState(false)
+  const [docForm, setDocForm] = useState({ kategori: '', jenis_dokumen: '', drive_url: '' })
+  const [savingDoc, setSavingDoc] = useState(false)
 
   useEffect(() => {
     if (selected?.id) {
@@ -435,10 +439,75 @@ export default function GtkPage() {
             </div>
 
             <div className="border-t border-zinc-200 px-6 py-4">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4 text-zinc-500" />
-                <h4 className="font-semibold text-zinc-900 text-sm">Arsip Dokumen</h4>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-zinc-500" />
+                  <h4 className="font-semibold text-zinc-900 text-sm">Arsip Dokumen</h4>
+                </div>
+                {!showAddDoc && (
+                  <button onClick={() => setShowAddDoc(true)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                    <Plus className="w-3 h-3" /> Tambah
+                  </button>
+                )}
               </div>
+
+              {showAddDoc && (
+                <div className="bg-zinc-50 rounded-xl p-3 mb-3 space-y-2 border border-zinc-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-700">Tambah Dokumen</span>
+                    <button onClick={() => { setShowAddDoc(false); setDocForm({ kategori: '', jenis_dokumen: '', drive_url: '' }) }} className="text-zinc-400 hover:text-zinc-600"><X className="w-3 h-3" /></button>
+                  </div>
+                  <select value={docForm.kategori} onChange={e => setDocForm({ kategori: e.target.value, jenis_dokumen: '', drive_url: '' })} className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white">
+                    <option value="">Pilih Kategori</option>
+                    {Object.entries(DOKUMEN_KATEGORI).map(([key, val]) => (
+                      <option key={key} value={key}>{val.label}</option>
+                    ))}
+                  </select>
+                  <select value={docForm.jenis_dokumen} onChange={e => setDocForm({ ...docForm, jenis_dokumen: e.target.value })} className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white" disabled={!docForm.kategori}>
+                    <option value="">Pilih Jenis Dokumen</option>
+                    {docForm.kategori && DOKUMEN_KATEGORI[docForm.kategori as keyof typeof DOKUMEN_KATEGORI]?.jenis.map((j: string) => (
+                      <option key={j} value={j}>{j}</option>
+                    ))}
+                  </select>
+                  <input type="text" value={docForm.drive_url} onChange={e => setDocForm({ ...docForm, drive_url: e.target.value })} placeholder="Link Google Drive..." className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white" />
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => { setShowAddDoc(false); setDocForm({ kategori: '', jenis_dokumen: '', drive_url: '' }) }} className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900">Batal</button>
+                    <button
+                      onClick={async () => {
+                        if (!docForm.kategori || !docForm.jenis_dokumen || !docForm.drive_url) return alert('Isi semua field')
+                        setSavingDoc(true)
+                        try {
+                          const res = await fetch('/api/employee-documents', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              employee_id: selected.id,
+                              sekolah_id: selected.sekolah_id,
+                              kategori: docForm.kategori,
+                              jenis_dokumen: docForm.jenis_dokumen,
+                              drive_url: docForm.drive_url,
+                            }),
+                          })
+                          if (!res.ok) throw new Error('Gagal')
+                          setShowAddDoc(false)
+                          setDocForm({ kategori: '', jenis_dokumen: '', drive_url: '' })
+                          const updated = await fetchJson<any>(`/api/employee-documents?employee_id=${selected.id}`)
+                          setEmployeeDocs(updated?.data || [])
+                        } catch (err: any) {
+                          alert('Gagal: ' + err.message)
+                        } finally {
+                          setSavingDoc(false)
+                        }
+                      }}
+                      disabled={savingDoc}
+                      className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {savingDoc ? 'Menyimpan...' : 'Simpan'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {docsLoading ? (
                 <div className="text-center text-sm text-zinc-400 py-4">Memuat dokumen...</div>
               ) : employeeDocs.length === 0 ? (
@@ -451,6 +520,7 @@ export default function GtkPage() {
                         <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Dokumen</th>
                         <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Upload</th>
                         <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Verifikasi</th>
+                        <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -466,6 +536,15 @@ export default function GtkPage() {
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.status_verifikasi === 'sudah_diverifikasi' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                               {d.status_verifikasi === 'sudah_diverifikasi' ? 'Diverifikasi' : 'Belum'}
                             </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            {d.drive_url ? (
+                              <a href={d.drive_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1 text-xs">
+                                <Download className="w-3 h-3" /> Unduh
+                              </a>
+                            ) : (
+                              <span className="text-xs text-zinc-400">-</span>
+                            )}
                           </td>
                         </tr>
                       ))}

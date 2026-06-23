@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { employeeDocuments, employees, schools } from '@/db/schema'
 import { eq, count, sql } from 'drizzle-orm'
+import { randomUUID } from 'crypto'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 60
@@ -77,4 +78,47 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ data: rows, byKategori, statusCount })
+}
+
+export async function POST(req: NextRequest) {
+  if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
+  const userId = (session?.user as any)?.id
+
+  const body = await req.json()
+  const { employee_id, sekolah_id, kategori, jenis_dokumen, drive_url } = body
+
+  if (!employee_id || !sekolah_id || !kategori || !jenis_dokumen || !drive_url) {
+    return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 })
+  }
+
+  const id = randomUUID()
+  const now = Date.now()
+
+  await db.insert(employeeDocuments).values({
+    id,
+    employee_id,
+    school_id: sekolah_id,
+    kategori,
+    jenis_dokumen,
+    nama_file: jenis_dokumen,
+    mime_type: 'application/octet-stream',
+    file_size: 0,
+    drive_file_id: '',
+    drive_url,
+    status_upload: 'sudah_diupload',
+    status_verifikasi: 'belum_diverifikasi',
+    status_kelengkapan: 'belum_lengkap',
+    uploaded_by: userId,
+    uploaded_at: now,
+    created_at: now,
+    updated_at: now,
+  })
+
+  return NextResponse.json({ id, message: 'Dokumen berhasil ditambahkan' })
 }
