@@ -401,6 +401,8 @@ export const spmbPendaftar = sqliteTable('spmb_pendaftar', {
   status_kk: text('status_kk').notNull().default('belum'), // belum | valid | revisi | ditolak
   status_akta: text('status_akta').notNull().default('belum'),
   status_dokumen_tambahan: text('status_dokumen_tambahan').notNull().default('belum'),
+  status_dokumen_afirmasi: text('status_dokumen_afirmasi').notNull().default('belum'),
+  status_dokumen_mutasi: text('status_dokumen_mutasi').notNull().default('belum'),
   catatan_verifikasi: text('catatan_verifikasi'),
   file_kk_url: text('file_kk_url'),
   file_akta_url: text('file_akta_url'),

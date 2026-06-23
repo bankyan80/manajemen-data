@@ -106,6 +106,7 @@ export default function SarprasPage() {
   const [editing, setEditing] = useState<string | null>(null)
   const [editRow, setEditRow] = useState<any | null>(null)
   const [editTab, setEditTab] = useState<TabKey>('tanah')
+  const [activeSarprasTab, setActiveSarprasTab] = useState<TabKey>('tanah')
   const [saving, setSaving] = useState(false)
   const [filterSekolah, setFilterSekolah] = useState('')
 
@@ -221,8 +222,18 @@ export default function SarprasPage() {
           </div>
         )}
 
-        {/* All category tables stacked */}
-        {TABS.map(tab => {
+        {/* Tab navigation */}
+        <div className="flex flex-wrap gap-1 bg-zinc-100 p-1 rounded-lg">
+          {TABS.map(tab => (
+            <button key={tab.key} onClick={() => setActiveSarprasTab(tab.key)}
+              className={`px-4 py-1.5 rounded-md text-xs font-medium whitespace-nowrap ${activeSarprasTab === tab.key ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Selected category table */}
+        {TABS.filter(t => t.key === activeSarprasTab).map(tab => {
           const data = (ALL_DATA[tab.key] || []).filter((d: any) => {
             if (isOperator) return d.school_id === userSchoolId
             if (filterSekolah) return d.school_id === filterSekolah

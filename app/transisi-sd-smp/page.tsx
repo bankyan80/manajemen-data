@@ -84,7 +84,7 @@ export default function TransisiSdSmpPage() {
       <div className="container-page space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-text-main">Transisi SD-SMP</h1>
-          <button className="btn-primary px-4 py-2">
+          <button onClick={() => alert('Fitur tambah data transisi akan tersedia dalam versi mendatang')} className="btn-primary px-4 py-2">
             <Plus className="w-4 h-4" /> Tambah Data
           </button>
         </div>

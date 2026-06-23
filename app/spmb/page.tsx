@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import {
   Pencil, Plus, Trash2, Loader2, Search, Download, FileText, X,
-  ChevronDown, Filter, BarChart3, Users, BookOpen, AlertTriangle,
-  CheckCircle, Clock, Eye,
+  BarChart3, Users, BookOpen, AlertTriangle,
+  CheckCircle, Eye,
 } from 'lucide-react'
 
 const TAHUN_PELAJARAN = Array.from({ length: 10 }, (_, i) => {
@@ -137,7 +137,7 @@ export default function SpmbPage() {
         body: JSON.stringify({ school_id: sekolah.id, tahun_pelajaran: tahun, jumlah_rombel: 1, kuota_per_rombel: 28 }),
       })
       bump()
-      if (missing.length > 1) addDayaTampung()
+      if (missing.length > 1) await addDayaTampung()
       else showToast(true, 'Daya tampung ditambahkan')
     } catch { showToast(false, 'Gagal') }
   }
@@ -223,17 +223,19 @@ export default function SpmbPage() {
         </div>
 
         {/* Submenu */}
-        {(isAdmin ? ADMIN_TABS : OPERATOR_TABS).map((t, i) => {
-          const act = isAdmin ? adminTab : opTab
-          const setAct = isAdmin ? setAdminTab : setOpTab
-          const Icon = t.icon
-          return (
-            <button key={t.key} onClick={() => setAct(i)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${act === i ? 'bg-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main hover:bg-zinc-100'}`}>
-              <Icon className="w-3.5 h-3.5" />{t.label}
-            </button>
-          )
-        })}
+        <div className="flex flex-wrap gap-2">
+          {(isAdmin ? ADMIN_TABS : OPERATOR_TABS).map((t, i) => {
+            const act = isAdmin ? adminTab : opTab
+            const setAct = isAdmin ? setAdminTab : setOpTab
+            const Icon = t.icon
+            return (
+              <button key={t.key} onClick={() => setAct(i)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${act === i ? 'bg-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main hover:bg-zinc-100'}`}>
+                <Icon className="w-3.5 h-3.5" />{t.label}
+              </button>
+            )
+          })}
+        </div>
 
         {/* ==================== DAYA TAMPUNG (Admin) ==================== */}
         {isAdmin && adminTab === 0 && (
@@ -291,7 +293,7 @@ export default function SpmbPage() {
               </div>
             )}
 
-            {modal?.type === 'edit_dt' && (
+            {modal?.type === 'edit_dt' && modal.data && (
               <DayaTampungModal row={modal.data} onSave={editDayaTampung} onClose={() => setModal(null)} />
             )}
             {modal?.type === 'export_dt' && (
@@ -534,6 +536,7 @@ export default function SpmbPage() {
             updateStatus={updateStatus}
             modal={modal} setModal={setModal}
             sekolahId={session?.user?.sekolah_id}
+            emptyForm={emptyForm}
           />
         )}
 
@@ -575,7 +578,7 @@ export default function SpmbPage() {
               </div>
             )}
 
-            {modal?.type === 'verifikasi' && (
+            {modal?.type === 'verifikasi' && modal.data && (
               <VerifikasiModal
                 row={modal.data}
                 onUpdate={(field: string, value: string) => updateStatus(modal.data.id, field, value)}
@@ -745,8 +748,8 @@ function VerifikasiModal({ row, onUpdate, onClose }: { row: any; onUpdate: (fiel
   const docs = [
     { label: 'Kartu Keluarga (KK)', status: row.status_kk, field: 'status_kk', url: row.file_kk_url },
     { label: 'Akta Kelahiran', status: row.status_akta, field: 'status_akta', url: row.file_akta_url },
-    { label: 'Dok. Afirmasi', status: row.status_dokumen_tambahan, field: 'status_dokumen_tambahan', url: row.file_afirmasi_url },
-    { label: 'Dok. Mutasi', status: row.status_dokumen_tambahan, field: 'status_dokumen_tambahan', url: row.file_mutasi_url },
+    { label: 'Dok. Afirmasi', status: row.status_dokumen_afirmasi || row.status_dokumen_tambahan, field: 'status_dokumen_afirmasi', url: row.file_afirmasi_url },
+    { label: 'Dok. Mutasi', status: row.status_dokumen_mutasi || row.status_dokumen_tambahan, field: 'status_dokumen_mutasi', url: row.file_mutasi_url },
   ]
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -886,12 +889,13 @@ function PendaftarAdminSection({
               <Row label="Jalur" value={detail.data.jalur} />
               <Row label="Status Seleksi" value={detail.data.status_seleksi} />
               <Row label="Sekolah Tujuan" value={detail.data.sekolah_nama} />
-              <div className="border-t border-border pt-3">
-                <p className="font-semibold mb-2">Status Berkas</p>
-                <Row label="KK" value={detail.data.status_kk} />
-                <Row label="Akta" value={detail.data.status_akta} />
-                <Row label="Dok. Tambahan" value={detail.data.status_dokumen_tambahan} />
-              </div>
+               <div className="border-t border-border pt-3">
+                  <p className="font-semibold mb-2">Status Berkas</p>
+                  <Row label="KK" value={detail.data.status_kk} />
+                  <Row label="Akta" value={detail.data.status_akta} />
+                  <Row label="Dok. Afirmasi" value={detail.data.status_dokumen_afirmasi || detail.data.status_dokumen_tambahan} />
+                  <Row label="Dok. Mutasi" value={detail.data.status_dokumen_mutasi || detail.data.status_dokumen_tambahan} />
+                </div>
             </div>
           </div>
         </div>
@@ -913,7 +917,7 @@ function Row({ label, value }: { label: string; value?: string }) {
 
 function OperatorPendaftarSection({
   data, loading, search, setSearch, form, setForm, formError, saving,
-  savePendaftar, deletePendaftar, updateStatus, modal, setModal, sekolahId,
+  savePendaftar, deletePendaftar, updateStatus, modal, setModal, sekolahId, emptyForm,
 }: any) {
   const [showForm, setShowForm] = useState(false)
 
@@ -959,7 +963,7 @@ function OperatorPendaftarSection({
             </div>
             {formError && <p className="text-danger text-sm mt-2">{formError}</p>}
             <div className="flex items-center justify-end gap-3 mt-4">
-              <button onClick={() => { setShowForm(false); setForm(Object.keys(form).reduce((a: any, k) => { a[k] = ''; return a }, {})) }} className="btn-ghost btn-sm">Batal</button>
+              <button onClick={() => { setShowForm(false); setForm(emptyForm()) }} className="btn-ghost btn-sm">Batal</button>
               <button onClick={savePendaftar} disabled={saving} className="btn-primary btn-sm flex items-center gap-2">
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}{saving ? 'Menyimpan...' : 'Simpan'}
               </button>
@@ -1037,6 +1041,7 @@ function UploadModal({ row, onClose, onUpload }: { row: any; onClose: () => void
       const res = await fetch('/api/spmb/berkas', { method: 'POST', body: fd })
       if (!res.ok) throw new Error('Gagal upload')
       setFiles(f => ({ ...f, [jenis]: null }))
+      onUpload()
     } catch { alert('Gagal upload') }
     finally { setUploading(false) }
   }

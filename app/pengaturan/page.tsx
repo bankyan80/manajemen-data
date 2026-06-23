@@ -347,24 +347,24 @@ export default function PengaturanPage() {
         )}
 
         {activeTab === 3 && (
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6" key={settingsData ? 'loaded' : 'loading'}>
             <h3 className="font-semibold text-zinc-900 mb-4">Data Kecamatan</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="kecamatan">Nama Kecamatan</Label>
-                <Input id="kecamatan" defaultValue={settingsData?.kecamatan_nama || 'Margaasih'} />
+                <Input id="kecamatan" defaultValue={settingsData?.kecamatan_nama} />
               </div>
               <div>
                 <Label htmlFor="kabupaten">Kabupaten</Label>
-                <Input id="kabupaten" defaultValue={settingsData?.kecamatan_kabupaten || 'Bandung'} />
+                <Input id="kabupaten" defaultValue={settingsData?.kecamatan_kabupaten} />
               </div>
               <div>
                 <Label htmlFor="provinsi">Provinsi</Label>
-                <Input id="provinsi" defaultValue={settingsData?.kecamatan_provinsi || 'Jawa Barat'} />
+                <Input id="provinsi" defaultValue={settingsData?.kecamatan_provinsi} />
               </div>
               <div>
                 <Label htmlFor="kode_pos">Kode Pos</Label>
-                <Input id="kode_pos" defaultValue={settingsData?.kecamatan_kode_pos || '40218'} />
+                <Input id="kode_pos" defaultValue={settingsData?.kecamatan_kode_pos} />
               </div>
             </div>
             <button onClick={async () => {
@@ -381,12 +381,12 @@ export default function PengaturanPage() {
         )}
 
         {activeTab === 4 && (
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6" key={settingsData ? 'tp-loaded' : 'tp-loading'}>
             <h3 className="font-semibold text-zinc-900 mb-4">Tahun Pelajaran</h3>
             <div className="flex items-center gap-4 mb-4">
               <div>
                 <Label htmlFor="tahun_ajaran">Tahun Pelajaran Aktif</Label>
-                <Select id="tahun_ajaran" defaultValue={settingsData?.tahun_ajaran || '2025/2026'}>
+                <Select id="tahun_ajaran" defaultValue={settingsData?.tahun_ajaran}>
                   <option>2025/2026</option>
                   <option>2024/2025</option>
                 </Select>
@@ -411,24 +411,24 @@ export default function PengaturanPage() {
         )}
 
         {activeTab === 5 && (
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6" key={settingsData ? 'pl-loaded' : 'pl-loading'}>
             <h3 className="font-semibold text-zinc-900 mb-4">Periode Laporan</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="periode_awal">Periode Awal</Label>
-                <Input id="periode_awal" defaultValue={settingsData?.periode_awal || 'Januari 2026'} />
+                <Input id="periode_awal" defaultValue={settingsData?.periode_awal} />
               </div>
               <div>
                 <Label htmlFor="periode_akhir">Periode Akhir</Label>
-                <Input id="periode_akhir" defaultValue={settingsData?.periode_akhir || 'Desember 2026'} />
+                <Input id="periode_akhir" defaultValue={settingsData?.periode_akhir} />
               </div>
               <div>
                 <Label htmlFor="batas_submit">Batas Submit Laporan</Label>
-                <Input id="batas_submit" defaultValue={settingsData?.batas_submit || 'Tanggal 5 setiap bulan'} />
+                <Input id="batas_submit" defaultValue={settingsData?.batas_submit} />
               </div>
               <div>
                 <Label htmlFor="semester">Semester Aktif</Label>
-                <Select id="semester" defaultValue={settingsData?.semester || 'Ganjil'}>
+                <Select id="semester" defaultValue={settingsData?.semester}>
                   <option>Ganjil</option>
                   <option>Genap</option>
                 </Select>

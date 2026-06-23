@@ -5,8 +5,6 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { DOKUMEN_KATEGORI } from '@/types'
-const KATEGORI_KEYS = Object.keys(DOKUMEN_KATEGORI) as Array<keyof typeof DOKUMEN_KATEGORI>
 
 export default function ArsipDokumenPage() {
   const { data: session, status } = useSession()
@@ -32,7 +30,7 @@ export default function ArsipDokumenPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-zinc-900">Arsip Dokumen Pegawai</h1>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">Upload Dokumen</button>
+          <button onClick={() => alert('Fitur upload dokumen akan tersedia dalam versi mendatang')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">Upload Dokumen</button>
         </div>
 
         <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari pegawai..." className="w-full max-w-md px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white" />

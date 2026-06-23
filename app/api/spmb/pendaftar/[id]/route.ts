@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const allowedFields = [
     'nik', 'nama_lengkap', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir',
     'alamat', 'desa', 'asal_tk_paud', 'nama_orang_tua', 'no_hp', 'jalur',
-    'status_seleksi', 'status_kk', 'status_akta', 'status_dokumen_tambahan',
+    'status_seleksi', 'status_kk', 'status_akta', 'status_dokumen_tambahan', 'status_dokumen_afirmasi', 'status_dokumen_mutasi',
     'catatan_verifikasi', 'file_kk_url', 'file_akta_url', 'file_afirmasi_url', 'file_mutasi_url',
   ]
   for (const field of allowedFields) {
@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     updates.usia = usia
   }
 
-  if (['status_kk', 'status_akta', 'status_dokumen_tambahan', 'status_seleksi'].some(f => updates[f] !== undefined)) {
+  if (['status_kk', 'status_akta', 'status_dokumen_tambahan', 'status_dokumen_afirmasi', 'status_dokumen_mutasi', 'status_seleksi'].some(f => updates[f] !== undefined)) {
     updates.verified_by = userId
     updates.verified_at = Date.now()
   }

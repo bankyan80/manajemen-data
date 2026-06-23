@@ -84,14 +84,14 @@ export default function CetakExportPage() {
                       <span className="w-3 h-3 rounded-full bg-green-500" />
                       <span className="text-sm text-green-700">Terhubung</span>
                     </div>
-                    <button className={'w-full px-4 py-2 text-white rounded-lg text-sm font-medium ' + c.btn + ' ' + c.hover}>Sinkron Sekarang</button>
+                    <button onClick={() => alert('Fitur sinkronisasi akan tersedia dalam versi mendatang')} className={'w-full px-4 py-2 text-white rounded-lg text-sm font-medium ' + c.btn + ' ' + c.hover}>Sinkron Sekarang</button>
                   </>
                 ) : (
                   <div className="flex flex-col gap-2">
                     <select className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
                       {card.options.map((opt, j) => <option key={j}>{opt}</option>)}
                     </select>
-                    <button className={'w-full px-4 py-2 text-white rounded-lg text-sm font-medium ' + c.btn + ' ' + c.hover}>
+                    <button onClick={() => alert('Fitur cetak/export akan tersedia dalam versi mendatang')} className={'w-full px-4 py-2 text-white rounded-lg text-sm font-medium ' + c.btn + ' ' + c.hover}>
                       {card.title.includes('Export') ? 'Download' : 'Cetak'} {card.title.includes('Excel') ? 'Excel' : card.title.includes('PDF') ? 'PDF' : ''}
                     </button>
                   </div>
