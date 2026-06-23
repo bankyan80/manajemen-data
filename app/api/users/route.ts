@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { users, schools, employees } from '@/db/schema'
 import { eq, sql } from 'drizzle-orm'
+import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 60
@@ -28,4 +29,20 @@ export async function GET() {
     .orderBy(users.name)
 
   return NextResponse.json(rows)
+}
+
+export async function POST(req: NextRequest) {
+  if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+  const body = await req.json()
+  const { name, username, password, email, role, sekolah_id, pegawai_id } = body
+  if (!name || !username || !password || !role) {
+    return NextResponse.json({ error: 'name, username, password, role required' }, { status: 400 })
+  }
+  const hash = bcrypt.hashSync(password, 10)
+  const [newUser] = await db.insert(users).values({
+    name, username, password: hash, email, role,
+    sekolah_id: sekolah_id || null, pegawai_id: pegawai_id || null,
+    is_active: 1,
+  }).returning()
+  return NextResponse.json(newUser, { status: 201 })
 }

@@ -31,3 +31,17 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(rows)
 }
+
+export async function POST(req: NextRequest) {
+  if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+  const body = await req.json()
+  const { nama, npsn, jenjang, status, alamat, desa, kecamatan } = body
+  if (!nama || !npsn || !jenjang || !status) {
+    return NextResponse.json({ error: 'nama, npsn, jenjang, status required' }, { status: 400 })
+  }
+  const [newSchool] = await db.insert(schools).values({
+    nama, npsn, jenjang, status: status || 'negeri',
+    alamat: alamat || '', desa: desa || '', kecamatan: kecamatan || '',
+  }).returning()
+  return NextResponse.json(newSchool, { status: 201 })
+}

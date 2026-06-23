@@ -5,7 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { X, Loader2, Check, Lock } from 'lucide-react'
+import { X, Loader2, Check, Lock, Search } from 'lucide-react'
 
 const TABS = ['Manajemen User', 'Role & Hak Akses', 'Master Sekolah/Lembaga', 'Data Kecamatan', 'Tahun Pelajaran', 'Periode Laporan', 'Template Laporan', 'Koneksi Google Drive', 'Koneksi Google Spreadsheet', 'Backup Data', 'Log Aktivitas']
 
@@ -30,14 +30,29 @@ export default function PengaturanPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(0)
 
-  const { data: usersData, loading: usersLoading } = useData<UserRow[]>('pengaturan-users', () => fetchJson('/api/users'))
-  const { data: schoolsData, loading: schoolsLoading } = useData<SchoolRow[]>('pengaturan-sekolah', () => fetchJson('/api/schools'))
+  const { data: usersData, loading: usersLoading, mutate: mutateUsers } = useData<UserRow[]>('pengaturan-users', () => fetchJson('/api/users'))
+  const { data: schoolsData, loading: schoolsLoading, mutate: mutateSchools } = useData<SchoolRow[]>('pengaturan-sekolah', () => fetchJson('/api/schools'))
   const { data: logsData, loading: logsLoading } = useData<ActivityLogRow[]>('pengaturan-logs', () => fetchJson('/api/activity-logs'))
-  const { data: settingsData, loading: settingsLoading } = useData<Record<string, string>>('pengaturan-settings', () => fetchJson('/api/settings'))
+  const { data: settingsData, loading: settingsLoading, mutate: mutateSettings } = useData<Record<string, string>>('pengaturan-settings', () => fetchJson('/api/settings'))
 
   const [izinModal, setIzinModal] = useState<string | null>(null)
   const [izinData, setIzinData] = useState<Record<string, string[]>>({})
   const [izinSaving, setIzinSaving] = useState(false)
+
+  const [userModal, setUserModal] = useState<{ open: boolean; edit?: UserRow }>({ open: false })
+  const [userForm, setUserForm] = useState({ name: '', username: '', password: '', email: '', role: 'operator_sekolah', sekolah_id: '' })
+  const [userSaving, setUserSaving] = useState(false)
+
+  const [deleteUser, setDeleteUser] = useState<UserRow | null>(null)
+  const [deleteSchool, setDeleteSchool] = useState<SchoolRow | null>(null)
+
+  const [schoolModal, setSchoolModal] = useState<{ open: boolean; edit?: SchoolRow }>({ open: false })
+  const [schoolForm, setSchoolForm] = useState({ nama: '', npsn: '', jenjang: 'sd', status: 'negeri', alamat: '', desa: '', kecamatan: '' })
+  const [schoolSaving, setSchoolSaving] = useState(false)
+
+  const [logSearch, setLogSearch] = useState('')
+
+  const [savingKey, setSavingKey] = useState<string | null>(null)
 
   useEffect(() => {
     if (settingsData?.role_permissions) {
@@ -89,14 +104,120 @@ export default function PengaturanPage() {
     finally { setIzinSaving(false) }
   }
 
-  const hasFeature = (role: string, feature: string): boolean => {
-    const features = izinData[role]
-    if (!features) return true
-    return features.includes(feature)
+  const saveSetting = async (key: string, value: string) => {
+    setSavingKey(key)
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value }),
+      })
+      mutateSettings()
+    } catch { alert('Gagal menyimpan') }
+    finally { setSavingKey(null) }
   }
+
+  const openUserModal = (edit?: UserRow) => {
+    if (edit) {
+      setUserForm({ name: edit.name, username: edit.username, password: '', email: edit.email || '', role: edit.role, sekolah_id: edit.sekolah_id || '' })
+      setUserModal({ open: true, edit })
+    } else {
+      setUserForm({ name: '', username: '', password: '', email: '', role: 'operator_sekolah', sekolah_id: '' })
+      setUserModal({ open: true })
+    }
+  }
+
+  const saveUser = async () => {
+    setUserSaving(true)
+    try {
+      if (userModal.edit) {
+        await fetch(`/api/users/${userModal.edit.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userForm.password ? userForm : { ...userForm, password: undefined }),
+        })
+      } else {
+        await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userForm),
+        })
+      }
+      setUserModal({ open: false })
+      mutateUsers()
+    } catch { alert('Gagal menyimpan user') }
+    finally { setUserSaving(false) }
+  }
+
+  const confirmDeleteUser = async () => {
+    if (!deleteUser) return
+    try {
+      await fetch(`/api/users/${deleteUser.id}`, { method: 'DELETE' })
+      setDeleteUser(null)
+      mutateUsers()
+    } catch { alert('Gagal menghapus user') }
+  }
+
+  const openSchoolModal = (edit?: SchoolRow) => {
+    if (edit) {
+      setSchoolForm({ nama: edit.nama, npsn: edit.npsn, jenjang: edit.jenjang, status: edit.status, alamat: '', desa: edit.desa, kecamatan: edit.kecamatan })
+      setSchoolModal({ open: true, edit })
+    } else {
+      setSchoolForm({ nama: '', npsn: '', jenjang: 'sd', status: 'negeri', alamat: '', desa: '', kecamatan: '' })
+      setSchoolModal({ open: true })
+    }
+  }
+
+  const saveSchool = async () => {
+    setSchoolSaving(true)
+    try {
+      if (schoolModal.edit) {
+        await fetch(`/api/schools/${schoolModal.edit.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(schoolForm),
+        })
+      } else {
+        await fetch('/api/schools', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(schoolForm),
+        })
+      }
+      setSchoolModal({ open: false })
+      mutateSchools()
+    } catch { alert('Gagal menyimpan sekolah') }
+    finally { setSchoolSaving(false) }
+  }
+
+  const confirmDeleteSchool = async () => {
+    if (!deleteSchool) return
+    try {
+      await fetch(`/api/schools/${deleteSchool.id}`, { method: 'DELETE' })
+      setDeleteSchool(null)
+      mutateSchools()
+    } catch { alert('Gagal menghapus sekolah') }
+  }
+
+  const filteredLogs = logsData ? logsData.filter(l =>
+    !logSearch || l.action.toLowerCase().includes(logSearch.toLowerCase()) ||
+    l.table_name.toLowerCase().includes(logSearch.toLowerCase()) ||
+    (l.description || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+    (l.user_name || '').toLowerCase().includes(logSearch.toLowerCase())
+  ) : []
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
+
+  const Label = ({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) => (
+    <label htmlFor={htmlFor} className="text-sm text-zinc-500">{children}</label>
+  )
+  const Input = (p: React.InputHTMLAttributes<HTMLInputElement>) => (
+    <input {...p} className={`w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white ${p.className || ''}`} />
+  )
+  const Select = (p: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) => (
+    <select {...p} className={`w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white ${p.className || ''}`}>{p.children}</select>
+  )
 
   return (
     <AppShellTopbar>
@@ -112,7 +233,7 @@ export default function PengaturanPage() {
         {activeTab === 0 && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">+ Tambah User</button>
+              <button onClick={() => openUserModal()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">+ Tambah User</button>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
               <div className="overflow-x-auto">
@@ -145,8 +266,8 @@ export default function PengaturanPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
-                            <button className="text-blue-600 hover:underline text-xs">Edit</button>
-                            <button className="text-red-600 hover:underline text-xs">Hapus</button>
+                            <button onClick={() => openUserModal(u)} className="text-blue-600 hover:underline text-xs">Edit</button>
+                            <button onClick={() => setDeleteUser(u)} className="text-red-600 hover:underline text-xs">Hapus</button>
                           </div>
                         </td>
                       </tr>
@@ -181,7 +302,7 @@ export default function PengaturanPage() {
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-200 flex items-center justify-between">
               <span className="font-semibold text-zinc-900">Master Sekolah / Lembaga</span>
-              <button className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium">+ Tambah</button>
+              <button onClick={() => openSchoolModal()} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium">+ Tambah</button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -213,8 +334,8 @@ export default function PengaturanPage() {
                       <td className="px-4 py-3">{s.kecamatan}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
-                          <button className="text-blue-600 hover:underline text-xs">Edit</button>
-                          <button className="text-red-600 hover:underline text-xs">Hapus</button>
+                          <button onClick={() => openSchoolModal(s)} className="text-blue-600 hover:underline text-xs">Edit</button>
+                          <button onClick={() => setDeleteSchool(s)} className="text-red-600 hover:underline text-xs">Hapus</button>
                         </div>
                       </td>
                     </tr>
@@ -230,23 +351,32 @@ export default function PengaturanPage() {
             <h3 className="font-semibold text-zinc-900 mb-4">Data Kecamatan</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-zinc-500">Nama Kecamatan</label>
-                <input type="text" defaultValue="Margaasih" className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white" />
+                <Label htmlFor="kecamatan">Nama Kecamatan</Label>
+                <Input id="kecamatan" defaultValue={settingsData?.kecamatan_nama || 'Margaasih'} />
               </div>
               <div>
-                <label className="text-sm text-zinc-500">Kabupaten</label>
-                <input type="text" defaultValue="Bandung" className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white" />
+                <Label htmlFor="kabupaten">Kabupaten</Label>
+                <Input id="kabupaten" defaultValue={settingsData?.kecamatan_kabupaten || 'Bandung'} />
               </div>
               <div>
-                <label className="text-sm text-zinc-500">Provinsi</label>
-                <input type="text" defaultValue="Jawa Barat" className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white" />
+                <Label htmlFor="provinsi">Provinsi</Label>
+                <Input id="provinsi" defaultValue={settingsData?.kecamatan_provinsi || 'Jawa Barat'} />
               </div>
               <div>
-                <label className="text-sm text-zinc-500">Kode Pos</label>
-                <input type="text" defaultValue="40218" className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white" />
+                <Label htmlFor="kode_pos">Kode Pos</Label>
+                <Input id="kode_pos" defaultValue={settingsData?.kecamatan_kode_pos || '40218'} />
               </div>
             </div>
-            <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">Simpan</button>
+            <button onClick={async () => {
+              const g = (id: string) => (document.getElementById(id) as HTMLInputElement)?.value || ''
+              await saveSetting('kecamatan_nama', g('kecamatan'))
+              await saveSetting('kecamatan_kabupaten', g('kabupaten'))
+              await saveSetting('kecamatan_provinsi', g('provinsi'))
+              await saveSetting('kecamatan_kode_pos', g('kode_pos'))
+            }} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2">
+              {savingKey?.startsWith('kecamatan') ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+              Simpan
+            </button>
           </div>
         )}
 
@@ -255,13 +385,19 @@ export default function PengaturanPage() {
             <h3 className="font-semibold text-zinc-900 mb-4">Tahun Pelajaran</h3>
             <div className="flex items-center gap-4 mb-4">
               <div>
-                <label className="text-sm text-zinc-500">Tahun Pelajaran Aktif</label>
-                <select className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white">
+                <Label htmlFor="tahun_ajaran">Tahun Pelajaran Aktif</Label>
+                <Select id="tahun_ajaran" defaultValue={settingsData?.tahun_ajaran || '2025/2026'}>
                   <option>2025/2026</option>
                   <option>2024/2025</option>
-                </select>
+                </Select>
               </div>
-              <button className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">Simpan</button>
+              <button onClick={async () => {
+                const v = (document.getElementById('tahun_ajaran') as HTMLSelectElement)?.value || ''
+                await saveSetting('tahun_ajaran', v)
+              }} className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2">
+                {savingKey === 'tahun_ajaran' ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                Simpan
+              </button>
             </div>
             <div className="border-t border-zinc-200 pt-4">
               <p className="text-sm text-zinc-500 mb-2">Daftar Tahun Pelajaran</p>
@@ -279,26 +415,35 @@ export default function PengaturanPage() {
             <h3 className="font-semibold text-zinc-900 mb-4">Periode Laporan</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-zinc-500">Periode Awal</label>
-                <input type="text" defaultValue="Januari 2026" className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white" />
+                <Label htmlFor="periode_awal">Periode Awal</Label>
+                <Input id="periode_awal" defaultValue={settingsData?.periode_awal || 'Januari 2026'} />
               </div>
               <div>
-                <label className="text-sm text-zinc-500">Periode Akhir</label>
-                <input type="text" defaultValue="Desember 2026" className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white" />
+                <Label htmlFor="periode_akhir">Periode Akhir</Label>
+                <Input id="periode_akhir" defaultValue={settingsData?.periode_akhir || 'Desember 2026'} />
               </div>
               <div>
-                <label className="text-sm text-zinc-500">Batas Submit Laporan</label>
-                <input type="text" defaultValue="Tanggal 5 setiap bulan" className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white" />
+                <Label htmlFor="batas_submit">Batas Submit Laporan</Label>
+                <Input id="batas_submit" defaultValue={settingsData?.batas_submit || 'Tanggal 5 setiap bulan'} />
               </div>
               <div>
-                <label className="text-sm text-zinc-500">Semester Aktif</label>
-                <select className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white">
+                <Label htmlFor="semester">Semester Aktif</Label>
+                <Select id="semester" defaultValue={settingsData?.semester || 'Ganjil'}>
                   <option>Ganjil</option>
                   <option>Genap</option>
-                </select>
+                </Select>
               </div>
             </div>
-            <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">Simpan</button>
+            <button onClick={async () => {
+              const g = (id: string) => (document.getElementById(id) as HTMLInputElement | HTMLSelectElement)?.value || ''
+              await saveSetting('periode_awal', g('periode_awal'))
+              await saveSetting('periode_akhir', g('periode_akhir'))
+              await saveSetting('batas_submit', g('batas_submit'))
+              await saveSetting('semester', g('semester'))
+            }} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2">
+              {savingKey?.startsWith('periode') || savingKey === 'semester' || savingKey === 'batas_submit' ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+              Simpan
+            </button>
           </div>
         )}
 
@@ -319,7 +464,7 @@ export default function PengaturanPage() {
                       <p className="text-xs text-zinc-500">{t.ukuran}</p>
                     </div>
                   </div>
-                  <button className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-xs font-medium">Download</button>
+                  <button onClick={() => alert('Fitur download template belum tersedia')} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-xs font-medium">Download</button>
                 </div>
               ))}
             </div>
@@ -334,7 +479,11 @@ export default function PengaturanPage() {
               <span className="text-sm text-green-700">Terhubung</span>
               <span className="text-xs text-zinc-400">(admin@kecamatan.go.id)</span>
             </div>
-            <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Putuskan Koneksi</button>
+            <button onClick={() => {
+              if (confirm('Putuskan koneksi Google Drive?')) {
+                saveSetting('google_drive_connected', '0')
+              }
+            }} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Putuskan Koneksi</button>
           </div>
         )}
 
@@ -352,7 +501,11 @@ export default function PengaturanPage() {
                 <span className="text-zinc-900">1ABCxyz123DEF456GHI789JKL</span>
               </div>
             </div>
-            <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Putuskan Koneksi</button>
+            <button onClick={() => {
+              if (confirm('Putuskan koneksi Google Spreadsheet?')) {
+                saveSetting('google_sheet_connected', '0')
+              }
+            }} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Putuskan Koneksi</button>
           </div>
         )}
 
@@ -370,7 +523,7 @@ export default function PengaturanPage() {
                 <p className="font-semibold text-zinc-900 mt-1">Setiap Hari Minggu, 02:00 AM</p>
               </div>
             </div>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">Backup Sekarang</button>
+            <button onClick={() => alert('Fitur backup otomatis akan tersedia dalam versi mendatang')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">Backup Sekarang</button>
           </div>
         )}
 
@@ -379,8 +532,10 @@ export default function PengaturanPage() {
             <div className="px-4 py-3 border-b border-zinc-200 flex items-center justify-between">
               <span className="font-semibold text-zinc-900">Log Aktivitas</span>
               <div className="flex gap-2">
-                <input type="text" placeholder="Cari aktivitas..." className="px-3 py-1.5 border border-zinc-300 rounded-lg text-xs bg-white" />
-                <button className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-xs font-medium">Filter</button>
+                <div className="relative">
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <input type="text" value={logSearch} onChange={e => setLogSearch(e.target.value)} placeholder="Cari aktivitas..." className="pl-8 pr-3 py-1.5 border border-zinc-300 rounded-lg text-xs bg-white" />
+                </div>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -397,9 +552,9 @@ export default function PengaturanPage() {
                 <tbody>
                   {logsLoading ? (
                     <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">Memuat log aktivitas...</td></tr>
-                  ) : !logsData || logsData.length === 0 ? (
+                  ) : filteredLogs.length === 0 ? (
                     <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">Belum ada aktivitas</td></tr>
-                  ) : logsData.map((l) => (
+                  ) : filteredLogs.map((l) => (
                     <tr key={l.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                       <td className="px-4 py-3 font-medium text-zinc-900">{l.user_name || '-'}</td>
                       <td className="px-4 py-3">
@@ -416,6 +571,142 @@ export default function PengaturanPage() {
           </div>
         )}
 
+        {/* User Modal */}
+        {userModal.open && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setUserModal({ open: false })}>
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+                <h3 className="font-semibold text-zinc-900">{userModal.edit ? 'Edit User' : 'Tambah User'}</h3>
+                <button onClick={() => setUserModal({ open: false })} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
+              </div>
+              <div className="px-6 py-4 space-y-3">
+                <div>
+                  <Label htmlFor="user_name">Nama</Label>
+                  <Input id="user_name" value={userForm.name} onChange={e => setUserForm(p => ({ ...p, name: e.target.value }))} />
+                </div>
+                <div>
+                  <Label htmlFor="user_username">Username</Label>
+                  <Input id="user_username" value={userForm.username} onChange={e => setUserForm(p => ({ ...p, username: e.target.value }))} />
+                </div>
+                <div>
+                  <Label htmlFor="user_password">{userModal.edit ? 'Password (kosongkan jika tidak diubah)' : 'Password'}</Label>
+                  <Input id="user_password" type="password" value={userForm.password} onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))} />
+                </div>
+                <div>
+                  <Label htmlFor="user_email">Email</Label>
+                  <Input id="user_email" type="email" value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div>
+                  <Label htmlFor="user_role">Role</Label>
+                  <Select id="user_role" value={userForm.role} onChange={e => setUserForm(p => ({ ...p, role: e.target.value }))}>
+                    <option value="admin_kecamatan">Admin Kecamatan</option>
+                    <option value="operator_sekolah">Operator Sekolah</option>
+                    <option value="pegawai">Pegawai</option>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="user_sekolah">Sekolah</Label>
+                  <Select id="user_sekolah" value={userForm.sekolah_id} onChange={e => setUserForm(p => ({ ...p, sekolah_id: e.target.value }))}>
+                    <option value="">- Pilih Sekolah -</option>
+                    {schoolsData?.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
+                  </Select>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-zinc-200 flex justify-end gap-2">
+                <button onClick={() => setUserModal({ open: false })} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
+                <button onClick={saveUser} disabled={userSaving || !userForm.name || !userForm.username || (!userModal.edit && !userForm.password)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                  {userSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete User Confirmation */}
+        {deleteUser && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDeleteUser(null)}>
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+              <h3 className="font-semibold text-zinc-900 mb-2">Hapus User</h3>
+              <p className="text-sm text-zinc-500 mb-4">Yakin ingin menghapus user <strong>{deleteUser.name}</strong>? Tindakan ini tidak dapat dibatalkan.</p>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setDeleteUser(null)} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
+                <button onClick={confirmDeleteUser} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Hapus</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* School Modal */}
+        {schoolModal.open && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSchoolModal({ open: false })}>
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+                <h3 className="font-semibold text-zinc-900">{schoolModal.edit ? 'Edit Sekolah' : 'Tambah Sekolah'}</h3>
+                <button onClick={() => setSchoolModal({ open: false })} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
+              </div>
+              <div className="px-6 py-4 space-y-3">
+                <div>
+                  <Label htmlFor="school_nama">Nama Sekolah</Label>
+                  <Input id="school_nama" value={schoolForm.nama} onChange={e => setSchoolForm(p => ({ ...p, nama: e.target.value }))} />
+                </div>
+                <div>
+                  <Label htmlFor="school_npsn">NPSN</Label>
+                  <Input id="school_npsn" value={schoolForm.npsn} onChange={e => setSchoolForm(p => ({ ...p, npsn: e.target.value }))} />
+                </div>
+                <div>
+                  <Label htmlFor="school_jenjang">Jenjang</Label>
+                  <Select id="school_jenjang" value={schoolForm.jenjang} onChange={e => setSchoolForm(p => ({ ...p, jenjang: e.target.value }))}>
+                    <option value="sd">SD</option>
+                    <option value="kb">KB</option>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="school_status">Status</Label>
+                  <Select id="school_status" value={schoolForm.status} onChange={e => setSchoolForm(p => ({ ...p, status: e.target.value }))}>
+                    <option value="negeri">Negeri</option>
+                    <option value="swasta">Swasta</option>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="school_alamat">Alamat</Label>
+                  <Input id="school_alamat" value={schoolForm.alamat} onChange={e => setSchoolForm(p => ({ ...p, alamat: e.target.value }))} />
+                </div>
+                <div>
+                  <Label htmlFor="school_desa">Desa</Label>
+                  <Input id="school_desa" value={schoolForm.desa} onChange={e => setSchoolForm(p => ({ ...p, desa: e.target.value }))} />
+                </div>
+                <div>
+                  <Label htmlFor="school_kecamatan">Kecamatan</Label>
+                  <Input id="school_kecamatan" value={schoolForm.kecamatan} onChange={e => setSchoolForm(p => ({ ...p, kecamatan: e.target.value }))} />
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-zinc-200 flex justify-end gap-2">
+                <button onClick={() => setSchoolModal({ open: false })} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
+                <button onClick={saveSchool} disabled={schoolSaving || !schoolForm.nama || !schoolForm.npsn} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                  {schoolSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete School Confirmation */}
+        {deleteSchool && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDeleteSchool(null)}>
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+              <h3 className="font-semibold text-zinc-900 mb-2">Hapus Sekolah</h3>
+              <p className="text-sm text-zinc-500 mb-4">Yakin ingin menghapus sekolah <strong>{deleteSchool.nama}</strong>? Tindakan ini tidak dapat dibatalkan.</p>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setDeleteSchool(null)} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
+                <button onClick={confirmDeleteSchool} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Hapus</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Izin Modal */}
         {izinModal && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setIzinModal(null)}>
             <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
