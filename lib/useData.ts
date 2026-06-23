@@ -4,7 +4,7 @@ type CacheEntry<T> = { data: T; timestamp: number }
 const cache = new Map<string, CacheEntry<any>>()
 const CACHE_TTL = 60_000
 
-export function useData<T>(key: string, fetcher: () => Promise<T>): { data: T | null; loading: boolean; error: string | null } {
+export function useData<T>(key: string | null, fetcher: () => Promise<T>): { data: T | null; loading: boolean; error: string | null } {
   const [state, setState] = useState<{ data: T | null; loading: boolean; error: string | null }>({
     data: null,
     loading: true,
@@ -12,6 +12,7 @@ export function useData<T>(key: string, fetcher: () => Promise<T>): { data: T | 
   })
 
   useEffect(() => {
+    if (!key) { setState({ data: null, loading: false, error: null }); return }
     let cancelled = false
     const cached = cache.get(key)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {

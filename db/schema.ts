@@ -364,6 +364,54 @@ export const ppdb = sqliteTable('ppdb', {
 })
 
 // ============================================================
+// SPMB / PPDB — DAYA TAMPUNG
+// ============================================================
+
+export const spmbDayaTampung = sqliteTable('spmb_daya_tampung', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  tahun_pelajaran: text('tahun_pelajaran').notNull(),
+  jumlah_rombel: integer('jumlah_rombel').notNull().default(0),
+  kuota_per_rombel: integer('kuota_per_rombel').notNull().default(28),
+  ...timestamps,
+})
+
+// ============================================================
+// SPMB / PPDB — PENDAFTAR
+// ============================================================
+
+export const spmbPendaftar = sqliteTable('spmb_pendaftar', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  tahun_pelajaran: text('tahun_pelajaran').notNull(),
+  no_pendaftaran: text('no_pendaftaran').notNull(),
+  nik: text('nik').notNull(),
+  nama_lengkap: text('nama_lengkap').notNull(),
+  jenis_kelamin: text('jenis_kelamin').notNull().default('laki-laki'),
+  tempat_lahir: text('tempat_lahir'),
+  tanggal_lahir: text('tanggal_lahir').notNull(),
+  usia: integer('usia').default(0),
+  alamat: text('alamat'),
+  desa: text('desa'),
+  asal_tk_paud: text('asal_tk_paud'),
+  nama_orang_tua: text('nama_orang_tua'),
+  no_hp: text('no_hp'),
+  jalur: text('jalur').notNull().default('domisili'), // domisili | afirmasi | mutasi
+  status_seleksi: text('status_seleksi').notNull().default('pending'), // pending | diterima | cadangan | ditolak
+  status_kk: text('status_kk').notNull().default('belum'), // belum | valid | revisi | ditolak
+  status_akta: text('status_akta').notNull().default('belum'),
+  status_dokumen_tambahan: text('status_dokumen_tambahan').notNull().default('belum'),
+  catatan_verifikasi: text('catatan_verifikasi'),
+  file_kk_url: text('file_kk_url'),
+  file_akta_url: text('file_akta_url'),
+  file_afirmasi_url: text('file_afirmasi_url'),
+  file_mutasi_url: text('file_mutasi_url'),
+  verified_by: text('verified_by'),
+  verified_at: integer('verified_at'),
+  ...timestamps,
+})
+
+// ============================================================
 // TRANSITIONS (SD → SMP)
 // ============================================================
 
