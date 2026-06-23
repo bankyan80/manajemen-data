@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
+import { X, Loader2, Check, Lock } from 'lucide-react'
 
 const TABS = ['Manajemen User', 'Role & Hak Akses', 'Master Sekolah/Lembaga', 'Data Kecamatan', 'Tahun Pelajaran', 'Periode Laporan', 'Template Laporan', 'Koneksi Google Drive', 'Koneksi Google Spreadsheet', 'Backup Data', 'Log Aktivitas']
 
@@ -32,6 +33,67 @@ export default function PengaturanPage() {
   const { data: usersData, loading: usersLoading } = useData<UserRow[]>('pengaturan-users', () => fetchJson('/api/users'))
   const { data: schoolsData, loading: schoolsLoading } = useData<SchoolRow[]>('pengaturan-sekolah', () => fetchJson('/api/schools'))
   const { data: logsData, loading: logsLoading } = useData<ActivityLogRow[]>('pengaturan-logs', () => fetchJson('/api/activity-logs'))
+  const { data: settingsData, loading: settingsLoading } = useData<Record<string, string>>('pengaturan-settings', () => fetchJson('/api/settings'))
+
+  const [izinModal, setIzinModal] = useState<string | null>(null)
+  const [izinData, setIzinData] = useState<Record<string, string[]>>({})
+  const [izinSaving, setIzinSaving] = useState(false)
+
+  useEffect(() => {
+    if (settingsData?.role_permissions) {
+      try { setIzinData(JSON.parse(settingsData.role_permissions)) } catch {}
+    }
+  }, [settingsData])
+
+  const FEATURES: { key: string; label: string }[] = [
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'kesiswaan', label: 'Kesiswaan' },
+    { key: 'gtk', label: 'GTK / Kepegawaian' },
+    { key: 'sarpras', label: 'Sarpras' },
+    { key: 'kelembagaan', label: 'Kelembagaan' },
+    { key: 'spmb', label: 'SPMB / PPDB' },
+    { key: 'transisi', label: 'Transisi SD-SMP' },
+    { key: 'rekap_kecamatan', label: 'Rekap Kecamatan' },
+    { key: 'cetak_export', label: 'Cetak & Export' },
+    { key: 'pengaturan', label: 'Pengaturan' },
+    { key: 'arsip_dokumen', label: 'Arsip Dokumen' },
+    { key: 'monitoring', label: 'Monitoring' },
+  ]
+
+  const ROLES = [
+    { key: 'admin_kecamatan', label: 'Admin Kecamatan' },
+    { key: 'operator_sekolah', label: 'Operator Sekolah' },
+    { key: 'pegawai', label: 'Pegawai' },
+  ]
+
+  const getRoleFeatures = (role: string): string[] => izinData[role] || FEATURES.map(f => f.key)
+
+  const toggleFeature = (role: string, feature: string) => {
+    setIzinData(prev => {
+      const current = prev[role] || FEATURES.map(f => f.key)
+      const next = current.includes(feature) ? current.filter(f => f !== feature) : [...current, feature]
+      return { ...prev, [role]: next }
+    })
+  }
+
+  const savePermissions = async () => {
+    setIzinSaving(true)
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'role_permissions', value: JSON.stringify(izinData) }),
+      })
+      setIzinModal(null)
+    } catch { alert('Gagal menyimpan') }
+    finally { setIzinSaving(false) }
+  }
+
+  const hasFeature = (role: string, feature: string): boolean => {
+    const features = izinData[role]
+    if (!features) return true
+    return features.includes(feature)
+  }
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -100,17 +162,15 @@ export default function PengaturanPage() {
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
             <h3 className="font-semibold text-zinc-900 mb-4">Role &amp; Hak Akses</h3>
             <div className="space-y-3">
-              {[
-                { role: 'Admin Kecamatan', desc: 'Akses penuh ke semua fitur dan data seluruh kecamatan' },
-                { role: 'Operator Sekolah', desc: 'Akses data sekolah sendiri, input laporan, upload dokumen' },
-                { role: 'Pegawai', desc: 'Akses data diri sendiri, upload dokumen pribadi' },
-              ].map((r, i) => (
-                <div key={i} className="border border-zinc-200 rounded-lg p-4 flex items-center justify-between">
+              {ROLES.map((r) => (
+                <div key={r.key} className="border border-zinc-200 rounded-lg p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-zinc-900">{r.role}</p>
-                    <p className="text-xs text-zinc-500 mt-0.5">{r.desc}</p>
+                    <p className="font-semibold text-zinc-900">{r.label}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {getRoleFeatures(r.key).length} / {FEATURES.length} fitur aktif
+                    </p>
                   </div>
-                  <button className="text-blue-600 hover:underline text-xs">Edit Izin</button>
+                  <button onClick={() => { setIzinData(prev => ({ ...prev, [r.key]: getRoleFeatures(r.key) })); setIzinModal(r.key) }} className="text-blue-600 hover:underline text-xs">Edit Izin</button>
                 </div>
               ))}
             </div>
@@ -352,6 +412,37 @@ export default function PengaturanPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {izinModal && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setIzinModal(null)}>
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+                <h3 className="font-semibold text-zinc-900">Edit Izin — {ROLES.find(r => r.key === izinModal)?.label}</h3>
+                <button onClick={() => setIzinModal(null)} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-1">
+                {FEATURES.map(f => {
+                  const on = (izinData[izinModal] || FEATURES.map(x => x.key)).includes(f.key)
+                  return (
+                    <label key={f.key} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-50 cursor-pointer">
+                      <div onClick={() => toggleFeature(izinModal!, f.key)} className={`w-10 h-5 rounded-full relative transition-colors ${on ? 'bg-blue-600' : 'bg-zinc-300'} cursor-pointer`}>
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </div>
+                      <span className="text-sm font-medium text-zinc-900 select-none">{f.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+              <div className="px-6 py-4 border-t border-zinc-200 flex justify-end gap-2">
+                <button onClick={() => setIzinModal(null)} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
+                <button onClick={savePermissions} disabled={izinSaving} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                  {izinSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  Simpan
+                </button>
+              </div>
             </div>
           </div>
         )}
