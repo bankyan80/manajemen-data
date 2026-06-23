@@ -25,7 +25,7 @@ export default function GtkPage() {
   const [cleanupResult, setCleanupResult] = useState<string | null>(null)
   const { data: employees, loading, error } = useData<any[]>(`employees-${refreshKey}`, () => fetchJson('/api/employees?show_nonaktif=1'))
   const [schools, setSchools] = useState<any[]>([])
-  useEffect(() => { fetchJson('/api/schools').then(setSchools).catch(() => {}) }, [])
+  useEffect(() => { fetchJson<any[]>('/api/schools').then(setSchools).catch(() => {}) }, [])
 
   const openDetail = (e: any) => { setSelected(e); setEditing(false); setForm({}) }
   const closeDetail = () => { setSelected(null); setEditing(false); setForm({}) }
