@@ -3,9 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { employeeDocuments } from '@/db/schema'
+import { put } from '@vercel/blob'
 import { randomUUID } from 'crypto'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 
 export async function POST(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
@@ -28,15 +27,10 @@ export async function POST(req: NextRequest) {
 
   const id = randomUUID()
   const ext = file.name.split('.').pop() || ''
-  const fileName = `${id}.${ext}`
-  const uploadDir = join(process.cwd(), 'public', 'uploads', 'employee-documents')
-  const filePath = join(uploadDir, fileName)
+  const blobName = `employee-documents/${id}.${ext}`
 
-  await mkdir(uploadDir, { recursive: true })
-  const bytes = await file.arrayBuffer()
-  await writeFile(filePath, Buffer.from(bytes))
+  const blob = await put(blobName, file, { access: 'public' })
 
-  const fileUrl = `/uploads/employee-documents/${fileName}`
   const now = Date.now()
 
   await db.insert(employeeDocuments).values({
@@ -49,7 +43,7 @@ export async function POST(req: NextRequest) {
     mime_type: file.type,
     file_size: file.size,
     drive_file_id: '',
-    drive_url: fileUrl,
+    drive_url: blob.url,
     status_upload: 'sudah_diupload',
     status_verifikasi: 'belum_diverifikasi',
     status_kelengkapan: 'belum_lengkap',
@@ -59,5 +53,5 @@ export async function POST(req: NextRequest) {
     updated_at: now,
   })
 
-  return NextResponse.json({ id, message: 'Dokumen berhasil diupload', url: fileUrl })
+  return NextResponse.json({ id, message: 'Dokumen berhasil diupload', url: blob.url })
 }

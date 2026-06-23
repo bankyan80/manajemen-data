@@ -4,8 +4,6 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { employeeDocuments } from '@/db/schema'
 import { eq } from 'drizzle-orm'
-import { readFile } from 'fs/promises'
-import { join } from 'path'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
@@ -22,19 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     .limit(1)
     .then(r => r[0])
 
-  if (!doc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!doc || !doc.drive_url) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const filePath = join(process.cwd(), 'public', doc.drive_url)
-  try {
-    const fileBuffer = await readFile(filePath)
-    return new NextResponse(fileBuffer, {
-      headers: {
-        'Content-Type': doc.mime_type || 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${doc.nama_file}"`,
-        'Content-Length': String(fileBuffer.length),
-      },
-    })
-  } catch {
-    return NextResponse.json({ error: 'File not found on disk' }, { status: 404 })
-  }
+  return NextResponse.redirect(doc.drive_url)
 }
