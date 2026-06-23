@@ -10,7 +10,6 @@ import {
   ClipboardList,
   ArrowRightLeft,
   FileText,
-  FolderArchive,
   Printer,
   Settings,
 } from 'lucide-react'
@@ -70,12 +69,6 @@ const navItems: NavItem[] = [
     href: '/rekap-kecamatan',
     icon: <FileText className="h-4 w-4" />,
     roles: ['admin_kecamatan'],
-  },
-  {
-    label: 'Arsip Dokumen',
-    href: '/arsip-dokumen',
-    icon: <FolderArchive className="h-4 w-4" />,
-    roles: ['admin_kecamatan', 'operator_sekolah', 'pegawai'],
   },
   {
     label: 'Cetak & Export',

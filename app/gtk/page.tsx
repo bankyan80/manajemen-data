@@ -15,7 +15,6 @@ export default function GtkPage() {
   const [activeTab, setActiveTab] = useState(0)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<any | null>(null)
-  const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [statusFilter, setStatusFilter] = useState('')
   const [pendidikanFilter, setPendidikanFilter] = useState('')
@@ -27,10 +26,8 @@ export default function GtkPage() {
   const [schools, setSchools] = useState<any[]>([])
   useEffect(() => { fetchJson<any[]>('/api/schools').then(setSchools).catch(() => {}) }, [])
 
-  const openDetail = (e: any) => { setSelected(e); setEditing(false); setForm({}) }
-  const closeDetail = () => { setSelected(null); setEditing(false); setForm({}) }
-
-  const startEdit = () => { setForm({ ...selected }); setEditing(true) }
+  const openEdit = (e: any) => { setSelected(e); setForm({ ...e }) }
+  const closeDetail = () => { setSelected(null); setForm({}) }
 
   const handleSave = useCallback(async () => {
     if (!selected) return
@@ -211,7 +208,7 @@ export default function GtkPage() {
                         </>
                       )}
                       <td className="px-4 py-3">
-                        <button onClick={() => openDetail(e)} className="text-blue-600 hover:underline text-xs">Detail</button>
+                        <button onClick={() => openEdit(e)} className="text-blue-600 hover:underline text-xs">Edit</button>
                       </td>
                     </tr>
                   ))}
@@ -362,7 +359,7 @@ export default function GtkPage() {
                             const bulan = diffMonths % 12
                             return (
                               <tr key={e.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
-                                <td className="px-4 py-3 font-medium text-zinc-900">{e.nama}</td>
+                      <td className="px-4 py-3 font-medium text-blue-600 cursor-pointer hover:underline" onClick={() => openEdit(e)}>{e.nama}</td>
                                 <td className="px-4 py-3">{e.jabatan || '-'}</td>
                                 <td className="px-4 py-3">{e.school_nama || '-'}</td>
                                 <td className="px-4 py-3">{e.tanggal_lahir || '-'}</td>
@@ -399,131 +396,92 @@ export default function GtkPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeDetail}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-              <h3 className="font-semibold text-zinc-900">{editing ? 'Edit Pegawai' : 'Detail Pegawai'}</h3>
+              <h3 className="font-semibold text-zinc-900">Edit Pegawai</h3>
               <button onClick={closeDetail} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
             </div>
             <div className="px-6 py-4 space-y-3 text-sm">
-              {editing ? (
-                <>
-                  <Field label="Nama" value={form.nama} onChange={v => setForm({ ...form, nama: v })} />
-                  <Field label="NIK" value={form.nik} onChange={v => setForm({ ...form, nik: v })} />
-                  <Field label="NIP" value={form.nip || ''} onChange={v => setForm({ ...form, nip: v })} />
-                  <Field label="NUPTK" value={form.nuptk || ''} onChange={v => setForm({ ...form, nuptk: v })} />
-                  <Select label="Jenis Kelamin" value={form.jenis_kelamin || ''} onChange={v => setForm({ ...form, jenis_kelamin: v })} options={['', 'laki-laki', 'perempuan']} />
-                  <Field label="Tempat Lahir" value={form.tempat_lahir || ''} onChange={v => setForm({ ...form, tempat_lahir: v })} />
-                  <Field label="Tanggal Lahir" value={form.tanggal_lahir || ''} onChange={v => setForm({ ...form, tanggal_lahir: v })} />
-                  <Field label="Jabatan" value={form.jabatan || ''} onChange={v => setForm({ ...form, jabatan: v })} />
-                  <Select label="Status Pegawai" value={form.status_pegawai || ''} onChange={v => setForm({ ...form, status_pegawai: v })} options={['', ...STATUS_KEYS]} labels={{ '': '', ...STATUS_LABELS }} />
-                  <Field label="Pangkat/Golongan" value={form.pangkat_golongan || ''} onChange={v => setForm({ ...form, pangkat_golongan: v })} />
-                  <Select label="Pendidikan Terakhir" value={form.pendidikan_terakhir || ''} onChange={v => setForm({ ...form, pendidikan_terakhir: v })} options={['', ...PENDIDIKAN_OPTIONS]} />
-                  <Select label="Sertifikasi" value={form.sertifikasi || ''} onChange={v => setForm({ ...form, sertifikasi: v })} options={['', 'sudah', 'belum']} />
-                  <Field label="TMT Kerja" value={form.tmt_kerja || ''} onChange={v => setForm({ ...form, tmt_kerja: v })} />
-                  <Field label="Email" value={form.email || ''} onChange={v => setForm({ ...form, email: v })} />
-                  <Field label="No HP" value={form.no_hp || ''} onChange={v => setForm({ ...form, no_hp: v })} />
-                  <Select label="Unit Kerja" value={form.sekolah_id || ''} onChange={v => setForm({ ...form, sekolah_id: v })} options={['', ...schools.map(s => s.id)]} labels={{ '': 'Pilih Sekolah...', ...Object.fromEntries(schools.map(s => [s.id, s.nama])) }} />
-                  <Select label="Status Aktif" value={form.is_active === 0 ? '0' : '1'} onChange={v => setForm({ ...form, is_active: v === '0' ? 0 : 1 })} options={['1', '0']} labels={{ '1': 'Aktif', '0': 'Nonaktif' }} />
-                </>
-              ) : (
-                <>
-                  <Row label="Nama" value={selected.nama} />
-                  <Row label="NIK" value={selected.nik} />
-                  <Row label="NIP" value={selected.nip || '-'} />
-                  <Row label="NUPTK" value={selected.nuptk || '-'} />
-                  <Row label="Jenis Kelamin" value={selected.jenis_kelamin || '-'} />
-                  <Row label="Tempat Lahir" value={selected.tempat_lahir || '-'} />
-                  <Row label="Tanggal Lahir" value={selected.tanggal_lahir || '-'} />
-                  <Row label="Jabatan" value={selected.jabatan || '-'} />
-                  <Row label="Status Pegawai" value={selected.status_pegawai || '-'} />
-                  <Row label="Pangkat/Golongan" value={selected.pangkat_golongan || '-'} />
-                  <Row label="Pendidikan Terakhir" value={selected.pendidikan_terakhir || '-'} />
-                  <Row label="Sertifikasi" value={selected.sertifikasi || '-'} />
-                  <Row label="TMT Kerja" value={selected.tmt_kerja || '-'} />
-                  <Row label="Email" value={selected.email || '-'} />
-                  <Row label="No HP" value={selected.no_hp || '-'} />
-                  <Row label="Unit Kerja" value={selected.school_nama || '-'} />
-                  <Row label="Status" value={selected.is_active === 0 ? 'Nonaktif' : 'Aktif'} />
-                </>
-              )}
+              <Field label="Nama" value={form.nama} onChange={v => setForm({ ...form, nama: v })} />
+              <Field label="NIK" value={form.nik} onChange={v => setForm({ ...form, nik: v })} />
+              <Field label="NIP" value={form.nip || ''} onChange={v => setForm({ ...form, nip: v })} />
+              <Field label="NUPTK" value={form.nuptk || ''} onChange={v => setForm({ ...form, nuptk: v })} />
+              <Select label="Jenis Kelamin" value={form.jenis_kelamin || ''} onChange={v => setForm({ ...form, jenis_kelamin: v })} options={['', 'laki-laki', 'perempuan']} />
+              <Field label="Tempat Lahir" value={form.tempat_lahir || ''} onChange={v => setForm({ ...form, tempat_lahir: v })} />
+              <Field label="Tanggal Lahir" value={form.tanggal_lahir || ''} onChange={v => setForm({ ...form, tanggal_lahir: v })} />
+              <Field label="Jabatan" value={form.jabatan || ''} onChange={v => setForm({ ...form, jabatan: v })} />
+              <Select label="Status Pegawai" value={form.status_pegawai || ''} onChange={v => setForm({ ...form, status_pegawai: v })} options={['', ...STATUS_KEYS]} labels={{ '': '', ...STATUS_LABELS }} />
+              <Field label="Pangkat/Golongan" value={form.pangkat_golongan || ''} onChange={v => setForm({ ...form, pangkat_golongan: v })} />
+              <Select label="Pendidikan Terakhir" value={form.pendidikan_terakhir || ''} onChange={v => setForm({ ...form, pendidikan_terakhir: v })} options={['', ...PENDIDIKAN_OPTIONS]} />
+              <Select label="Sertifikasi" value={form.sertifikasi || ''} onChange={v => setForm({ ...form, sertifikasi: v })} options={['', 'sudah', 'belum']} />
+              <Field label="TMT Kerja" value={form.tmt_kerja || ''} onChange={v => setForm({ ...form, tmt_kerja: v })} />
+              <Field label="Email" value={form.email || ''} onChange={v => setForm({ ...form, email: v })} />
+              <Field label="No HP" value={form.no_hp || ''} onChange={v => setForm({ ...form, no_hp: v })} />
+              <Select label="Unit Kerja" value={form.sekolah_id || ''} onChange={v => setForm({ ...form, sekolah_id: v })} options={['', ...schools.map(s => s.id)]} labels={{ '': 'Pilih Sekolah...', ...Object.fromEntries(schools.map(s => [s.id, s.nama])) }} />
+              <Select label="Status Aktif" value={form.is_active === 0 ? '0' : '1'} onChange={v => setForm({ ...form, is_active: v === '0' ? 0 : 1 })} options={['1', '0']} labels={{ '1': 'Aktif', '0': 'Nonaktif' }} />
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200">
-              {editing ? (
-                <>
-                  <button onClick={() => setEditing(false)} className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-900">Batal</button>
-                  <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
-                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {saving ? 'Menyimpan...' : 'Simpan'}
+              <div className="flex items-center gap-2">
+                {role === 'admin_kecamatan' && selected.is_active !== 0 && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`Nonaktifkan ${selected.nama}?`)) return
+                      setSaving(true)
+                      try {
+                        const res = await fetch(`/api/employees/${selected.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ is_active: 0 }),
+                        })
+                        if (!res.ok) throw new Error('Gagal')
+                        closeDetail()
+                        setRefreshKey(k => k + 1)
+                      } catch (err: any) {
+                        alert('Gagal: ' + err.message)
+                      } finally {
+                        setSaving(false)
+                      }
+                    }}
+                    disabled={saving}
+                    className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {saving ? 'Memproses...' : 'Nonaktifkan'}
                   </button>
-                </>
-              ) : (
-                <div className="flex items-center gap-2">
-                  {role === 'admin_kecamatan' && selected.is_active !== 0 && (
-                    <button
-                      onClick={async () => {
-                        if (!confirm(`Nonaktifkan ${selected.nama}?`)) return
-                        setSaving(true)
-                        try {
-                          const res = await fetch(`/api/employees/${selected.id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ is_active: 0 }),
-                          })
-                          if (!res.ok) throw new Error('Gagal')
-                          closeDetail()
-                          setRefreshKey(k => k + 1)
-                        } catch (err: any) {
-                          alert('Gagal: ' + err.message)
-                        } finally {
-                          setSaving(false)
-                        }
-                      }}
-                      disabled={saving}
-                      className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-                    >
-                      {saving ? 'Memproses...' : 'Nonaktifkan'}
-                    </button>
-                  )}
-                  {role === 'admin_kecamatan' && selected.is_active === 0 && (
-                    <button
-                      onClick={async () => {
-                        setSaving(true)
-                        try {
-                          const res = await fetch(`/api/employees/${selected.id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ is_active: 1 }),
-                          })
-                          if (!res.ok) throw new Error('Gagal')
-                          closeDetail()
-                          setRefreshKey(k => k + 1)
-                        } catch (err: any) {
-                          alert('Gagal: ' + err.message)
-                        } finally {
-                          setSaving(false)
-                        }
-                      }}
-                      disabled={saving}
-                      className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {saving ? 'Memproses...' : 'Aktifkan'}
-                    </button>
-                  )}
-                  <button onClick={startEdit} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">Edit</button>
-                </div>
-              )}
+                )}
+                {role === 'admin_kecamatan' && selected.is_active === 0 && (
+                  <button
+                    onClick={async () => {
+                      setSaving(true)
+                      try {
+                        const res = await fetch(`/api/employees/${selected.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ is_active: 1 }),
+                        })
+                        if (!res.ok) throw new Error('Gagal')
+                        closeDetail()
+                        setRefreshKey(k => k + 1)
+                      } catch (err: any) {
+                        alert('Gagal: ' + err.message)
+                      } finally {
+                        setSaving(false)
+                      }
+                    }}
+                    disabled={saving}
+                    className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {saving ? 'Memproses...' : 'Aktifkan'}
+                  </button>
+                )}
+                <button onClick={closeDetail} className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-900">Batal</button>
+                <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2">
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {saving ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
     </AppShellTopbar>
-  )
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-4">
-      <span className="w-36 shrink-0 text-zinc-500">{label}</span>
-      <span className="text-zinc-900 font-medium">{value}</span>
-    </div>
   )
 }
 
