@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
@@ -814,6 +814,25 @@ function OperatorPendaftarSection({
   savePendaftar, deletePendaftar, updateStatus, modal, setModal, sekolahId, emptyForm,
 }: any) {
   const [showForm, setShowForm] = useState(false)
+  const [nikFound, setNikFound] = useState(false)
+  const nikTimer = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    if (nikTimer.current) clearTimeout(nikTimer.current)
+    if (form.nik && form.nik.length >= 4) {
+      nikTimer.current = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/spmb/pendaftar/lookup-nik?nik=${encodeURIComponent(form.nik)}`)
+          const json = await res.json()
+          if (json.data) {
+            setForm((prev: any) => ({ ...prev, ...json.data }))
+            setNikFound(true)
+            setTimeout(() => setNikFound(false), 3000)
+          }
+        } catch {}
+      }, 500)
+    }
+  }, [form.nik, setForm])
 
   return (
     <div className="space-y-4">
@@ -827,6 +846,9 @@ function OperatorPendaftarSection({
 
         {showForm && (
           <div className="p-4 border-b border-border bg-zinc-50">
+            {nikFound && (
+              <div className="mb-3 px-3 py-2 bg-green-50 text-green-700 text-xs rounded-lg font-medium">Data ditemukan — form terisi otomatis</div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               {[
                 { key: 'nik', label: 'NIK', type: 'text' },
