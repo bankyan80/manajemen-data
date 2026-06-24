@@ -297,9 +297,10 @@ export default function PengaturanPage() {
               <div>
                 <Label htmlFor="tahun_ajaran">Tahun Pelajaran Aktif</Label>
                 <Select id="tahun_ajaran" defaultValue={settingsData?.tahun_ajaran}>
-                  <option>2026/2027</option>
-                  <option>2025/2026</option>
-                  <option>2024/2025</option>
+                  {Array.from({ length: 10 }, (_, i) => {
+                    const start = 2026 + i
+                    return <option key={start}>{start}/{start + 1}</option>
+                  })}
                 </Select>
               </div>
               <button onClick={async () => {
@@ -313,9 +314,10 @@ export default function PengaturanPage() {
             <div className="border-t border-zinc-200 pt-4">
               <p className="text-sm text-zinc-500 mb-2">Daftar Tahun Pelajaran</p>
               <div className="flex flex-wrap gap-2">
-                {['2026/2027', '2025/2026', '2024/2025', '2023/2024'].map(t => (
-                  <span key={t} className="px-3 py-1 border border-zinc-200 rounded-full text-sm">{t}</span>
-                ))}
+                {Array.from({ length: 10 }, (_, i) => {
+                  const start = 2026 + i
+                  return <span key={start} className="px-3 py-1 border border-zinc-200 rounded-full text-sm">{start}/{start + 1}</span>
+                })}
               </div>
             </div>
           </div>
