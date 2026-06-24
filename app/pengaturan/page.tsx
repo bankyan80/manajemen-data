@@ -80,7 +80,6 @@ export default function PengaturanPage() {
   const ROLES = [
     { key: 'admin_kecamatan', label: 'Admin Kecamatan' },
     { key: 'operator_sekolah', label: 'Operator Sekolah' },
-    { key: 'pegawai', label: 'Pegawai' },
   ]
 
   const getRoleFeatures = (role: string): string[] => izinData[role] || FEATURES.map(f => f.key)
