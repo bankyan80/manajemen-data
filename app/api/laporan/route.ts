@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     const gtks = await db.select({ total: sql<number>`COUNT(*)` })
       .from(employees)
-      .where(sekolahId ? eq(employees.school_id, sekolahId) : sql`1=1`)
+      .where(sekolahId ? eq(employees.sekolah_id, sekolahId) : sql`1=1`)
 
     const transisi = await db.select({ total: sql<number>`COUNT(*)` })
       .from(transitions)
