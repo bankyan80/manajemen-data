@@ -9,6 +9,16 @@ import { X, Loader2, Check, Lock, Search } from 'lucide-react'
 
 const TABS = ['Manajemen User', 'Role & Hak Akses', 'Data Kecamatan', 'Tahun Pelajaran', 'Template Laporan', 'Koneksi Google Drive', 'Koneksi Google Spreadsheet', 'Backup Data', 'Log Aktivitas']
 
+const Label = ({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) => (
+  <label htmlFor={htmlFor} className="text-sm text-zinc-500">{children}</label>
+)
+const Input = (p: React.InputHTMLAttributes<HTMLInputElement>) => (
+  <input {...p} className={`w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white ${p.className || ''}`} />
+)
+const Select = (p: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) => (
+  <select {...p} className={`w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white ${p.className || ''}`}>{p.children}</select>
+)
+
 type UserRow = {
   id: string; name: string; username: string; email: string | null
   role: string; is_active: number; sekolah_id: string | null; pegawai_id: string | null
@@ -158,16 +168,6 @@ export default function PengaturanPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
-
-  const Label = ({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) => (
-    <label htmlFor={htmlFor} className="text-sm text-zinc-500">{children}</label>
-  )
-  const Input = (p: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input {...p} className={`w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white ${p.className || ''}`} />
-  )
-  const Select = (p: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) => (
-    <select {...p} className={`w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white ${p.className || ''}`}>{p.children}</select>
-  )
 
   const visibleUsers = usersData?.filter(u => u.role !== 'pegawai') || []
 
