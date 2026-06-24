@@ -815,7 +815,7 @@ function OperatorPendaftarSection({
 }: any) {
   const [showForm, setShowForm] = useState(false)
   const [nikFound, setNikFound] = useState(false)
-  const nikTimer = useRef<ReturnType<typeof setTimeout>>()
+  const nikTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     if (nikTimer.current) clearTimeout(nikTimer.current)
