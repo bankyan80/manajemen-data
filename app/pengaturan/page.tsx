@@ -453,8 +453,9 @@ export default function PengaturanPage() {
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
                 <h3 className="font-semibold text-zinc-900">{userModal.edit ? 'Edit User' : 'Tambah User'}</h3>
-                <button onClick={() => setUserModal({ open: false })} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
+                <button type="button" onClick={() => setUserModal({ open: false })} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
               </div>
+              <form onSubmit={e => { e.preventDefault(); saveUser(); }}>
               <div className="px-6 py-4 space-y-3">
                 <div>
                   <Label htmlFor="user_name">Nama</Label>
@@ -488,12 +489,13 @@ export default function PengaturanPage() {
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-zinc-200 flex justify-end gap-2">
-                <button onClick={() => setUserModal({ open: false })} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
-                <button onClick={saveUser} disabled={userSaving || !userForm.name || !userForm.username || (!userModal.edit && !userForm.password)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                <button type="button" onClick={() => setUserModal({ open: false })} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
+                <button type="submit" disabled={userSaving || !userForm.name || !userForm.username || (!userModal.edit && !userForm.password)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50">
                   {userSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                   Simpan
                 </button>
               </div>
+              </form>
             </div>
           </div>
         )}
