@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { students, alumni } from '@/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,13 +29,17 @@ export async function POST() {
   const tpLama = '2025/2026'
   const tpBaru = '2026/2027'
 
-  // Check if already promoted
-  const existing = await db.select({ id: students.id }).from(students).where(eq(students.tahun_pelajaran, tpBaru)).limit(1)
+  // Check if non-Kelas-I already exist for new TP (Kelas I comes from SPMB)
+  const existing = await db.select({ id: students.id }).from(students).where(
+    and(eq(students.tahun_pelajaran, tpBaru), sql`kelas_kelompok != 'Kelas I'`)
+  ).limit(1)
   if (existing.length > 0) {
-    return NextResponse.json({ error: `Sudah ada siswa untuk TP ${tpBaru}. Hapus dulu jika ingin naik kelas ulang.` }, { status: 400 })
+    return NextResponse.json({ error: `Sudah ada siswa (non-Kelas I) untuk TP ${tpBaru}. Hapus dulu jika ingin naik kelas ulang.` }, { status: 400 })
   }
 
   const allStudents = await db.select().from(students).where(eq(students.tahun_pelajaran, tpLama))
+  const existingNikRows = await db.select({ nik: students.nik }).from(students).where(and(eq(students.tahun_pelajaran, tpBaru), sql`nik IS NOT NULL AND nik != ''`))
+  const existingNikSet = new Set(existingNikRows.filter(r => r.nik).map(r => r.nik))
 
   let naik = 0
   let lulus = 0
@@ -43,6 +47,11 @@ export async function POST() {
 
   for (const s of allStudents) {
     if (s.jenjang === 'kb') {
+      skip++
+      continue
+    }
+
+    if (s.nik && existingNikSet.has(s.nik)) {
       skip++
       continue
     }
