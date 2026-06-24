@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    if (!db) return NextResponse.json({ data: null })
     const rows = await db.select({
       nama_lengkap: spmbPendaftar.nama_lengkap,
       jenis_kelamin: spmbPendaftar.jenis_kelamin,
