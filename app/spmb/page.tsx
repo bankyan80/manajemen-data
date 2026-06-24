@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-export const dynamic = 'force-dynamic'
+import { useState } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -54,7 +53,7 @@ export default function SpmbPage() {
   const [adminTab, setAdminTab] = useState(0)
   const [opTab, setOpTab] = useState(0)
   const [refreshKey, setRefreshKey] = useState(0)
-  const bump = useCallback(() => setRefreshKey(k => k + 1), [])
+  const bump = () => setRefreshKey(k => k + 1)
 
   // Filters
   const [search, setSearch] = useState('')
