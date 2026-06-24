@@ -85,9 +85,12 @@ export default function CetakExportPage() {
                 </div>
                 <h3 className="font-semibold text-zinc-900 mb-2">{card.title}</h3>
                 <p className="text-xs text-zinc-500 mb-4">{card.desc}</p>
-                <button onClick={() => alert('Fitur cetak/export akan tersedia dalam versi mendatang')}
+                <button onClick={() => {
+                  const base = `/api/laporan?type=${card.icon === 'excel' ? 'excel' : 'cetak'}${userSekolahId ? `&sekolah_id=${userSekolahId}` : ''}`
+                  window.open(base, '_blank')
+                }}
                   className={`block w-full px-4 py-2 text-white rounded-lg text-sm font-medium text-center ${c.btn} ${c.hover}`}>
-                  Download
+                  {card.icon === 'excel' ? 'Download Excel' : card.icon === 'pdf' ? 'Download PDF' : 'Cetak'}
                 </button>
               </div>
             )
