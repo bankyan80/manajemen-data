@@ -608,6 +608,7 @@ function SpmbContent({ isAdmin, sekolahId }: { isAdmin: boolean; sekolahId?: str
           </div>
         )}
       </div>
+    </AppShellTopbar>
   )
 }
 
@@ -939,8 +940,7 @@ function OperatorPendaftarSection({
       {modal?.type === 'upload' && (
         <UploadModal row={modal.data} onClose={() => setModal(null)} onUpload={() => { setModal(null); window.location.reload() }} />
       )}
-      </div>
-    </AppShellTopbar>
+    </div>
   )
 }
 
