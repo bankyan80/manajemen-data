@@ -98,9 +98,9 @@ export default function TransisiSdSmpPage() {
 
   const calonMasuk = filtered.filter((d: any) => d.status_transisi === 'calon_masuk' || d.status_transisi === 'belum_mendaftar')
   const anakLanjut = filtered.filter((d: any) => d.status_transisi === 'lanjut' || d.status_transisi === 'sudah_mendaftar' || d.status_transisi === 'diterima')
-  const smpTujuan = Array.from(new Set(filtered.map((d: any) => d.smp_tujuan).filter(Boolean))) as string[]
-  const tidakMelanjutkan = filtered.filter((d: any) => !d.smp_tujuan && d.status_transisi !== 'diterima')
-  const lanjutNonFormal = filtered.filter((d: any) => d.kegiatan_transisi)
+  const smpTujuan = Array.from(new Set(anakLanjut.map((d: any) => d.smp_tujuan).filter(Boolean))) as string[]
+  const tidakMelanjutkan = filtered.filter((d: any) => d.status_transisi === 'tidak_melanjutkan')
+  const lanjutNonFormal = filtered.filter((d: any) => d.status_transisi === 'non_formal')
 
   const calonMasukSekolah = groupBySchool(calonMasuk)
   const anakLanjutSekolah = groupBySchool(anakLanjut)
