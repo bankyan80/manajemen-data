@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, Loader2, CheckCircle } from 'lucide-react'
 
 const TABS = ['Calon Masuk SMP', 'Anak Lanjut SMP', 'SMP Tujuan', 'Anak Tidak Melanjutkan', 'Anak Lanjut Non Formal', 'Rekap Transisi Kecamatan']
 
@@ -15,6 +15,8 @@ const STATUS_LABELS: Record<string, string> = {
   sudah_mendaftar: 'Sudah Mendaftar',
   diterima: 'Diterima',
   belum_mendaftar: 'Belum Mendaftar',
+  tidak_melanjutkan: 'Tidak Melanjutkan',
+  non_formal: 'Non Formal',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -23,6 +25,8 @@ const STATUS_COLORS: Record<string, string> = {
   sudah_mendaftar: 'bg-purple-100 text-purple-700',
   diterima: 'bg-teal-100 text-teal-700',
   belum_mendaftar: 'bg-amber-100 text-amber-700',
+  tidak_melanjutkan: 'bg-red-100 text-red-700',
+  non_formal: 'bg-orange-100 text-orange-700',
 }
 
 export default function TransisiSdSmpPage() {
@@ -30,10 +34,44 @@ export default function TransisiSdSmpPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(0)
   const [search, setSearch] = useState('')
-  const { data: transData, loading } = useData<any>('transitions', () => fetchJson('/api/transitions'))
+  const [prosesModal, setProsesModal] = useState<any>(null)
+  const [prosesForm, setProsesForm] = useState({ status_transisi: 'lanjut', smp_tujuan: '', kegiatan_transisi: '', keterangan: '' })
+  const [prosesLoading, setProsesLoading] = useState(false)
+  const { data: transData, loading, mutate } = useData<any>('transitions', () => fetchJson('/api/transitions'))
 
   const role = (session?.user as any)?.role
   const isAdmin = role === 'admin_kecamatan'
+
+  const handleProses = async () => {
+    if (!prosesModal) return
+    setProsesLoading(true)
+    try {
+      const body = {
+        school_id: prosesModal.school_id,
+        student_id: prosesModal.student_id,
+        tahun_pelajaran: prosesModal.tahun_pelajaran || '2026/2027',
+        nama: prosesModal.nama,
+        nisn: prosesModal.nisn,
+        jenis_kelamin: prosesModal.jenis_kelamin,
+        kelas: prosesModal.kelas,
+        status_transisi: prosesForm.status_transisi,
+        smp_tujuan: prosesForm.smp_tujuan || null,
+        kegiatan_transisi: prosesForm.kegiatan_transisi || null,
+        keterangan: prosesForm.keterangan || null,
+      }
+      const res = await fetch('/api/transitions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Gagal') }
+      setProsesModal(null)
+      setProsesForm({ status_transisi: 'lanjut', smp_tujuan: '', kegiatan_transisi: '', keterangan: '' })
+      mutate()
+    } catch (err: any) {
+      alert('Gagal: ' + err.message)
+    } finally {
+      setProsesLoading(false)
+    }
+  }
+
+  const isVirtual = (d: any) => typeof d.id === 'string' && d.id.endsWith('-auto')
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -121,7 +159,7 @@ export default function TransisiSdSmpPage() {
                     {isAdmin ? (
                       <><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-center px-4 py-3 font-semibold text-text-muted">L</th><th className="text-center px-4 py-3 font-semibold text-text-muted">P</th><th className="text-center px-4 py-3 font-semibold text-text-muted">Jumlah</th></>
                     ) : (
-                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">NISN</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Jenis Kelamin</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Kelas</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Status</th></>
+                      <><th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th><th className="text-left px-4 py-3 font-semibold text-text-muted">NISN</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Jenis Kelamin</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Kelas</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Sekolah</th><th className="text-left px-4 py-3 font-semibold text-text-muted">Status</th><th className="text-center px-4 py-3 font-semibold text-text-muted">Aksi</th></>
                     )}
                   </tr>
                 </thead>
@@ -141,7 +179,7 @@ export default function TransisiSdSmpPage() {
                     ))
                   ) : (
                     calonMasuk.length === 0 ? (
-                      <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data calon masuk SMP</td></tr>
+                      <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data calon masuk SMP</td></tr>
                     ) : calonMasuk.map((d: any, i: number) => (
                       <tr key={d.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{d.nama}</td>
@@ -151,6 +189,11 @@ export default function TransisiSdSmpPage() {
                         <td className="px-4 py-3">{d.school_nama || '-'}</td>
                         <td className="px-4 py-3">
                           <span className={`badge ${STATUS_COLORS[d.status_transisi]?.replace('bg-', 'badge-') || 'badge-info'}`}>{STATUS_LABELS[d.status_transisi] || d.status_transisi}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {isVirtual(d) && (
+                            <button onClick={() => { setProsesModal(d); setProsesForm(p => ({ ...p, status_transisi: 'lanjut' })) }} className="text-primary-light hover:text-primary text-xs font-medium">Proses</button>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -354,6 +397,51 @@ export default function TransisiSdSmpPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Proses Modal */}
+        {prosesModal && (
+          <div className="modal-overlay" onClick={() => !prosesLoading && setProsesModal(null)}>
+            <div className="modal-content max-w-md" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                <h3 className="font-semibold text-text-main">Proses Transisi — {prosesModal.nama}</h3>
+                <button onClick={() => setProsesModal(null)} className="text-text-muted hover:text-text-main text-xl leading-none">&times;</button>
+              </div>
+              <div className="px-6 py-4 space-y-4 text-sm">
+                <div>
+                  <label className="block text-text-muted mb-1">Status Transisi</label>
+                  <select value={prosesForm.status_transisi} onChange={e => setProsesForm(f => ({ ...f, status_transisi: e.target.value }))} className="w-full px-3 py-2 border border-border rounded-lg bg-white">
+                    <option value="lanjut">Lanjut ke SMP</option>
+                    <option value="tidak_melanjutkan">Tidak Melanjutkan</option>
+                    <option value="non_formal">Lanjut Non Formal</option>
+                  </select>
+                </div>
+                {prosesForm.status_transisi === 'lanjut' && (
+                  <div>
+                    <label className="block text-text-muted mb-1">SMP Tujuan</label>
+                    <input type="text" value={prosesForm.smp_tujuan} onChange={e => setProsesForm(f => ({ ...f, smp_tujuan: e.target.value }))} placeholder="Nama SMP..." className="w-full px-3 py-2 border border-border rounded-lg" />
+                  </div>
+                )}
+                {prosesForm.status_transisi === 'non_formal' && (
+                  <div>
+                    <label className="block text-text-muted mb-1">Kegiatan Transisi</label>
+                    <input type="text" value={prosesForm.kegiatan_transisi} onChange={e => setProsesForm(f => ({ ...f, kegiatan_transisi: e.target.value }))} placeholder="Contoh: Pondok Pesantren, Kursus, dll" className="w-full px-3 py-2 border border-border rounded-lg" />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-text-muted mb-1">Keterangan (opsional)</label>
+                  <input type="text" value={prosesForm.keterangan} onChange={e => setProsesForm(f => ({ ...f, keterangan: e.target.value }))} placeholder="Catatan..." className="w-full px-3 py-2 border border-border rounded-lg" />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
+                <button onClick={() => setProsesModal(null)} disabled={prosesLoading} className="btn-ghost btn-sm">Batal</button>
+                <button onClick={handleProses} disabled={prosesLoading} className="btn-primary btn-sm flex items-center gap-1">
+                  {prosesLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Simpan
+                </button>
+              </div>
             </div>
           </div>
         )}
