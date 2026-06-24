@@ -88,7 +88,10 @@ export default function KelembagaanPage() {
                     <td className="px-4 py-3">{d.desa || '-'}</td>
                     <td className="px-4 py-3">{d.kecamatan || '-'}</td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setSelected(d)} className="text-blue-600 hover:underline text-xs">Detail</button>
+                      <div className="flex gap-2">
+                        <button onClick={() => setSelected(d)} className="text-blue-600 hover:underline text-xs">Detail</button>
+                        <button onClick={() => { setSelected(d); setForm({ ...d }); setEditing(true) }} className="text-blue-600 hover:underline text-xs">Edit</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
