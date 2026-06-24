@@ -7,17 +7,12 @@ import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { X, Loader2, Check, Lock, Search } from 'lucide-react'
 
-const TABS = ['Manajemen User', 'Role & Hak Akses', 'Master Sekolah/Lembaga', 'Data Kecamatan', 'Tahun Pelajaran', 'Periode Laporan', 'Template Laporan', 'Koneksi Google Drive', 'Koneksi Google Spreadsheet', 'Backup Data', 'Log Aktivitas']
+const TABS = ['Manajemen User', 'Role & Hak Akses', 'Data Kecamatan', 'Tahun Pelajaran', 'Template Laporan', 'Koneksi Google Drive', 'Koneksi Google Spreadsheet', 'Backup Data', 'Log Aktivitas']
 
 type UserRow = {
   id: string; name: string; username: string; email: string | null
   role: string; is_active: number; sekolah_id: string | null; pegawai_id: string | null
   school_nama: string | null; school_npsn: string | null; employee_nama: string | null
-}
-
-type SchoolRow = {
-  id: string; nama: string; npsn: string; jenjang: string
-  status: string; desa: string; kecamatan: string
 }
 
 type ActivityLogRow = {
@@ -31,7 +26,7 @@ export default function PengaturanPage() {
   const [activeTab, setActiveTab] = useState(0)
 
   const { data: usersData, loading: usersLoading, mutate: mutateUsers } = useData<UserRow[]>('pengaturan-users', () => fetchJson('/api/users'))
-  const { data: schoolsData, loading: schoolsLoading, mutate: mutateSchools } = useData<SchoolRow[]>('pengaturan-sekolah', () => fetchJson('/api/schools'))
+  const { data: schoolsData } = useData<{ id: string; nama: string }[]>('pengaturan-sekolah', () => fetchJson('/api/schools'))
   const { data: logsData, loading: logsLoading } = useData<ActivityLogRow[]>('pengaturan-logs', () => fetchJson('/api/activity-logs'))
   const { data: settingsData, loading: settingsLoading, mutate: mutateSettings } = useData<Record<string, string>>('pengaturan-settings', () => fetchJson('/api/settings'))
 
@@ -44,11 +39,6 @@ export default function PengaturanPage() {
   const [userSaving, setUserSaving] = useState(false)
 
   const [deleteUser, setDeleteUser] = useState<UserRow | null>(null)
-  const [deleteSchool, setDeleteSchool] = useState<SchoolRow | null>(null)
-
-  const [schoolModal, setSchoolModal] = useState<{ open: boolean; edit?: SchoolRow }>({ open: false })
-  const [schoolForm, setSchoolForm] = useState({ nama: '', npsn: '', jenjang: 'sd', status: 'negeri', alamat: '', desa: '', kecamatan: '' })
-  const [schoolSaving, setSchoolSaving] = useState(false)
 
   const [logSearch, setLogSearch] = useState('')
   const [deletingPegawai, setDeletingPegawai] = useState(false)
@@ -159,47 +149,6 @@ export default function PengaturanPage() {
     } catch { alert('Gagal menghapus user') }
   }
 
-  const openSchoolModal = (edit?: SchoolRow) => {
-    if (edit) {
-      setSchoolForm({ nama: edit.nama, npsn: edit.npsn, jenjang: edit.jenjang, status: edit.status, alamat: '', desa: edit.desa, kecamatan: edit.kecamatan })
-      setSchoolModal({ open: true, edit })
-    } else {
-      setSchoolForm({ nama: '', npsn: '', jenjang: 'sd', status: 'negeri', alamat: '', desa: '', kecamatan: '' })
-      setSchoolModal({ open: true })
-    }
-  }
-
-  const saveSchool = async () => {
-    setSchoolSaving(true)
-    try {
-      if (schoolModal.edit) {
-        await fetch(`/api/schools/${schoolModal.edit.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(schoolForm),
-        })
-      } else {
-        await fetch('/api/schools', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(schoolForm),
-        })
-      }
-      setSchoolModal({ open: false })
-      mutateSchools()
-    } catch { alert('Gagal menyimpan sekolah') }
-    finally { setSchoolSaving(false) }
-  }
-
-  const confirmDeleteSchool = async () => {
-    if (!deleteSchool) return
-    try {
-      await fetch(`/api/schools/${deleteSchool.id}`, { method: 'DELETE' })
-      setDeleteSchool(null)
-      mutateSchools()
-    } catch { alert('Gagal menghapus sekolah') }
-  }
-
   const filteredLogs = logsData ? logsData.filter(l =>
     !logSearch || l.action.toLowerCase().includes(logSearch.toLowerCase()) ||
     l.table_name.toLowerCase().includes(logSearch.toLowerCase()) ||
@@ -308,54 +257,6 @@ export default function PengaturanPage() {
         )}
 
         {activeTab === 2 && (
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-200 flex items-center justify-between">
-              <span className="font-semibold text-zinc-900">Master Sekolah / Lembaga</span>
-              <button onClick={() => openSchoolModal()} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-medium">+ Tambah</button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-zinc-50 border-b border-zinc-200">
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Nama</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">NPSN</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Jenjang</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Status</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Desa</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Kecamatan</th>
-                    <th className="text-left px-4 py-3 font-semibold text-zinc-700">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {schoolsLoading ? (
-                    <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500">Memuat data sekolah...</td></tr>
-                  ) : !schoolsData || schoolsData.length === 0 ? (
-                    <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-500">Belum ada data sekolah</td></tr>
-                  ) : schoolsData.map((s) => (
-                    <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                      <td className="px-4 py-3 font-medium text-zinc-900">{s.nama}</td>
-                      <td className="px-4 py-3">{s.npsn}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.jenjang === 'sd' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{s.jenjang.toUpperCase()}</span>
-                      </td>
-                      <td className="px-4 py-3 uppercase">{s.status}</td>
-                      <td className="px-4 py-3">{s.desa}</td>
-                      <td className="px-4 py-3">{s.kecamatan}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <button onClick={() => openSchoolModal(s)} className="text-blue-600 hover:underline text-xs">Edit</button>
-                          <button onClick={() => setDeleteSchool(s)} className="text-red-600 hover:underline text-xs">Hapus</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 3 && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6" key={settingsData ? 'loaded' : 'loading'}>
             <h3 className="font-semibold text-zinc-900 mb-4">Data Kecamatan</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -389,13 +290,14 @@ export default function PengaturanPage() {
           </div>
         )}
 
-        {activeTab === 4 && (
+        {activeTab === 3 && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6" key={settingsData ? 'tp-loaded' : 'tp-loading'}>
             <h3 className="font-semibold text-zinc-900 mb-4">Tahun Pelajaran</h3>
             <div className="flex items-center gap-4 mb-4">
               <div>
                 <Label htmlFor="tahun_ajaran">Tahun Pelajaran Aktif</Label>
                 <Select id="tahun_ajaran" defaultValue={settingsData?.tahun_ajaran}>
+                  <option>2026/2027</option>
                   <option>2025/2026</option>
                   <option>2024/2025</option>
                 </Select>
@@ -411,7 +313,7 @@ export default function PengaturanPage() {
             <div className="border-t border-zinc-200 pt-4">
               <p className="text-sm text-zinc-500 mb-2">Daftar Tahun Pelajaran</p>
               <div className="flex flex-wrap gap-2">
-                {['2025/2026', '2024/2025', '2023/2024'].map(t => (
+                {['2026/2027', '2025/2026', '2024/2025', '2023/2024'].map(t => (
                   <span key={t} className="px-3 py-1 border border-zinc-200 rounded-full text-sm">{t}</span>
                 ))}
               </div>
@@ -419,44 +321,7 @@ export default function PengaturanPage() {
           </div>
         )}
 
-        {activeTab === 5 && (
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6" key={settingsData ? 'pl-loaded' : 'pl-loading'}>
-            <h3 className="font-semibold text-zinc-900 mb-4">Periode Laporan</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="periode_awal">Periode Awal</Label>
-                <Input id="periode_awal" defaultValue={settingsData?.periode_awal} />
-              </div>
-              <div>
-                <Label htmlFor="periode_akhir">Periode Akhir</Label>
-                <Input id="periode_akhir" defaultValue={settingsData?.periode_akhir} />
-              </div>
-              <div>
-                <Label htmlFor="batas_submit">Batas Submit Laporan</Label>
-                <Input id="batas_submit" defaultValue={settingsData?.batas_submit} />
-              </div>
-              <div>
-                <Label htmlFor="semester">Semester Aktif</Label>
-                <Select id="semester" defaultValue={settingsData?.semester}>
-                  <option>Ganjil</option>
-                  <option>Genap</option>
-                </Select>
-              </div>
-            </div>
-            <button onClick={async () => {
-              const g = (id: string) => (document.getElementById(id) as HTMLInputElement | HTMLSelectElement)?.value || ''
-              await saveSetting('periode_awal', g('periode_awal'))
-              await saveSetting('periode_akhir', g('periode_akhir'))
-              await saveSetting('batas_submit', g('batas_submit'))
-              await saveSetting('semester', g('semester'))
-            }} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2">
-              {savingKey?.startsWith('periode') || savingKey === 'semester' || savingKey === 'batas_submit' ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-              Simpan
-            </button>
-          </div>
-        )}
-
-        {activeTab === 6 && (
+        {activeTab === 4 && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
             <h3 className="font-semibold text-zinc-900 mb-4">Template Laporan</h3>
             <div className="space-y-3">
@@ -480,7 +345,7 @@ export default function PengaturanPage() {
           </div>
         )}
 
-        {activeTab === 7 && (
+        {activeTab === 5 && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
             <h3 className="font-semibold text-zinc-900 mb-4">Koneksi Google Drive</h3>
             <div className="flex items-center gap-3 mb-4">
@@ -496,7 +361,7 @@ export default function PengaturanPage() {
           </div>
         )}
 
-        {activeTab === 8 && (
+        {activeTab === 6 && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
             <h3 className="font-semibold text-zinc-900 mb-4">Koneksi Google Spreadsheet</h3>
             <div className="flex items-center gap-3 mb-4">
@@ -518,7 +383,7 @@ export default function PengaturanPage() {
           </div>
         )}
 
-        {activeTab === 9 && (
+        {activeTab === 7 && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
             <h3 className="font-semibold text-zinc-900 mb-4">Backup Data</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
@@ -536,7 +401,7 @@ export default function PengaturanPage() {
           </div>
         )}
 
-        {activeTab === 10 && (
+        {activeTab === 8 && (
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-200 flex items-center justify-between">
               <span className="font-semibold text-zinc-900">Log Aktivitas</span>
@@ -667,75 +532,6 @@ export default function PengaturanPage() {
                   {deletingPegawai ? <Loader2 size={16} className="animate-spin" /> : null}
                   {deletingPegawai ? 'Menghapus...' : 'Hapus Semua'}
                 </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* School Modal */}
-        {schoolModal.open && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSchoolModal({ open: false })}>
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-                <h3 className="font-semibold text-zinc-900">{schoolModal.edit ? 'Edit Sekolah' : 'Tambah Sekolah'}</h3>
-                <button onClick={() => setSchoolModal({ open: false })} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
-              </div>
-              <div className="px-6 py-4 space-y-3">
-                <div>
-                  <Label htmlFor="school_nama">Nama Sekolah</Label>
-                  <Input id="school_nama" value={schoolForm.nama} onChange={e => setSchoolForm(p => ({ ...p, nama: e.target.value }))} />
-                </div>
-                <div>
-                  <Label htmlFor="school_npsn">NPSN</Label>
-                  <Input id="school_npsn" value={schoolForm.npsn} onChange={e => setSchoolForm(p => ({ ...p, npsn: e.target.value }))} />
-                </div>
-                <div>
-                  <Label htmlFor="school_jenjang">Jenjang</Label>
-                  <Select id="school_jenjang" value={schoolForm.jenjang} onChange={e => setSchoolForm(p => ({ ...p, jenjang: e.target.value }))}>
-                    <option value="sd">SD</option>
-                    <option value="kb">KB</option>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="school_status">Status</Label>
-                  <Select id="school_status" value={schoolForm.status} onChange={e => setSchoolForm(p => ({ ...p, status: e.target.value }))}>
-                    <option value="negeri">Negeri</option>
-                    <option value="swasta">Swasta</option>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="school_alamat">Alamat</Label>
-                  <Input id="school_alamat" value={schoolForm.alamat} onChange={e => setSchoolForm(p => ({ ...p, alamat: e.target.value }))} />
-                </div>
-                <div>
-                  <Label htmlFor="school_desa">Desa</Label>
-                  <Input id="school_desa" value={schoolForm.desa} onChange={e => setSchoolForm(p => ({ ...p, desa: e.target.value }))} />
-                </div>
-                <div>
-                  <Label htmlFor="school_kecamatan">Kecamatan</Label>
-                  <Input id="school_kecamatan" value={schoolForm.kecamatan} onChange={e => setSchoolForm(p => ({ ...p, kecamatan: e.target.value }))} />
-                </div>
-              </div>
-              <div className="px-6 py-4 border-t border-zinc-200 flex justify-end gap-2">
-                <button onClick={() => setSchoolModal({ open: false })} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
-                <button onClick={saveSchool} disabled={schoolSaving || !schoolForm.nama || !schoolForm.npsn} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50">
-                  {schoolSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                  Simpan
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete School Confirmation */}
-        {deleteSchool && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setDeleteSchool(null)}>
-            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
-              <h3 className="font-semibold text-zinc-900 mb-2">Hapus Sekolah</h3>
-              <p className="text-sm text-zinc-500 mb-4">Yakin ingin menghapus sekolah <strong>{deleteSchool.nama}</strong>? Tindakan ini tidak dapat dibatalkan.</p>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setDeleteSchool(null)} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
-                <button onClick={confirmDeleteSchool} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Hapus</button>
               </div>
             </div>
           </div>
