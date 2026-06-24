@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { students, schools, employees, transitions } from '@/db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { eq, sql, and } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,20 +18,28 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get('type') || 'cetak'
   const sekolahId = searchParams.get('sekolah_id') || (role === 'operator_sekolah' ? userSekolahId : '') || ''
 
-  let schoolFilter = sql`1=1`
-  if (sekolahId) schoolFilter = sql`${schoolFilter} AND ${students.school_id} = ${sekolahId}`
-
   if (type === 'pdf' || type === 'cetak') {
     const sekolah = sekolahId ? (await db.select().from(schools).where(eq(schools.id, sekolahId)).limit(1))[0] : null
+    const jenjang = sekolah?.jenjang || 'sd'
+
+    const siswaWhere = sekolahId
+      ? and(eq(students.school_id, sekolahId), eq(students.jenjang, jenjang))
+      : eq(students.jenjang, jenjang)
+
     const siswa = await db.select({
       kelas: students.kelas_kelompok,
       total: sql<number>`COUNT(*)`,
       l: sql<number>`SUM(CASE WHEN ${students.jenis_kelamin} = 'laki-laki' THEN 1 ELSE 0 END)`,
       p: sql<number>`SUM(CASE WHEN ${students.jenis_kelamin} = 'perempuan' THEN 1 ELSE 0 END)`,
-    }).from(students).where(sql`${schoolFilter} AND ${students.jenjang} = ${sekolah?.jenjang || 'sd'}`).groupBy(students.kelas_kelompok).orderBy(students.kelas_kelompok)
+    }).from(students).where(siswaWhere).groupBy(students.kelas_kelompok).orderBy(students.kelas_kelompok)
 
-    const gtks = await db.select({ total: sql<number>`COUNT(*)` }).from(employees).where(schoolFilter)
-    const transisi = await db.select({ total: sql<number>`COUNT(*)` }).from(transitions).where(schoolFilter)
+    const gtks = await db.select({ total: sql<number>`COUNT(*)` })
+      .from(employees)
+      .where(sekolahId ? eq(employees.school_id, sekolahId) : sql`1=1`)
+
+    const transisi = await db.select({ total: sql<number>`COUNT(*)` })
+      .from(transitions)
+      .where(sekolahId ? eq(transitions.school_id, sekolahId) : sql`1=1`)
 
     const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Laporan ${sekolah?.nama || 'Sekolah'}</title>
@@ -84,7 +92,7 @@ export async function GET(req: NextRequest) {
       nama: students.nama, nisn: students.nisn, nik: students.nik,
       kelas: students.kelas_kelompok, jk: students.jenis_kelamin,
       tempat_lahir: students.tempat_lahir, tanggal_lahir: students.tanggal_lahir,
-    }).from(students).where(schoolFilter).orderBy(students.kelas_kelompok, students.nama)
+    }).from(students).where(sekolahId ? eq(students.school_id, sekolahId) : sql`1=1`).orderBy(students.kelas_kelompok, students.nama)
 
     const csv = [
       ['Nama', 'NISN', 'NIK', 'Kelas', 'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir'],
