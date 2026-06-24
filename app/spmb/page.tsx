@@ -942,7 +942,9 @@ function OperatorPendaftarSection({
       </div>
     </AppShellTopbar>
   )
-}({ row, onClose, onUpload }: { row: any; onClose: () => void; onUpload: () => void }) {
+}
+
+function UploadModal({ row, onClose, onUpload }: { row: any; onClose: () => void; onUpload: () => void }) {
   const [uploading, setUploading] = useState(false)
   const [files, setFiles] = useState<Record<string, File | null>>({ kk: null, akta: null, afirmasi: null, mutasi: null })
 
