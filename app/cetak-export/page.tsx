@@ -28,7 +28,12 @@ export default function CetakExportPage() {
     color: string
     icon: string
   }[] = [
-    ...(isOperator ? [] : [{
+    ...(isOperator ? [{
+      title: `Cetak Laporan ${userJenjang === 'kb' ? 'KB' : 'SD'}`,
+      desc: `Cetak laporan bulanan ${userSchool?.nama || ''}`,
+      color: 'blue',
+      icon: 'printer',
+    }] : [{
       title: 'Cetak Laporan SD',
       desc: 'Cetak laporan bulanan SD',
       color: 'blue',
