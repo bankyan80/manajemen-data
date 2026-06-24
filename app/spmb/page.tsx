@@ -25,7 +25,6 @@ const ADMIN_TABS = [
 
 const OPERATOR_TABS = [
   { key: 'op_pendaftar', label: 'Data Pendaftar', icon: Users },
-  { key: 'op_verifikasi', label: 'Verifikasi Berkas', icon: CheckCircle },
   { key: 'op_rekap', label: 'Rekap Data', icon: BarChart3 },
 ]
 
@@ -33,13 +32,6 @@ const STATUS_COLORS: Record<string, string> = {
   pending: 'text-yellow-700 bg-yellow-100',
   diterima: 'text-green-700 bg-green-100',
   cadangan: 'text-blue-700 bg-blue-100',
-  ditolak: 'text-red-700 bg-red-100',
-}
-
-const BERKAS_STATUS: Record<string, string> = {
-  belum: 'text-gray-500 bg-gray-100',
-  valid: 'text-green-700 bg-green-100',
-  revisi: 'text-yellow-700 bg-yellow-100',
   ditolak: 'text-red-700 bg-red-100',
 }
 
@@ -540,56 +532,8 @@ export default function SpmbPage() {
           />
         )}
 
-        {/* ==================== OPERATOR: VERIFIKASI BERKAS ==================== */}
-        {!isAdmin && opTab === 1 && (
-          <div className="card">
-            <div className="px-4 py-3 border-b border-border">
-              <h3 className="font-semibold text-text-main">Verifikasi Berkas</h3>
-            </div>
-
-            {pfLoading ? <Skeleton rows={5} cols={6} /> : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="bg-zinc-50 border-b border-border">
-                    <th className="text-left px-4 py-3 font-semibold text-text-muted">Nama</th>
-                    <th className="text-center px-4 py-3 font-semibold text-text-muted">KK</th>
-                    <th className="text-center px-4 py-3 font-semibold text-text-muted">Akta</th>
-                    <th className="text-center px-4 py-3 font-semibold text-text-muted">Dok. Tambahan</th>
-                    <th className="text-left px-4 py-3 font-semibold text-text-muted">Aksi</th>
-                  </tr></thead>
-                  <tbody>
-                    {(pfData?.data || []).length === 0 ? (
-                      <tr><td colSpan={5} className="px-4 py-8 text-center text-text-muted">Belum ada pendaftar</td></tr>
-                    ) : (pfData?.data || []).map((r: any) => (
-                      <tr key={r.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                        <td className="px-4 py-3 font-medium">{r.nama_lengkap}</td>
-                        <td className="px-4 py-3 text-center"><Badge status={r.status_kk} colorMap={BERKAS_STATUS} /></td>
-                        <td className="px-4 py-3 text-center"><Badge status={r.status_akta} colorMap={BERKAS_STATUS} /></td>
-                        <td className="px-4 py-3 text-center"><Badge status={r.status_dokumen_tambahan} colorMap={BERKAS_STATUS} /></td>
-                        <td className="px-4 py-3">
-                          <button onClick={() => setModal({ type: 'verifikasi', data: r })} className="text-primary-light hover:text-primary text-xs font-medium flex items-center gap-1">
-                            <Eye className="w-3.5 h-3.5" />Verifikasi
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {modal?.type === 'verifikasi' && modal.data && (
-              <VerifikasiModal
-                row={modal.data}
-                onUpdate={(field: string, value: string) => updateStatus(modal.data.id, field, value)}
-                onClose={() => setModal(null)}
-              />
-            )}
-          </div>
-        )}
-
         {/* ==================== OPERATOR: REKAP DATA ==================== */}
-        {!isAdmin && opTab === 2 && (
+        {!isAdmin && opTab === 1 && (
           <div className="space-y-4">
             {/* Rekap Jalur */}
             <div className="card">
@@ -737,52 +681,6 @@ function DayaTampungModal({ row, onSave, onClose }: { row: any; onSave: (id: str
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
           <button onClick={onClose} className="btn-ghost btn-sm">Batal</button>
           <button onClick={() => onSave(row.id, rombel, kuota)} className="btn-primary btn-sm">Simpan</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function VerifikasiModal({ row, onUpdate, onClose }: { row: any; onUpdate: (field: string, value: string) => void; onClose: () => void }) {
-  const [catatan, setCatatan] = useState(row.catatan_verifikasi || '')
-  const docs = [
-    { label: 'Kartu Keluarga (KK)', status: row.status_kk, field: 'status_kk', url: row.file_kk_url },
-    { label: 'Akta Kelahiran', status: row.status_akta, field: 'status_akta', url: row.file_akta_url },
-    { label: 'Dok. Afirmasi', status: row.status_dokumen_afirmasi || row.status_dokumen_tambahan, field: 'status_dokumen_afirmasi', url: row.file_afirmasi_url },
-    { label: 'Dok. Mutasi', status: row.status_dokumen_mutasi || row.status_dokumen_tambahan, field: 'status_dokumen_mutasi', url: row.file_mutasi_url },
-  ]
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h3 className="font-semibold text-text-main">Verifikasi Berkas — {row.nama_lengkap}</h3>
-          <button onClick={onClose} className="text-text-muted hover:text-text-main text-xl leading-none">&times;</button>
-        </div>
-        <div className="px-6 py-4 space-y-4 text-sm max-h-[60vh] overflow-y-auto">
-          {docs.map((doc, i) => (
-            <div key={i} className="p-3 bg-zinc-50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">{doc.label}</span>
-                <Badge status={doc.status} colorMap={BERKAS_STATUS} />
-              </div>
-              <div className="flex items-center gap-2">
-                {doc.url ? (
-                  <a href={doc.url} target="_blank" className="text-primary-light hover:text-primary text-xs">Lihat Berkas</a>
-                ) : (
-                  <span className="text-text-muted text-xs">Belum diupload</span>
-                )}
-                <div className="flex-1" />
-                <button onClick={() => onUpdate(doc.field, 'valid')} className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 hover:bg-green-200">Valid</button>
-                <button onClick={() => onUpdate(doc.field, 'revisi')} className="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200">Revisi</button>
-                <button onClick={() => onUpdate(doc.field, 'ditolak')} className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200">Tolak</button>
-              </div>
-            </div>
-          ))}
-          <div>
-            <label className="block text-text-muted mb-1">Catatan Verifikasi</label>
-            <textarea value={catatan} onChange={e => setCatatan(e.target.value)} className="w-full px-3 py-1.5 border border-border rounded-lg text-sm" rows={2} />
-            <button onClick={() => { onUpdate('catatan_verifikasi', catatan); onClose() }} className="btn-primary btn-sm mt-2">Simpan Catatan</button>
-          </div>
         </div>
       </div>
     </div>
