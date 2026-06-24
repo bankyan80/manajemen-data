@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { spmbPendaftar, schools } from '@/db/schema'
+import { spmbPendaftar, schools, students } from '@/db/schema'
 import { eq, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
@@ -81,6 +81,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const [result] = await db.update(spmbPendaftar).set(updates).where(eq(spmbPendaftar.id, id)).returning()
+
+  // Auto-create student record when accepted
+  if (updates.status_seleksi === 'diterima' && result) {
+    const existing = await db.select({ id: students.id }).from(students).where(eq(students.nik, result.nik)).limit(1)
+    if (existing.length === 0) {
+      await db.insert(students).values({
+        school_id: result.school_id,
+        tahun_pelajaran: result.tahun_pelajaran || '2026/2027',
+        jenjang: 'sd',
+        kelas_kelompok: 'Kelas I',
+        nama: result.nama_lengkap,
+        nik: result.nik,
+        nisn: '',
+        jenis_kelamin: result.jenis_kelamin || 'laki-laki',
+        tempat_lahir: result.tempat_lahir || '',
+        tanggal_lahir: result.tanggal_lahir || '',
+        alamat: result.alamat || '',
+        nama_orang_tua: result.nama_orang_tua || '',
+        status_siswa: 'aktif',
+      })
+    }
+  }
+
   return NextResponse.json({ data: result })
 }
 
