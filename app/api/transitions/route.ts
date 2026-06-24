@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { transitions, schools, students } from '@/db/schema'
-import { eq, and, like, count, sql } from 'drizzle-orm'
+import { eq, and, like, count, sql, notInArray } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 60
@@ -59,7 +59,72 @@ export async function GET(req: NextRequest) {
     .where(whereConditions)
     .groupBy(transitions.status_transisi)
 
-  return NextResponse.json({ data: rows, recap })
+  // Fetch grade 6 SD students who are not yet in transitions
+  const existingStudentIds = rows.filter(r => r.student_id).map(r => r.student_id) as string[]
+
+  const studentConditions = [
+    eq(students.jenjang, 'sd'),
+    eq(students.kelas_kelompok, '6'),
+    eq(students.status_siswa, 'aktif'),
+  ]
+  if (role === 'operator_sekolah' && userSekolahId) {
+    studentConditions.push(eq(students.school_id, userSekolahId))
+  }
+  if (existingStudentIds.length > 0) {
+    studentConditions.push(notInArray(students.id, existingStudentIds))
+  }
+
+  const grade6Students = await db
+    .select({
+      id: students.id,
+      school_id: students.school_id,
+      nama: students.nama,
+      nisn: students.nisn,
+      jenis_kelamin: students.jenis_kelamin,
+      kelas_kelompok: students.kelas_kelompok,
+      school_nama: schools.nama,
+    })
+    .from(students)
+    .leftJoin(schools, eq(students.school_id, schools.id))
+    .where(and(...studentConditions))
+
+  const virtualRows = grade6Students.map(s => ({
+    id: s.id + '-auto',
+    school_id: s.school_id,
+    student_id: s.id,
+    tahun_pelajaran: '',
+    nama: s.nama,
+    nisn: s.nisn || null,
+    jenis_kelamin: s.jenis_kelamin || null,
+    kelas: s.kelas_kelompok,
+    status_transisi: 'calon_masuk',
+    smp_tujuan: null,
+    kesiapan: null,
+    kegiatan_transisi: null,
+    keterangan: null,
+    created_at: null,
+    school_nama: s.school_nama || null,
+  }))
+
+  const allRows = [...rows, ...virtualRows].sort((a, b) => a.nama.localeCompare(b.nama))
+
+  if (q) {
+    const lowered = q.toLowerCase()
+    const filtered = allRows.filter(r =>
+      r.nama.toLowerCase().includes(lowered) || (r.nisn || '').includes(q)
+    )
+    return NextResponse.json({
+      data: filtered,
+      recap,
+      virtual_count: virtualRows.length,
+    })
+  }
+
+  return NextResponse.json({
+    data: allRows,
+    recap,
+    virtual_count: virtualRows.length,
+  })
 }
 
 export async function POST(req: NextRequest) {
