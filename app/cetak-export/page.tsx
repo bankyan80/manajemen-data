@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useData, fetchJson } from '@/lib/useData'
-import { Printer, FileSpreadsheet, FileText, Loader2 } from 'lucide-react'
+import { Printer, FileSpreadsheet, FileText } from 'lucide-react'
 
 export default function CetakExportPage() {
   const { data: session, status } = useSession()
@@ -26,34 +26,29 @@ export default function CetakExportPage() {
     title: string
     desc: string
     color: string
-    href: string
     icon: string
   }[] = [
     ...(isOperator ? [] : [{
       title: 'Cetak Laporan SD',
       desc: 'Cetak laporan bulanan SD',
       color: 'blue',
-      href: '/api/export/sd',
       icon: 'printer',
     }, {
       title: 'Cetak Laporan KB',
       desc: 'Cetak laporan bulanan KB',
       color: 'purple',
-      href: '/api/export/kb',
       icon: 'printer',
     }]),
     {
       title: isOperator ? `Export Excel ${userJenjang === 'kb' ? 'KB' : 'SD'}` : 'Export Excel',
       desc: isOperator ? `Download data ${userSchool?.nama || ''}` : 'Export data ke spreadsheet',
       color: 'emerald',
-      href: `/api/export/excel${isOperator ? `?sekolah_id=${userSekolahId}` : ''}`,
       icon: 'excel',
     },
     {
       title: isOperator ? `Export PDF ${userJenjang === 'kb' ? 'KB' : 'SD'}` : 'Export PDF',
       desc: isOperator ? `Download PDF ${userSchool?.nama || ''}` : 'Export data ke PDF',
       color: 'red',
-      href: `/api/export/pdf${isOperator ? `?sekolah_id=${userSekolahId}` : ''}`,
       icon: 'pdf',
     },
   ]
@@ -85,10 +80,10 @@ export default function CetakExportPage() {
                 </div>
                 <h3 className="font-semibold text-zinc-900 mb-2">{card.title}</h3>
                 <p className="text-xs text-zinc-500 mb-4">{card.desc}</p>
-                <a href={card.href} target="_blank" download
+                <button onClick={() => alert('Fitur cetak/export akan tersedia dalam versi mendatang')}
                   className={`block w-full px-4 py-2 text-white rounded-lg text-sm font-medium text-center ${c.btn} ${c.hover}`}>
                   Download
-                </a>
+                </button>
               </div>
             )
           })}
