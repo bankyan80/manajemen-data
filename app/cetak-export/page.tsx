@@ -3,68 +3,75 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
-import { Printer, FileSpreadsheet, FileText } from 'lucide-react'
-
-const CARDS = [
-  {
-    title: 'Cetak Laporan SD',
-    desc: 'Cetak laporan bulanan SD dalam format PDF',
-    color: 'blue',
-    options: ['Bulan: Januari 2026', 'Februari 2026', 'Maret 2026'],
-  },
-  {
-    title: 'Cetak Laporan KB',
-    desc: 'Cetak laporan bulanan KB dalam format PDF',
-    color: 'purple',
-    options: ['Bulan: Januari 2026', 'Februari 2026', 'Maret 2026'],
-  },
-  {
-    title: 'Cetak Rekap Kecamatan',
-    desc: 'Cetak rekap data seluruh kecamatan',
-    color: 'green',
-    options: ['Semester Ganjil 2025/2026', 'Semester Genap 2024/2025'],
-  },
-  {
-    title: 'Export Excel',
-    desc: 'Export data ke format spreadsheet',
-    color: 'emerald',
-    options: ['Pilih data untuk di-export', 'Data Kesiswaan SD', 'Data Kesiswaan KB', 'Data GTK', 'Data Sarpras', 'Data SPMB', 'Rekap Kecamatan'],
-  },
-  {
-    title: 'Export PDF',
-    desc: 'Export data ke format PDF',
-    color: 'red',
-    options: ['Pilih data untuk di-export', 'Laporan Bulanan SD', 'Laporan Bulanan KB', 'Rekap Kecamatan', 'Data GTK', 'Data SPMB'],
-  },
-  {
-    title: 'Sinkron Spreadsheet',
-    desc: 'Sinkronisasi data ke Google Spreadsheet',
-    color: 'cyan',
-    isSync: true,
-    options: [],
-  },
-]
-
-const colorMap: Record<string, { bg: string; text: string; btn: string; hover: string }> = {
-  blue: { bg: 'bg-blue-100', text: 'text-blue-700', btn: 'bg-blue-600', hover: 'hover:bg-blue-700' },
-  purple: { bg: 'bg-purple-100', text: 'text-purple-700', btn: 'bg-purple-600', hover: 'hover:bg-purple-700' },
-  green: { bg: 'bg-green-100', text: 'text-green-700', btn: 'bg-green-600', hover: 'hover:bg-green-700' },
-  emerald: { bg: 'bg-emerald-100', text: 'text-emerald-700', btn: 'bg-emerald-600', hover: 'hover:bg-emerald-700' },
-  red: { bg: 'bg-red-100', text: 'text-red-700', btn: 'bg-red-600', hover: 'hover:bg-red-700' },
-  cyan: { bg: 'bg-cyan-100', text: 'text-cyan-700', btn: 'bg-cyan-600', hover: 'hover:bg-cyan-700' },
-}
+import { useData, fetchJson } from '@/lib/useData'
+import { Printer, FileSpreadsheet, FileText, Loader2 } from 'lucide-react'
 
 export default function CetakExportPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { data: schools } = useData<any[]>('schools-all', () => fetchJson('/api/schools'))
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
+
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
+  const userSchool = (schools || []).find((s: any) => s.id === userSekolahId)
+  const userJenjang = userSchool?.jenjang || 'sd'
+
+  const isOperator = role === 'operator_sekolah'
+  const jenjang = isOperator ? userJenjang : null
+
+  const CARDS: {
+    title: string
+    desc: string
+    color: string
+    href: string
+    icon: string
+  }[] = [
+    ...(isOperator ? [] : [{
+      title: 'Cetak Laporan SD',
+      desc: 'Cetak laporan bulanan SD',
+      color: 'blue',
+      href: '/api/export/sd',
+      icon: 'printer',
+    }, {
+      title: 'Cetak Laporan KB',
+      desc: 'Cetak laporan bulanan KB',
+      color: 'purple',
+      href: '/api/export/kb',
+      icon: 'printer',
+    }]),
+    {
+      title: isOperator ? `Export Excel ${userJenjang === 'kb' ? 'KB' : 'SD'}` : 'Export Excel',
+      desc: isOperator ? `Download data ${userSchool?.nama || ''}` : 'Export data ke spreadsheet',
+      color: 'emerald',
+      href: `/api/export/excel${isOperator ? `?sekolah_id=${userSekolahId}` : ''}`,
+      icon: 'excel',
+    },
+    {
+      title: isOperator ? `Export PDF ${userJenjang === 'kb' ? 'KB' : 'SD'}` : 'Export PDF',
+      desc: isOperator ? `Download PDF ${userSchool?.nama || ''}` : 'Export data ke PDF',
+      color: 'red',
+      href: `/api/export/pdf${isOperator ? `?sekolah_id=${userSekolahId}` : ''}`,
+      icon: 'pdf',
+    },
+  ]
+
+  const colorMap: Record<string, { bg: string; text: string; btn: string; hover: string }> = {
+    blue: { bg: 'bg-blue-100', text: 'text-blue-700', btn: 'bg-blue-600', hover: 'hover:bg-blue-700' },
+    purple: { bg: 'bg-purple-100', text: 'text-purple-700', btn: 'bg-purple-600', hover: 'hover:bg-purple-700' },
+    emerald: { bg: 'bg-emerald-100', text: 'text-emerald-700', btn: 'bg-emerald-600', hover: 'hover:bg-emerald-700' },
+    red: { bg: 'bg-red-100', text: 'text-red-700', btn: 'bg-red-600', hover: 'hover:bg-red-700' },
+  }
 
   return (
     <AppShellTopbar>
       <div className="max-w-7xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold text-zinc-900">Cetak &amp; Export</h1>
+        {isOperator && (
+          <p className="text-sm text-zinc-500">Data: {userSchool?.nama || 'Sekolah Anda'} ({userJenjang?.toUpperCase()})</p>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {CARDS.map((card, i) => {
@@ -72,30 +79,16 @@ export default function CetakExportPage() {
             return (
               <div key={i} className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
                 <div className={`w-10 h-10 ${c.bg} rounded-lg flex items-center justify-center mb-3`}>
-                  {card.color === 'blue' || card.color === 'purple' ? <Printer className={`w-5 h-5 ${c.text}`} /> :
-                   card.color === 'cyan' ? <FileSpreadsheet className={`w-5 h-5 ${c.text}`} /> :
-                   <FileText className={`w-5 h-5 ${c.text}`} />}
+                  {card.icon === 'excel' ? <FileSpreadsheet className={`w-5 h-5 ${c.text}`} /> :
+                   card.icon === 'pdf' ? <FileText className={`w-5 h-5 ${c.text}`} /> :
+                   <Printer className={`w-5 h-5 ${c.text}`} />}
                 </div>
                 <h3 className="font-semibold text-zinc-900 mb-2">{card.title}</h3>
                 <p className="text-xs text-zinc-500 mb-4">{card.desc}</p>
-                {card.isSync ? (
-                  <>
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="w-3 h-3 rounded-full bg-green-500" />
-                      <span className="text-sm text-green-700">Terhubung</span>
-                    </div>
-                    <button onClick={() => alert('Fitur sinkronisasi akan tersedia dalam versi mendatang')} className={'w-full px-4 py-2 text-white rounded-lg text-sm font-medium ' + c.btn + ' ' + c.hover}>Sinkron Sekarang</button>
-                  </>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <select className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
-                      {card.options.map((opt, j) => <option key={j}>{opt}</option>)}
-                    </select>
-                    <button onClick={() => alert('Fitur cetak/export akan tersedia dalam versi mendatang')} className={'w-full px-4 py-2 text-white rounded-lg text-sm font-medium ' + c.btn + ' ' + c.hover}>
-                      {card.title.includes('Export') ? 'Download' : 'Cetak'} {card.title.includes('Excel') ? 'Excel' : card.title.includes('PDF') ? 'PDF' : ''}
-                    </button>
-                  </div>
-                )}
+                <a href={card.href} target="_blank" download
+                  className={`block w-full px-4 py-2 text-white rounded-lg text-sm font-medium text-center ${c.btn} ${c.hover}`}>
+                  Download
+                </a>
               </div>
             )
           })}
