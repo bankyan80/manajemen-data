@@ -192,7 +192,7 @@ export default function TransisiSdSmpPage() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           {isVirtual(d) && (
-                            <button onClick={() => { setProsesModal(d); setProsesForm(p => ({ ...p, status_transisi: 'lanjut' })) }} className="text-primary-light hover:text-primary text-xs font-medium">Proses</button>
+                            <button onClick={() => { setProsesModal(d); setProsesForm(p => ({ ...p, status_transisi: 'lanjut' })) }} className="text-primary-light hover:text-primary text-xs font-medium">Lanjutkan Proses</button>
                           )}
                         </td>
                       </tr>
