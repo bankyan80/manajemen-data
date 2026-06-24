@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+export const dynamic = 'force-dynamic'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
