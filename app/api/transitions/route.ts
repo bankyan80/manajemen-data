@@ -62,11 +62,23 @@ export async function GET(req: NextRequest) {
   // Fetch grade 6 SD students who are not yet in transitions
   const existingStudentIds = rows.filter(r => r.student_id).map(r => r.student_id) as string[]
 
+  const latestTP = await db
+    .select({ tp: students.tahun_pelajaran })
+    .from(students)
+    .where(eq(students.jenjang, 'sd'))
+    .orderBy(sql`${students.tahun_pelajaran} DESC`)
+    .limit(1)
+
+  const currentTP = latestTP[0]?.tp
+
   const studentConditions = [
     eq(students.jenjang, 'sd'),
-    eq(students.kelas_kelompok, '6'),
+    eq(students.kelas_kelompok, 'Kelas VI'),
     eq(students.status_siswa, 'aktif'),
   ]
+  if (currentTP) {
+    studentConditions.push(eq(students.tahun_pelajaran, currentTP))
+  }
   if (role === 'operator_sekolah' && userSekolahId) {
     studentConditions.push(eq(students.school_id, userSekolahId))
   }
@@ -78,6 +90,7 @@ export async function GET(req: NextRequest) {
     .select({
       id: students.id,
       school_id: students.school_id,
+      tahun_pelajaran: students.tahun_pelajaran,
       nama: students.nama,
       nisn: students.nisn,
       jenis_kelamin: students.jenis_kelamin,
@@ -92,7 +105,7 @@ export async function GET(req: NextRequest) {
     id: s.id + '-auto',
     school_id: s.school_id,
     student_id: s.id,
-    tahun_pelajaran: '',
+    tahun_pelajaran: s.tahun_pelajaran,
     nama: s.nama,
     nisn: s.nisn || null,
     jenis_kelamin: s.jenis_kelamin || null,
