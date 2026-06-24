@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
@@ -203,31 +202,30 @@ export default function SpmbPage() {
   }
 
   return (
-    <AppShellTopbar>
-      <div className="container-page space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-text-main">SPMB / PPDB</h1>
-          <select value={tahun} onChange={e => { setTahun(e.target.value); setRefreshKey(k => k + 1) }}
-            className="px-3 py-2 rounded-[10px] border border-border bg-white text-sm font-medium">
-            {TAHUN_PELAJARAN.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
+    <div className="container-page space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-text-main">SPMB / PPDB</h1>
+        <select value={tahun} onChange={e => { setTahun(e.target.value); setRefreshKey(k => k + 1) }}
+          className="px-3 py-2 rounded-[10px] border border-border bg-white text-sm font-medium">
+          {TAHUN_PELAJARAN.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
 
-        {/* Submenu */}
-        <div className="flex flex-wrap gap-2">
-          {(isAdmin ? ADMIN_TABS : OPERATOR_TABS).map((t, i) => {
-            const act = isAdmin ? adminTab : opTab
-            const setAct = isAdmin ? setAdminTab : setOpTab
-            const Icon = t.icon
-            return (
-              <button key={t.key} onClick={() => setAct(i)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${act === i ? 'bg-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main hover:bg-zinc-100'}`}>
-                <Icon className="w-3.5 h-3.5" />{t.label}
-              </button>
-            )
-          })}
-        </div>
+      {/* Submenu */}
+      <div className="flex flex-wrap gap-2">
+        {(isAdmin ? ADMIN_TABS : OPERATOR_TABS).map((t, i) => {
+          const act = isAdmin ? adminTab : opTab
+          const setAct = isAdmin ? setAdminTab : setOpTab
+          const Icon = t.icon
+          return (
+            <button key={t.key} onClick={() => setAct(i)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${act === i ? 'bg-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main hover:bg-zinc-100'}`}>
+              <Icon className="w-3.5 h-3.5" />{t.label}
+            </button>
+          )
+        })}
+      </div>
 
         {/* ==================== DAYA TAMPUNG (Admin) ==================== */}
         {isAdmin && adminTab === 0 && (
@@ -609,7 +607,6 @@ export default function SpmbPage() {
           </div>
         )}
       </div>
-    </AppShellTopbar>
   )
 }
 
