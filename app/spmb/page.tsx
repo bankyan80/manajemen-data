@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
+import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import {
   Pencil, Plus, Trash2, Loader2, Search, Download, FileText, X,
   BarChart3, Users, BookOpen, AlertTriangle,
@@ -201,6 +202,7 @@ function SpmbContent({ isAdmin, sekolahId }: { isAdmin: boolean; sekolahId?: str
   }
 
   return (
+    <AppShellTopbar>
     <div className="container-page space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -937,11 +939,10 @@ function OperatorPendaftarSection({
       {modal?.type === 'upload' && (
         <UploadModal row={modal.data} onClose={() => setModal(null)} onUpload={() => { setModal(null); window.location.reload() }} />
       )}
-    </div>
+      </div>
+    </AppShellTopbar>
   )
-}
-
-function UploadModal({ row, onClose, onUpload }: { row: any; onClose: () => void; onUpload: () => void }) {
+}({ row, onClose, onUpload }: { row: any; onClose: () => void; onUpload: () => void }) {
   const [uploading, setUploading] = useState(false)
   const [files, setFiles] = useState<Record<string, File | null>>({ kk: null, akta: null, afirmasi: null, mutasi: null })
 
