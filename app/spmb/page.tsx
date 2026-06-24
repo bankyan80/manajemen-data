@@ -46,7 +46,15 @@ const DESA_LIST = ['', 'Lemahabang', 'Lemahabang Wetan', 'Lemahabang Kulon', 'Si
 export default function SpmbPage() {
   const { data: session, status: authStatus } = useSession()
   const router = useRouter()
+
+  if (authStatus === 'loading') return <div className="p-8 text-center text-text-muted">Memuat...</div>
+  if (!session) { router.push('/login'); return null }
+
   const isAdmin = session?.user?.role === 'admin_kecamatan'
+  return <SpmbContent isAdmin={isAdmin} sekolahId={session?.user?.sekolah_id ?? undefined} />
+}
+
+function SpmbContent({ isAdmin, sekolahId }: { isAdmin: boolean; sekolahId?: string }) {
 
   const [tahun, setTahun] = useState('2026/2027')
   const [adminTab, setAdminTab] = useState(0)
@@ -54,14 +62,12 @@ export default function SpmbPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const bump = () => setRefreshKey(k => k + 1)
 
-  // Filters
   const [search, setSearch] = useState('')
   const [filterSekolah, setFilterSekolah] = useState('')
   const [filterJalur, setFilterJalur] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterDesa, setFilterDesa] = useState('')
 
-  // Modal state
   const [modal, setModal] = useState<{ type: string; data?: any } | null>(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ ok: boolean; msg: string } | null>(null)
@@ -71,7 +77,6 @@ export default function SpmbPage() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  // Fetch data
   const dtKey = `spmb-dt-${tahun}-${search}-${filterDesa}-${refreshKey}`
   const { data: dtData, loading: dtLoading } = useData<{ data: any[] }>(dtKey, () => fetchJson(`/api/spmb/daya-tampung?tahun_pelajaran=${encodeURIComponent(tahun)}&search=${encodeURIComponent(search)}&desa=${encodeURIComponent(filterDesa)}`))
 
@@ -89,14 +94,8 @@ export default function SpmbPage() {
 
   const { data: schoolsData } = useData<{ data: any[] }>('schools-all', () => fetchJson('/api/schools'))
 
-  if (authStatus === 'loading') return <div className="p-8 text-center text-text-muted">Memuat...</div>
-  if (!session) { router.push('/login'); return null }
-
-  const role = session.user?.role
-  const activeTab = isAdmin ? ADMIN_TABS[adminTab] : OPERATOR_TABS[opTab]
   const schools = schoolsData?.data || []
 
-  // ---- Export ----
   const doExport = async (type: string, format: string) => {
     try {
       const res = await fetch('/api/spmb/export', {
@@ -525,7 +524,7 @@ export default function SpmbPage() {
             deletePendaftar={deletePendaftar}
             updateStatus={updateStatus}
             modal={modal} setModal={setModal}
-            sekolahId={session?.user?.sekolah_id}
+            sekolahId={sekolahId}
             emptyForm={emptyForm}
           />
         )}
