@@ -96,7 +96,7 @@ export default function TopNavigation({
   return (
     <nav className="fixed top-16 left-0 right-0 z-40 border-b border-primary-dark bg-primary shadow-sm">
       <div className="flex w-full flex-wrap items-center justify-center gap-x-1 gap-y-0 px-2 py-1.5">
-        {navItems.map((item) => {
+        {navItems.filter(item => item.roles.includes(userRole)).map((item) => {
           const isActive = currentPath === item.href
           return (
             <Link

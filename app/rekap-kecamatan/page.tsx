@@ -20,6 +20,9 @@ export default function RekapKecamatanPage() {
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
 
+  const role = (session?.user as any)?.role
+  if (role === 'operator_sekolah') { router.push('/dashboard'); return null }
+
   const sdSchools = (schools || []).filter((s: any) => s.jenjang === 'sd')
   const kbSchools = (schools || []).filter((s: any) => s.jenjang === 'kb')
   const sdNegeri = sdSchools.filter((s: any) => s.status === 'negeri').length

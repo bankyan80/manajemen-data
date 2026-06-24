@@ -96,7 +96,7 @@ export default function MobileTopNavigation({
   return (
     <nav className="fixed top-16 left-0 right-0 z-40 flex h-14 items-center border-b border-primary-dark bg-primary shadow-sm sm:hidden">
       <div className="flex w-full items-center gap-1 overflow-x-auto px-2 scrollbar-none">
-        {navItems.map((item) => {
+        {navItems.filter(item => item.roles.includes(userRole)).map((item) => {
           const isActive = currentPath === item.href
           return (
             <Link
