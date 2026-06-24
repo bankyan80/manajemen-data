@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -12,9 +12,16 @@ export default function KesiswaanPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'sd' | 'kb'>('sd')
   const [filterSekolah, setFilterSekolah] = useState('')
+  const [filterTp, setFilterTp] = useState('')
   const [naikLoading, setNaikLoading] = useState(false)
   const [naikResult, setNaikResult] = useState<string | null>(null)
   const { data: recaps, loading } = useData<any[]>(`kesiswaan-recap-${activeTab}`, () => fetchJson(`/api/kesiswaan-recap?jenjang=${activeTab}`))
+
+  const tpList = [...new Set((recaps || []).filter(r => r.school_jenjang === activeTab).map(r => r.tahun_pelajaran))].sort().reverse()
+  useEffect(() => {
+    setFilterSekolah('')
+    setFilterTp(tpList[0] || '')
+  }, [activeTab, tpList[0]])
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
@@ -24,6 +31,7 @@ export default function KesiswaanPage() {
   const filtered = (recaps || [])
     .filter(r => r.school_jenjang === activeTab)
     .filter(r => !filterSekolah || r.school_id === filterSekolah)
+    .filter(r => !filterTp || r.tahun_pelajaran === filterTp)
 
   const sekolahList = [...new Map((recaps || []).filter(r => r.school_jenjang === activeTab).map(r => [r.school_id, { id: r.school_id, nama: r.school_nama }])).values()]
 
@@ -70,11 +78,16 @@ export default function KesiswaanPage() {
           <button onClick={() => setActiveTab('kb')} className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'kb' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>TK &amp; KB</button>
         </div>
 
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-4 items-center flex-wrap">
           {role !== 'operator_sekolah' && (
             <select value={filterSekolah} onChange={e => setFilterSekolah(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
               <option value="">Semua Sekolah</option>
               {sekolahList.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
+            </select>
+          )}
+          {tpList.length > 1 && (
+            <select value={filterTp} onChange={e => setFilterTp(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
+              {tpList.map(tp => <option key={tp} value={tp}>{tp}</option>)}
             </select>
           )}
         </div>
