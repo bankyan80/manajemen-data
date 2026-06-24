@@ -51,6 +51,8 @@ export default function PengaturanPage() {
   const [schoolSaving, setSchoolSaving] = useState(false)
 
   const [logSearch, setLogSearch] = useState('')
+  const [deletingPegawai, setDeletingPegawai] = useState(false)
+  const [showBulkDelete, setShowBulkDelete] = useState(false)
 
   const [savingKey, setSavingKey] = useState<string | null>(null)
 
@@ -219,6 +221,8 @@ export default function PengaturanPage() {
     <select {...p} className={`w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm mt-1 bg-white ${p.className || ''}`}>{p.children}</select>
   )
 
+  const visibleUsers = usersData?.filter(u => u.role !== 'pegawai') || []
+
   return (
     <AppShellTopbar>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -232,8 +236,12 @@ export default function PengaturanPage() {
 
         {activeTab === 0 && (
           <div className="space-y-4">
-            <div className="flex justify-end">
-              <button onClick={() => openUserModal()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">+ Tambah User</button>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-zinc-500">Menampilkan hanya user <strong>Operator Sekolah</strong></p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowBulkDelete(true)} className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Hapus Semua User Pegawai</button>
+                <button onClick={() => openUserModal()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">+ Tambah User</button>
+              </div>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
               <div className="overflow-x-auto">
@@ -253,7 +261,9 @@ export default function PengaturanPage() {
                       <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-500">Memuat data user...</td></tr>
                     ) : !usersData || usersData.length === 0 ? (
                       <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-500">Belum ada data user</td></tr>
-                    ) : usersData.map((u) => (
+                    ) : visibleUsers.length === 0 ? (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-500">Tidak ada user selain Pegawai. Semua user telah dihapus.</td></tr>
+                    ) : visibleUsers.map((u) => (
                       <tr key={u.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-zinc-900">{u.name}</td>
                         <td className="px-4 py-3 text-zinc-600">{u.username}</td>
@@ -601,7 +611,6 @@ export default function PengaturanPage() {
                   <Select id="user_role" value={userForm.role} onChange={e => setUserForm(p => ({ ...p, role: e.target.value }))}>
                     <option value="admin_kecamatan">Admin Kecamatan</option>
                     <option value="operator_sekolah">Operator Sekolah</option>
-                    <option value="pegawai">Pegawai</option>
                   </Select>
                 </div>
                 <div>
@@ -632,6 +641,33 @@ export default function PengaturanPage() {
               <div className="flex justify-end gap-2">
                 <button onClick={() => setDeleteUser(null)} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
                 <button onClick={confirmDeleteUser} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Hapus</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Delete Pegawai Confirmation */}
+        {showBulkDelete && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowBulkDelete(false)}>
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+              <h3 className="font-semibold text-zinc-900 mb-2">Hapus Semua User Pegawai</h3>
+              <p className="text-sm text-zinc-500 mb-4">Yakin ingin menghapus semua user dengan role <strong>Pegawai</strong>? Tindakan ini tidak dapat dibatalkan.</p>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setShowBulkDelete(false)} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">Batal</button>
+                <button onClick={async () => {
+                  setDeletingPegawai(true)
+                  try {
+                    const res = await fetch('/api/users/bulk-delete', { method: 'DELETE' })
+                    const data = await res.json()
+                    alert(data.message)
+                    setShowBulkDelete(false)
+                    mutateUsers()
+                  } catch { alert('Gagal menghapus user pegawai') }
+                  finally { setDeletingPegawai(false) }
+                }} disabled={deletingPegawai} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                  {deletingPegawai ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {deletingPegawai ? 'Menghapus...' : 'Hapus Semua'}
+                </button>
               </div>
             </div>
           </div>
