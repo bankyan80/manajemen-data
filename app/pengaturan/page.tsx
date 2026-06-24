@@ -237,7 +237,7 @@ export default function PengaturanPage() {
         {activeTab === 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-zinc-500">Menampilkan hanya user <strong>Operator Sekolah</strong></p>
+              <p className="text-sm text-zinc-500">User <strong>Pegawai</strong> tidak ditampilkan dan tidak bisa dibuat</p>
               <div className="flex gap-2">
                 <button onClick={() => setShowBulkDelete(true)} className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Hapus Semua User Pegawai</button>
                 <button onClick={() => openUserModal()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">+ Tambah User</button>
