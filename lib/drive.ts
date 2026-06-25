@@ -107,6 +107,49 @@ export async function isFolder(fileId: string): Promise<boolean> {
   }
 }
 
+export async function listSubfolders(folderId: string): Promise<{ id: string; name: string }[]> {
+  try {
+    const response = await drive.files.list({
+      q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      fields: 'files(id, name)',
+    })
+    return (response.data.files || []).map(f => ({ id: f.id!, name: f.name! }))
+  } catch {
+    return []
+  }
+}
+
+const DOC_TYPE_KEYWORDS: [RegExp, string][] = [
+  [/^ktp/i, 'KTP'],
+  [/^kartu tanda/i, 'KTP'],
+  [/^kk\b/i, 'KK'],
+  [/^kartu keluarga/i, 'KK'],
+  [/^npwp/i, 'NPWP'],
+  [/^bpjs/i, 'BPJS'],
+  [/^sk\s*cpns/i, 'SK CPNS'],
+  [/^sk\s*pns/i, 'SK PNS'],
+  [/^sk\s*pangkat/i, 'SK Pangkat'],
+  [/^sk\s*jabatan/i, 'SK Jabatan'],
+  [/^sk\s*berkala/i, 'SK Berkala'],
+  [/^karpeg/i, 'Karpeg'],
+  [/^kartu\s*pegawai/i, 'Karpeg'],
+  [/^taspen/i, 'Taspen'],
+  [/^kartu\s*asn/i, 'Kartu ASN'],
+  [/^ijazah/i, 'Ijazah'],
+  [/^sertifikat/i, 'Sertifikat'],
+  [/^dp3/i, 'Dokumen Lainnya'],
+  [/^penilaian/i, 'Dokumen Lainnya'],
+  [/^dokumen\s*lain/i, 'Dokumen Lainnya'],
+]
+
+export function detectDocumentType(fileName: string): string | null {
+  const name = fileName.replace(/\.[^.]+$/, '').trim()
+  for (const [pattern, docType] of DOC_TYPE_KEYWORDS) {
+    if (pattern.test(name)) return docType
+  }
+  return null
+}
+
 export async function getOrCreateSubfolder(parentId: string, folderName: string): Promise<string> {
   const response = await drive.files.list({
     q: `name='${folderName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,

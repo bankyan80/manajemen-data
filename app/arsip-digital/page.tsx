@@ -52,7 +52,7 @@ export default function ArsipDigitalPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [importLinks, setImportLinks] = useState('')
-  const [importForm, setImportForm] = useState({ module_type: 'pegawai', category: '', document_type: '', employee_id: '', school_id: '', deskripsi: '' })
+  const [importForm, setImportForm] = useState({ module_type: 'pegawai', category: '', document_type: '', employee_id: '', school_id: '', deskripsi: '', auto_map: false })
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ summary?: { total: number; success: number; failed: number }; results?: any[] } | null>(null)
   const [previewDoc, setPreviewDoc] = useState<any | null>(null)
@@ -399,6 +399,22 @@ export default function ArsipDigitalPage() {
                   )}
                 </div>
 
+                {importForm.module_type === 'pegawai' && (
+                  <div className="flex items-center gap-3 bg-zinc-50 rounded-xl px-4 py-3 border border-zinc-200">
+                    <input
+                      type="checkbox"
+                      id="auto_map"
+                      checked={importForm.auto_map}
+                      onChange={e => setImportForm({ ...importForm, auto_map: e.target.checked })}
+                      className="w-4 h-4 rounded border-zinc-300 text-blue-600"
+                    />
+                    <label htmlFor="auto_map" className="text-sm text-zinc-700">
+                      <span className="font-medium">Auto-map folder ke pegawai</span>
+                      <p className="text-xs text-zinc-400">Cocokkan nama sub-folder dengan nama pegawai & deteksi jenis dokumen dari nama file</p>
+                    </label>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-xs text-zinc-500 mb-1 block">Deskripsi (opsional)</label>
                   <input value={importForm.deskripsi} onChange={e => setImportForm({ ...importForm, deskripsi: e.target.value })} placeholder="Keterangan tambahan untuk semua file..." className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
@@ -413,11 +429,20 @@ export default function ArsipDigitalPage() {
                         ({importResult.summary?.success} berhasil{importResult.summary?.failed ? `, ${importResult.summary.failed} gagal` : ''} dari {importResult.summary?.total})
                       </span>
                     </p>
-                    {importResult.results && importResult.results.filter(r => !r.success).length > 0 && (
-                      <div className="mt-2 text-xs text-red-700 space-y-1">
-                        {importResult.results.filter(r => !r.success).slice(0, 5).map((r, i) => (
-                          <p key={i}>• {r.url.substring(0, 60)}... <span className="text-red-500">({r.error})</span></p>
+                    {importResult.results && (
+                      <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                        {importResult.results.slice(0, 20).map((r: any, i: number) => (
+                          <div key={i} className={`text-xs ${r.success ? 'text-emerald-700' : 'text-red-600'}`}>
+                            <span>{r.success ? '✓' : '✗'}</span>
+                            <span className="ml-1">{r.file_name || r.url.substring(0, 50)}</span>
+                            {r.employee_match && <span className="ml-2 text-zinc-400">→ pegawai terdeteksi</span>}
+                            {r.doc_type && <span className="ml-1 text-zinc-400">({r.doc_type})</span>}
+                            {!r.success && <span className="ml-1 text-red-500">— {r.error}</span>}
+                          </div>
                         ))}
+                        {importResult.results.length > 20 && (
+                          <p className="text-xs text-zinc-400">...dan {importResult.results.length - 20} lainnya</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -443,6 +468,7 @@ export default function ArsipDigitalPage() {
                             document_type: importForm.document_type,
                             employee_id: importForm.employee_id || undefined,
                             deskripsi: importForm.deskripsi || undefined,
+                            auto_map: importForm.auto_map,
                           }),
                         })
                         const data = await res.json()

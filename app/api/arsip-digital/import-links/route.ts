@@ -2,30 +2,67 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { arsipDigital } from '@/db/schema'
-import { getFileMetadata, parseDriveUrl, listFilesInFolder } from '@/lib/drive'
+import { arsipDigital, employees } from '@/db/schema'
+import { getFileMetadata, parseDriveUrl, listFilesInFolder, listSubfolders, detectDocumentType } from '@/lib/drive'
+import { like } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-async function resolveLinks(inputLinks: string[]): Promise<{ url: string; fileId: string }[]> {
-  const resolved: { url: string; fileId: string }[] = []
+interface ImportFile {
+  url: string
+  fileId: string
+  employee_id?: string
+  document_type?: string
+}
+
+async function resolveLinks(
+  inputLinks: string[],
+  options: { autoMap?: boolean; defaultCategory?: string },
+): Promise<ImportFile[]> {
+  const resolved: ImportFile[] = []
   const driveAvailable = !!process.env.GOOGLE_DRIVE_CLIENT_EMAIL
 
   for (const raw of inputLinks) {
     const url = raw.trim()
     if (!url) continue
     const parsed = parseDriveUrl(url)
-    if (!parsed) {
-      resolved.push({ url, fileId: url })
-      continue
-    }
+    if (!parsed) { resolved.push({ url, fileId: url }); continue }
 
     if (parsed.type === 'folder' && driveAvailable) {
-      const files = await listFilesInFolder(parsed.id)
-      for (const f of files) {
-        if (f.mimeType === 'application/vnd.google-apps.folder') continue
-        resolved.push({ url: f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`, fileId: f.id })
+      const subfolders = await listSubfolders(parsed.id)
+      if (subfolders.length > 0 && options.autoMap) {
+        const namaList = await db
+          .select({ id: employees.id, nama: employees.nama })
+          .from(employees)
+          .then(rows => rows)
+
+        for (const sf of subfolders) {
+          const match = namaList.find(e =>
+            e.nama.toLowerCase().includes(sf.name.toLowerCase()) ||
+            sf.name.toLowerCase().includes(e.nama.toLowerCase()),
+          )
+          const files = await listFilesInFolder(sf.id)
+          for (const f of files) {
+            if (f.mimeType === 'application/vnd.google-apps.folder') continue
+            const dt = detectDocumentType(f.name)
+            resolved.push({
+              url: f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`,
+              fileId: f.id,
+              employee_id: match?.id,
+              document_type: dt || options.defaultCategory || undefined,
+            })
+          }
+        }
+      } else {
+        const files = await listFilesInFolder(parsed.id)
+        for (const f of files) {
+          if (f.mimeType === 'application/vnd.google-apps.folder') continue
+          resolved.push({
+            url: f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`,
+            fileId: f.id,
+          })
+        }
       }
     } else {
       resolved.push({ url, fileId: parsed.id })
@@ -44,24 +81,25 @@ export async function POST(req: NextRequest) {
   const userSekolahId = (session?.user as any)?.sekolah_id
 
   const body = await req.json()
-  const { links, module_type, category, document_type, employee_id, school_id, deskripsi } = body
+  const { links, module_type, category, document_type, employee_id, school_id, deskripsi, auto_map } = body
 
   if (!links || !Array.isArray(links) || links.length === 0) {
     return NextResponse.json({ error: 'Links wajib diisi (array URL)' }, { status: 400 })
   }
-  if (!module_type || !category || !document_type) {
-    return NextResponse.json({ error: 'module_type, category, dan document_type wajib diisi' }, { status: 400 })
+  if (!module_type) {
+    return NextResponse.json({ error: 'module_type wajib diisi' }, { status: 400 })
   }
 
   const targetSekolahId = school_id || userSekolahId
   const driveAvailable = !!process.env.GOOGLE_DRIVE_CLIENT_EMAIL
+  const isAutoMap = auto_map === true && module_type === 'pegawai'
 
-  const resolved = await resolveLinks(links)
+  const resolved = await resolveLinks(links, { autoMap: isAutoMap, defaultCategory: category })
   if (resolved.length === 0) {
     return NextResponse.json({ error: 'Tidak ada file yang ditemukan dari link yang diberikan' }, { status: 400 })
   }
 
-  const results: { success: boolean; url: string; file_name?: string; error?: string }[] = []
+  const results: { success: boolean; url: string; file_name?: string; employee_match?: string; doc_type?: string; error?: string }[] = []
   const inserted: any[] = []
 
   for (const item of resolved) {
@@ -82,12 +120,15 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      const finalEmployeeId = item.employee_id || employee_id || null
+      const finalDocType = item.document_type || document_type || category || 'Dokumen Lainnya'
+
       const record = await db.insert(arsipDigital).values({
-        employee_id: employee_id || null,
+        employee_id: finalEmployeeId,
         school_id: targetSekolahId || null,
         module_type,
-        category,
-        document_type,
+        category: category || 'Dokumen Lainnya',
+        document_type: finalDocType,
         file_name: fileName,
         file_type: fileType,
         file_size: fileSize,
@@ -100,7 +141,13 @@ export async function POST(req: NextRequest) {
       }).returning()
 
       inserted.push(record[0])
-      results.push({ success: true, url: item.url, file_name: fileName })
+      results.push({
+        success: true,
+        url: item.url,
+        file_name: fileName,
+        employee_match: finalEmployeeId || undefined,
+        doc_type: finalDocType,
+      })
     } catch (err: any) {
       results.push({ success: false, url: item.url, error: err.message })
     }
@@ -113,7 +160,7 @@ export async function POST(req: NextRequest) {
       total: resolved.length,
       success: results.filter(r => r.success).length,
       failed: results.filter(r => !r.success).length,
-      folderCount: links.length - resolved.length > 0 ? links.length - resolved.length : 0,
+      autoMapped: isAutoMap,
     },
   })
 }
