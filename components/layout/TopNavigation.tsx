@@ -30,21 +30,15 @@ const navItems: NavItem[] = [
     roles: ['admin_kecamatan', 'operator_sekolah', 'pegawai'],
   },
   {
-    label: 'Arsip Digital',
-    href: '/arsip-digital',
-    icon: <Archive className="h-4 w-4" />,
-    roles: ['admin_kecamatan', 'operator_sekolah', 'pegawai'],
+    label: 'GTK/Kepegawaian',
+    href: '/gtk',
+    icon: <IdCard className="h-4 w-4" />,
+    roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
     label: 'Kesiswaan',
     href: '/kesiswaan',
     icon: <Users className="h-4 w-4" />,
-    roles: ['admin_kecamatan', 'operator_sekolah'],
-  },
-  {
-    label: 'GTK/Kepegawaian',
-    href: '/gtk',
-    icon: <IdCard className="h-4 w-4" />,
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
@@ -82,6 +76,12 @@ const navItems: NavItem[] = [
     href: '/cetak-export',
     icon: <Printer className="h-4 w-4" />,
     roles: ['admin_kecamatan', 'operator_sekolah'],
+  },
+  {
+    label: 'Arsip Digital',
+    href: '/arsip-digital',
+    icon: <Archive className="h-4 w-4" />,
+    roles: ['admin_kecamatan', 'operator_sekolah', 'pegawai'],
   },
   {
     label: 'Pengaturan',
