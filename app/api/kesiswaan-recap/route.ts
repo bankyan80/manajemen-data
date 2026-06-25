@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   if (role === 'operator_sekolah' && userSekolahId) {
     whereConditions = sql`${whereConditions} AND ${students.school_id} = ${userSekolahId}`
   }
-  if (jenjang) whereConditions = sql`${whereConditions} AND ${students.jenjang} = ${jenjang}`
+  if (jenjang) whereConditions = sql`${whereConditions} AND ${schools.jenjang} = ${jenjang}`
 
   const rows = await db
     .select({

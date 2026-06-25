@@ -17,7 +17,7 @@ export default function KesiswaanPage() {
   const [naikResult, setNaikResult] = useState<string | null>(null)
   const { data: recaps, loading } = useData<any[]>(`kesiswaan-recap-${activeTab}`, () => fetchJson(`/api/kesiswaan-recap?jenjang=${activeTab}`))
 
-  const tpList = [...new Set((recaps || []).filter(r => r.school_jenjang === activeTab).map(r => r.tahun_pelajaran))].sort().reverse()
+  const tpList = [...new Set((recaps || []).map(r => r.tahun_pelajaran))].sort().reverse()
   useEffect(() => {
     setFilterSekolah('')
     setFilterTp(tpList[0] || '')
@@ -29,11 +29,10 @@ export default function KesiswaanPage() {
   const role = (session?.user as any)?.role
 
   const filtered = (recaps || [])
-    .filter(r => r.school_jenjang === activeTab)
     .filter(r => !filterSekolah || r.school_id === filterSekolah)
     .filter(r => !filterTp || r.tahun_pelajaran === filterTp)
 
-  const sekolahList = [...new Map((recaps || []).filter(r => r.school_jenjang === activeTab).map(r => [r.school_id, { id: r.school_id, nama: r.school_nama }])).values()]
+  const sekolahList = [...new Map((recaps || []).map(r => [r.school_id, { id: r.school_id, nama: r.school_nama }])).values()]
 
   const handleNaikKelas = async () => {
     if (!confirm('Naikkan semua siswa SD TP 2025/2026 ke TP 2026/2027?\nKelas VI akan masuk alumni.\nTK & KB tidak diproses (manual operator).')) return
