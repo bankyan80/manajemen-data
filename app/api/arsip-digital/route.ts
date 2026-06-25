@@ -20,7 +20,7 @@ const MODULE_FOLDERS: Record<string, string> = {
 const JENIS_PEGAWAI = [
   'KTP', 'KK', 'NPWP', 'BPJS', 'SK CPNS', 'SK PNS', 'SK Pangkat',
   'SK Jabatan', 'SK Berkala', 'Karpeg', 'Taspen', 'Kartu ASN',
-  'Ijazah', 'Sertifikat', 'Dokumen Lainnya',
+  'Ijazah', 'Sertifikat', 'Foto', 'Dokumen Lainnya',
 ]
 
 export async function GET(req: NextRequest) {

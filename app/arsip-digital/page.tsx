@@ -13,7 +13,7 @@ const MODULE_MAP: Record<string, string> = { 'Dokumen Pegawai': 'pegawai', 'Doku
 const JENIS_PEGAWAI = [
   'KTP', 'KK', 'NPWP', 'BPJS', 'SK CPNS', 'SK PNS', 'SK Pangkat',
   'SK Jabatan', 'SK Berkala', 'Karpeg', 'Taspen', 'Kartu ASN',
-  'Ijazah', 'Sertifikat', 'Dokumen Lainnya',
+  'Ijazah', 'Sertifikat', 'Foto', 'Dokumen Lainnya',
 ]
 
 const FILE_ICONS: Record<string, any> = {

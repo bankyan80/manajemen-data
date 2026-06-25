@@ -137,15 +137,20 @@ const DOC_TYPE_KEYWORDS: [RegExp, string][] = [
   [/^kartu\s*asn/i, 'Kartu ASN'],
   [/^ijazah/i, 'Ijazah'],
   [/^sertifikat/i, 'Sertifikat'],
+  [/^(foto|photo|pas\s*foto|foto\s*profil)/i, 'Foto'],
   [/^dp3/i, 'Dokumen Lainnya'],
   [/^penilaian/i, 'Dokumen Lainnya'],
   [/^dokumen\s*lain/i, 'Dokumen Lainnya'],
 ]
 
 export function detectDocumentType(fileName: string): string | null {
+  const ext = fileName.split('.').pop()?.toLowerCase() || ''
   const name = fileName.replace(/\.[^.]+$/, '').trim()
   for (const [pattern, docType] of DOC_TYPE_KEYWORDS) {
     if (pattern.test(name)) return docType
+  }
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'tif', 'svg', 'ico', 'heic', 'heif'].includes(ext)) {
+    return 'Foto'
   }
   return null
 }
