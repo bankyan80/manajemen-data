@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -47,20 +47,22 @@ export default function RekapKecamatanPage() {
   const [showChart, setShowChart] = useState(true)
   const pdLimit = 20
 
-  const pdKey = useMemo(() => {
-    const params = new URLSearchParams()
-    if (pdFilterTA) params.set('tahun_pelajaran', pdFilterTA)
-    if (pdFilterJenjang) params.set('jenjang', pdFilterJenjang)
-    if (pdFilterStatus) params.set('status', pdFilterStatus)
-    if (pdFilterDesa) params.set('desa', pdFilterDesa)
-    if (pdSearch) params.set('q', pdSearch)
-    params.set('page', String(pdPage))
-    params.set('limit', String(pdLimit))
-    return `rekap-pd-${params.toString()}`
-  }, [pdFilterTA, pdFilterJenjang, pdFilterStatus, pdFilterDesa, pdSearch, pdPage])
+  const buildPdParams = () => {
+    const p = new URLSearchParams()
+    if (pdFilterTA) p.set('tahun_pelajaran', pdFilterTA)
+    if (pdFilterJenjang) p.set('jenjang', pdFilterJenjang)
+    if (pdFilterStatus) p.set('status', pdFilterStatus)
+    if (pdFilterDesa) p.set('desa', pdFilterDesa)
+    if (pdSearch) p.set('q', pdSearch)
+    p.set('page', String(pdPage))
+    p.set('limit', String(pdLimit))
+    return p.toString()
+  }
+  const pdParams = buildPdParams()
 
-  const { data: pdData, loading: pdLoading, error: pdError, mutate: pdMutate } = useData<any>(pdKey, () =>
-    fetchJson(`/api/rekap-peserta-didik?${pdKey.replace('rekap-pd-', '')}`)
+  const pdFetchKey = pdParams || 'pd-default'
+  const { data: pdData, loading: pdLoading, error: pdError, mutate: pdMutate } = useData<any>(pdFetchKey, () =>
+    fetchJson(`/api/rekap-peserta-didik?${pdParams}`)
   )
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
@@ -79,8 +81,8 @@ export default function RekapKecamatanPage() {
   const docs = docData?.data || []
   const verifiedDocs = docs.filter((d: any) => d.status_verifikasi === 'sudah_diverifikasi').length
 
-  // Sorting logic
-  const sortedSchools = useMemo(() => {
+  // Sorting — computed on every render (small dataset, negligible cost)
+  const sortedSchools = (() => {
     if (!pdData?.schools) return []
     const list = [...pdData.schools] as SchoolRow[]
     list.sort((a, b) => {
@@ -94,13 +96,13 @@ export default function RekapKecamatanPage() {
       else if (pdSortCol === 'totalL') { va = a.totalL; vb = b.totalL }
       else if (pdSortCol === 'totalP') { va = a.totalP; vb = b.totalP }
       else if (pdSortCol === 'rombel') { va = a.rombel; vb = b.rombel }
-      else if (pdSortCol?.startsWith('Kelas ')) { va = a.kelasData[pdSortCol] || 0; vb = b.kelasData[pdSortCol] || 0 }
+      else if (pdSortCol?.startsWith('Kelas ') || pdSortCol?.startsWith('Kelompok ')) { va = a.kelasData[pdSortCol] || 0; vb = b.kelasData[pdSortCol] || 0 }
       else { va = a.nama; vb = b.nama }
       if (typeof va === 'string') return pdSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
       return pdSortDir === 'asc' ? (va - vb) : (vb - va)
     })
     return list
-  }, [pdData, pdSortCol, pdSortDir])
+  })()
 
   const toggleSort = (col: string) => {
     if (pdSortCol === col) setPdSortDir(d => d === 'asc' ? 'desc' : 'asc')
