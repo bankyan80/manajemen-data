@@ -12,6 +12,7 @@ import {
   FileText,
   Printer,
   Settings,
+  Archive,
 } from 'lucide-react'
 
 interface NavItem {
@@ -26,6 +27,12 @@ const navItems: NavItem[] = [
     label: 'Dashboard',
     href: '/dashboard',
     icon: <LayoutDashboard className="h-5 w-5" />,
+    roles: ['admin_kecamatan', 'operator_sekolah', 'pegawai'],
+  },
+  {
+    label: 'Arsip',
+    href: '/arsip-digital',
+    icon: <Archive className="h-5 w-5" />,
     roles: ['admin_kecamatan', 'operator_sekolah', 'pegawai'],
   },
   {

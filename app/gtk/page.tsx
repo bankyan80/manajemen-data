@@ -5,8 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { Loader2, Trash2, FileText, Download, Plus, X } from 'lucide-react'
-import { DOKUMEN_KATEGORI } from '@/types'
+import { Loader2, Trash2, FileText, Download } from 'lucide-react'
 
 const TABS = ['Data Kepala Sekolah', 'Data Guru', 'Data Tenaga Kependidikan', 'Status Pegawai', 'Sertifikasi', 'Pendidikan Terakhir', 'BUP/Pensiun']
 
@@ -26,24 +25,6 @@ export default function GtkPage() {
   const { data: employees, loading, error } = useData<any[]>(`employees-${refreshKey}`, () => fetchJson('/api/employees?show_nonaktif=1'))
   const [schools, setSchools] = useState<any[]>([])
   useEffect(() => { fetchJson<any[]>('/api/schools').then(setSchools).catch(() => {}) }, [])
-
-  const [employeeDocs, setEmployeeDocs] = useState<any[]>([])
-  const [docsLoading, setDocsLoading] = useState(false)
-  const [showAddDoc, setShowAddDoc] = useState(false)
-  const [docForm, setDocForm] = useState<{ kategori: string; jenis_dokumen: string; file: File | null }>({ kategori: '', jenis_dokumen: '', file: null })
-  const [savingDoc, setSavingDoc] = useState(false)
-
-  useEffect(() => {
-    if (selected?.id) {
-      setDocsLoading(true)
-      fetchJson<any>(`/api/employee-documents?employee_id=${selected.id}`)
-        .then(res => setEmployeeDocs(res?.data || []))
-        .catch(() => setEmployeeDocs([]))
-        .finally(() => setDocsLoading(false))
-    } else {
-      setEmployeeDocs([])
-    }
-  }, [selected?.id])
 
   const openEdit = (e: any) => { setSelected(e); setForm({ ...e }) }
   const closeDetail = () => { setSelected(null); setForm({}) }
@@ -439,115 +420,11 @@ export default function GtkPage() {
             </div>
 
             <div className="border-t border-zinc-200 px-6 py-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-zinc-500" />
-                  <h4 className="font-semibold text-zinc-900 text-sm">Arsip Dokumen</h4>
-                </div>
-                {!showAddDoc && (
-                  <button onClick={() => setShowAddDoc(true)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                    <Plus className="w-3 h-3" /> Tambah
-                  </button>
-                )}
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-zinc-500" />
+                <h4 className="font-semibold text-zinc-900 text-sm">Arsip Dokumen</h4>
               </div>
-
-              {showAddDoc && (
-                <div className="bg-zinc-50 rounded-xl p-3 mb-3 space-y-2 border border-zinc-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-zinc-700">Tambah Dokumen</span>
-                    <button onClick={() => { setShowAddDoc(false); setDocForm({ kategori: '', jenis_dokumen: '', file: null }) }} className="text-zinc-400 hover:text-zinc-600"><X className="w-3 h-3" /></button>
-                  </div>
-                  <select value={docForm.kategori} onChange={e => setDocForm({ kategori: e.target.value, jenis_dokumen: '', file: null })} className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white">
-                    <option value="">Pilih Kategori</option>
-                    {Object.entries(DOKUMEN_KATEGORI).map(([key, val]) => (
-                      <option key={key} value={key}>{val.label}</option>
-                    ))}
-                  </select>
-                  <select value={docForm.jenis_dokumen} onChange={e => setDocForm({ ...docForm, jenis_dokumen: e.target.value })} className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white" disabled={!docForm.kategori}>
-                    <option value="">Pilih Jenis Dokumen</option>
-                    {docForm.kategori && DOKUMEN_KATEGORI[docForm.kategori as keyof typeof DOKUMEN_KATEGORI]?.jenis.map((j: string) => (
-                      <option key={j} value={j}>{j}</option>
-                    ))}
-                  </select>
-                  <input type="file" onChange={e => setDocForm({ ...docForm, file: e.target.files?.[0] || null })} className="w-full text-xs px-2 py-1.5 border border-zinc-300 rounded-lg bg-white file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-xs file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200" />
-                  <div className="flex justify-end gap-2">
-                    <button onClick={() => { setShowAddDoc(false); setDocForm({ kategori: '', jenis_dokumen: '', file: null }) }} className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900">Batal</button>
-                    <button
-                      onClick={async () => {
-                        if (!docForm.kategori || !docForm.jenis_dokumen || !docForm.file) return alert('Pilih kategori, jenis dokumen, dan file')
-                        setSavingDoc(true)
-                        try {
-                          const fd = new FormData()
-                          fd.append('file', docForm.file)
-                          fd.append('employee_id', selected.id)
-                          fd.append('sekolah_id', selected.sekolah_id)
-                          fd.append('kategori', docForm.kategori)
-                          fd.append('jenis_dokumen', docForm.jenis_dokumen)
-                          const res = await fetch('/api/employee-documents/upload', { method: 'POST', body: fd })
-                          if (!res.ok) throw new Error('Gagal upload')
-                          setShowAddDoc(false)
-                          setDocForm({ kategori: '', jenis_dokumen: '', file: null })
-                          const updated = await fetchJson<any>(`/api/employee-documents?employee_id=${selected.id}`)
-                          setEmployeeDocs(updated?.data || [])
-                        } catch (err: any) {
-                          alert('Gagal: ' + err.message)
-                        } finally {
-                          setSavingDoc(false)
-                        }
-                      }}
-                      disabled={savingDoc}
-                      className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {savingDoc ? 'Mengupload...' : 'Simpan'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {docsLoading ? (
-                <div className="text-center text-sm text-zinc-400 py-4">Memuat dokumen...</div>
-              ) : employeeDocs.length === 0 ? (
-                <div className="text-center text-sm text-zinc-400 py-4">Belum ada dokumen</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-zinc-50 border-b border-zinc-200">
-                        <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Dokumen</th>
-                        <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Upload</th>
-                        <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Verifikasi</th>
-                        <th className="text-left px-3 py-2 font-semibold text-zinc-700 text-xs">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {employeeDocs.map((d: any, i: number) => (
-                        <tr key={d.id || i} className="border-b border-zinc-100">
-                          <td className="px-3 py-2 text-zinc-900">{d.jenis_dokumen}</td>
-                          <td className="px-3 py-2">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.status_upload === 'sudah_diupload' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {d.status_upload === 'sudah_diupload' ? 'Sudah' : 'Belum'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.status_verifikasi === 'sudah_diverifikasi' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                              {d.status_verifikasi === 'sudah_diverifikasi' ? 'Diverifikasi' : 'Belum'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">
-                            {d.drive_url ? (
-                              <a href={`/api/employee-documents/${d.id}/file`} className="text-blue-600 hover:underline inline-flex items-center gap-1 text-xs">
-                                <Download className="w-3 h-3" /> Unduh
-                              </a>
-                            ) : (
-                              <span className="text-xs text-zinc-400">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <p className="text-xs text-zinc-400">Dokumen pegawai dikelola di menu <a href="/arsip-digital" className="text-blue-600 hover:underline">Arsip Digital</a>.</p>
             </div>
 
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200">

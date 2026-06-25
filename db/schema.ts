@@ -433,3 +433,29 @@ export const transitions = sqliteTable('transitions', {
   keterangan: text('keterangan'),
   ...timestamps,
 })
+
+// ============================================================
+// ARSIP DIGITAL
+// ============================================================
+
+export const arsipDigital = sqliteTable('arsip_digital', {
+  ...id,
+  ref_id: text('ref_id'),
+  employee_id: text('employee_id').references(() => employees.id),
+  school_id: text('school_id').references(() => schools.id),
+  module_type: text('module_type').notNull(), // pegawai | sekolah | surat | lainnya
+  category: text('category').notNull(),
+  document_type: text('document_type').notNull(),
+  file_name: text('file_name').notNull(),
+  file_type: text('file_type').notNull(),
+  file_size: integer('file_size').notNull(),
+  storage: text('storage').notNull().default('blob'), // blob | drive
+  storage_path: text('storage_path'),
+  file_url: text('file_url'),
+  drive_file_id: text('drive_file_id'),
+  drive_url: text('drive_url'),
+  uploaded_by: text('uploaded_by'),
+  deskripsi: text('deskripsi'),
+  uploaded_at: integer('uploaded_at').notNull().$defaultFn(() => Date.now()),
+  ...timestamps,
+})
