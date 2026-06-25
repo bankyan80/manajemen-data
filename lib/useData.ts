@@ -21,6 +21,7 @@ export function useData<T>(key: string | null, fetcher: () => Promise<T>): { dat
       return
     }
 
+    setState({ data: null, loading: true, error: null })
     fetcher()
       .then((data) => {
         if (!cancelled) {
