@@ -5,7 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { Search, Download, Eye, Edit3, Trash2, Upload, X, FileText, FileImage, FileSpreadsheet, FileArchive, Plus, Loader2 } from 'lucide-react'
+import { Search, Download, Eye, Edit3, Trash2, Upload, X, FileText, FileImage, FileSpreadsheet, FileArchive, Plus, Loader2, Link } from 'lucide-react'
 
 const TABS = ['Dokumen Pegawai', 'Dokumen Sekolah', 'Dokumen Persuratan', 'Dokumen Lainnya', 'Riwayat Upload']
 const MODULE_MAP: Record<string, string> = { 'Dokumen Pegawai': 'pegawai', 'Dokumen Sekolah': 'sekolah', 'Dokumen Persuratan': 'surat', 'Dokumen Lainnya': 'lainnya', 'Riwayat Upload': '' }
@@ -47,9 +47,16 @@ export default function ArsipDigitalPage() {
   const [filterTahun, setFilterTahun] = useState('')
   const [page, setPage] = useState(1)
   const [showUpload, setShowUpload] = useState(false)
+  const [showImportLink, setShowImportLink] = useState(false)
   const [uploadForm, setUploadForm] = useState({ module_type: 'pegawai', category: '', document_type: '', employee_id: '', school_id: '', deskripsi: '' })
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
+  const [importLinks, setImportLinks] = useState('')
+  const [importForm, setImportForm] = useState({ module_type: 'pegawai', category: '', document_type: '', employee_id: '', school_id: '', deskripsi: '' })
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ summary?: { total: number; success: number; failed: number }; results?: any[] } | null>(null)
+  const [migrating, setMigrating] = useState(false)
+  const [migrateResult, setMigrateResult] = useState<string | null>(null)
   const [previewDoc, setPreviewDoc] = useState<any | null>(null)
   const [editDoc, setEditDoc] = useState<any | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -156,9 +163,36 @@ export default function ArsipDigitalPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-zinc-900">Arsip Digital</h1>
-          <button onClick={() => setShowUpload(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 flex items-center gap-2">
-            <Upload className="w-4 h-4" /> Upload Arsip
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setShowImportLink(true); setImportResult(null); setImportLinks('') }} className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg text-sm hover:bg-blue-50 flex items-center gap-2">
+              <Link className="w-4 h-4" /> Import Link
+            </button>
+            {role === 'super_admin' && (
+              <button
+                onClick={async () => {
+                  if (!confirm('Migrasi semua dokumen pegawai yang sudah diupload ke Arsip Digital?')) return
+                  setMigrating(true)
+                  setMigrateResult(null)
+                  try {
+                    const res = await fetch('/api/arsip-digital/migrate', { method: 'POST' })
+                    const data = await res.json()
+                    setMigrateResult(data.message || data.error || 'Selesai')
+                    setRefreshKey(k => k + 1)
+                  } catch (err: any) {
+                    setMigrateResult('Gagal: ' + err.message)
+                  } finally { setMigrating(false) }
+                }}
+                disabled={migrating}
+                className="px-4 py-2 border border-amber-500 text-amber-600 rounded-lg text-sm hover:bg-amber-50 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Loader2 className={`w-4 h-4 ${migrating ? 'animate-spin' : ''}`} />
+                {migrating ? 'Migrasi...' : 'Migrasi Data'}
+              </button>
+            )}
+            <button onClick={() => setShowUpload(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 flex items-center gap-2">
+              <Upload className="w-4 h-4" /> Upload Arsip
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -177,6 +211,14 @@ export default function ArsipDigitalPage() {
             </div>
           ))}
         </div>
+
+        {/* Migrate Result */}
+        {migrateResult && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800 flex items-center justify-between">
+            <span>{migrateResult}</span>
+            <button onClick={() => setMigrateResult(null)} className="text-emerald-500 hover:text-emerald-700"><X className="w-4 h-4" /></button>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-1 bg-zinc-100 p-1 rounded-lg">
@@ -308,6 +350,153 @@ export default function ArsipDigitalPage() {
         )}
 
         {/* Upload Modal */}
+        {/* Import Link Modal */}
+        {showImportLink && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowImportLink(false)}>
+            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between z-10">
+                <h2 className="text-lg font-bold text-zinc-900">Import Link Google Drive</h2>
+                <button onClick={() => setShowImportLink(false)} className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500">&times;</button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-800">
+                  <p className="font-medium mb-1">Cara penggunaan:</p>
+                  <ol className="list-decimal list-inside text-xs space-y-0.5 text-blue-700">
+                    <li>Buka Google Drive dan salin link file yang ingin diimpor</li>
+                    <li>Paste link (satu link per baris) di kolom di bawah</li>
+                    <li>Pilih kategori, jenis dokumen, dan pegawai (untuk dok. pegawai)</li>
+                    <li>Klik "Import" — sistem akan mengambil metadata file dari Drive</li>
+                  </ol>
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">Link Google Drive <span className="text-red-500">*</span></label>
+                  <textarea
+                    value={importLinks}
+                    onChange={e => setImportLinks(e.target.value)}
+                    placeholder={`https://drive.google.com/file/d/ABC123/view\nhttps://drive.google.com/open?id=XYZ789`}
+                    rows={6}
+                    className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm font-mono"
+                  />
+                  {importLinks.trim() && (
+                    <p className="text-xs text-zinc-500 mt-1">
+                      {importLinks.trim().split('\n').filter(Boolean).length} link terdeteksi
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-zinc-500 mb-1 block">Kategori Arsip</label>
+                    <select value={importForm.module_type} onChange={e => setImportForm({ ...importForm, module_type: e.target.value, category: '', document_type: '' })} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
+                      <option value="pegawai">Dokumen Pegawai</option>
+                      <option value="sekolah">Dokumen Sekolah</option>
+                      <option value="surat">Dokumen Persuratan</option>
+                      <option value="lainnya">Dokumen Lainnya</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-zinc-500 mb-1 block">Kategori Dokumen</label>
+                    <select value={importForm.category} onChange={e => setImportForm({ ...importForm, category: e.target.value })} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
+                      <option value="">Pilih Kategori</option>
+                      {importForm.module_type === 'pegawai' && JENIS_PEGAWAI.map(j => (
+                        <option key={j} value={j}>{j}</option>
+                      ))}
+                      {importForm.module_type === 'sekolah' && ['Akreditasi', 'Data Pokok', 'SK Pendirian', 'SK Izin', 'Sertifikat Tanah', 'Izin Mendirikan', 'RAPBS', 'Lainnya'].map(j => (
+                        <option key={j} value={j}>{j}</option>
+                      ))}
+                      {importForm.module_type === 'surat' && ['Surat Masuk', 'Surat Keluar', 'SK', 'Nota Dinas', 'Surat Tugas', 'Lainnya'].map(j => (
+                        <option key={j} value={j}>{j}</option>
+                      ))}
+                      {importForm.module_type === 'lainnya' && ['Laporan', 'Dokumentasi', 'Referensi', 'Lainnya'].map(j => (
+                        <option key={j} value={j}>{j}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-zinc-500 mb-1 block">Jenis Dokumen <span className="text-red-500">*</span></label>
+                    <input value={importForm.document_type} onChange={e => setImportForm({ ...importForm, document_type: e.target.value })} placeholder="Contoh: KTP, Ijazah..." className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
+                  </div>
+                  {importForm.module_type === 'pegawai' && (
+                    <div>
+                      <label className="text-xs text-zinc-500 mb-1 block">Pegawai</label>
+                      <select value={importForm.employee_id} onChange={e => setImportForm({ ...importForm, employee_id: e.target.value })} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
+                        <option value="">Pilih Pegawai</option>
+                        {employees.map((e: any) => <option key={e.id} value={e.id}>{e.nama} - {e.nip || e.nik}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">Deskripsi (opsional)</label>
+                  <input value={importForm.deskripsi} onChange={e => setImportForm({ ...importForm, deskripsi: e.target.value })} placeholder="Keterangan tambahan untuk semua file..." className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
+                </div>
+
+                {/* Import Result */}
+                {importResult && (
+                  <div className={`rounded-xl p-4 border ${importResult.summary?.failed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+                    <p className="font-semibold text-sm mb-2">
+                      {importResult.summary?.success === importResult.summary?.total ? 'Semua berhasil diimport' : `Import selesai`}
+                      <span className="font-normal ml-2">
+                        ({importResult.summary?.success} berhasil{importResult.summary?.failed ? `, ${importResult.summary.failed} gagal` : ''} dari {importResult.summary?.total})
+                      </span>
+                    </p>
+                    {importResult.results && importResult.results.filter(r => !r.success).length > 0 && (
+                      <div className="mt-2 text-xs text-red-700 space-y-1">
+                        {importResult.results.filter(r => !r.success).slice(0, 5).map((r, i) => (
+                          <p key={i}>• {r.url.substring(0, 60)}... <span className="text-red-500">({r.error})</span></p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-2 border-t border-zinc-200">
+                  <button onClick={() => setShowImportLink(false)} className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-900">Tutup</button>
+                  <button
+                    onClick={async () => {
+                      const linkList = importLinks.trim().split('\n').filter(Boolean)
+                      if (linkList.length === 0) return alert('Paste minimal 1 link Google Drive')
+                      if (!importForm.category || !importForm.document_type) return alert('Pilih kategori dan jenis dokumen')
+                      setImporting(true)
+                      setImportResult(null)
+                      try {
+                        const res = await fetch('/api/arsip-digital/import-links', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            links: linkList,
+                            module_type: importForm.module_type,
+                            category: importForm.category,
+                            document_type: importForm.document_type,
+                            employee_id: importForm.employee_id || undefined,
+                            deskripsi: importForm.deskripsi || undefined,
+                          }),
+                        })
+                        const data = await res.json()
+                        if (!res.ok) throw new Error(data.error || 'Gagal import')
+                        setImportResult(data)
+                        setRefreshKey(k => k + 1)
+                      } catch (err: any) {
+                        alert('Gagal: ' + err.message)
+                      } finally { setImporting(false) }
+                    }}
+                    disabled={importing || !importLinks.trim()}
+                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {importing && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {importing ? 'Mengimport...' : 'Import'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showUpload && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowUpload(false)}>
             <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
