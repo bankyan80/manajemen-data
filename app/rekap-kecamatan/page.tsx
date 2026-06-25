@@ -109,6 +109,96 @@ export default function RekapKecamatanPage() {
     else { setPdSortCol(col); setPdSortDir('asc') }
   }
 
+  const sdList = sortedSchools.filter(s => s.jenjang === 'sd')
+  const kbList = sortedSchools.filter(s => s.jenjang === 'kb')
+
+  const renderSchoolTable = (schools: SchoolRow[], title?: string) => {
+    const isSd = title === 'sd' || (title !== 'kb' && schools[0]?.jenjang === 'sd')
+    const kelasKeys = isSd ? KELAS_SD : KELAS_KB
+    const colCount = 9 + kelasKeys.length
+    const noFilterActive = !pdSearch && !pdFilterTA && !pdFilterJenjang && !pdFilterStatus && !pdFilterDesa
+
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        {title && <div className="px-4 py-3 border-b border-zinc-200 font-semibold text-zinc-900">{title}</div>}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
+            <thead>
+              <tr className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
+                <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100 w-10" onClick={() => toggleSort('nama')}>No <SortIcon col="nama" /></th>
+                <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('npsn')}>NPSN <SortIcon col="npsn" /></th>
+                <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100 min-w-[180px]" onClick={() => toggleSort('nama')}>Nama Sekolah <SortIcon col="nama" /></th>
+                <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('desa')}>Desa <SortIcon col="desa" /></th>
+                <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('status')}>Status <SortIcon col="status" /></th>
+                {kelasKeys.map(k => (
+                  <th key={k} className="px-2 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort(k)}>
+                    {isSd ? k.replace('Kelas ', 'Kls ') : k} <SortIcon col={k} />
+                  </th>
+                ))}
+                <th className="px-3 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('totalL')}>L <SortIcon col="totalL" /></th>
+                <th className="px-3 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('totalP')}>P <SortIcon col="totalP" /></th>
+                <th className="px-3 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('total')}>Total <SortIcon col="total" /></th>
+                <th className="px-3 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('rombel')}>Rombel <SortIcon col="rombel" /></th>
+              </tr>
+            </thead>
+            <tbody>
+              {schools.length === 0 ? (
+                <tr>
+                  <td colSpan={colCount} className="px-4 py-8 text-center text-zinc-400">
+                    {noFilterActive ? 'Belum ada data peserta didik' : 'Tidak ada data yang cocok dengan filter'}
+                  </td>
+                </tr>
+              ) : schools.map((school, idx) => (
+                <tr key={school.id} onClick={() => setSelectedSchool(school)} className="border-b border-zinc-100 hover:bg-blue-50 cursor-pointer transition-colors">
+                  <td className="px-3 py-2.5 text-zinc-500">{(pdPage - 1) * pdLimit + idx + 1}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs">{school.npsn}</td>
+                  <td className="px-3 py-2.5 font-medium text-zinc-900 min-w-[180px]">{school.nama}</td>
+                  <td className="px-3 py-2.5 text-zinc-600">{school.desa}</td>
+                  <td className="px-3 py-2.5">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${school.status === 'negeri' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {school.status === 'negeri' ? 'Negeri' : 'Swasta'}
+                    </span>
+                  </td>
+                  {kelasKeys.map(k => (
+                    <td key={k} className="px-2 py-2.5 text-center text-zinc-700">{school.kelasData[k] || 0}</td>
+                  ))}
+                  <td className="px-3 py-2.5 text-center font-medium text-indigo-700">{school.totalL}</td>
+                  <td className="px-3 py-2.5 text-center font-medium text-pink-700">{school.totalP}</td>
+                  <td className="px-3 py-2.5 text-center font-bold text-zinc-900">{school.total}</td>
+                  <td className="px-3 py-2.5 text-center text-zinc-600">{school.rombel}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {pdData?.pagination && pdData.pagination.total_pages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200 bg-zinc-50">
+            <p className="text-xs text-zinc-500">
+              Menampilkan {(pdPage - 1) * pdLimit + 1}-{Math.min(pdPage * pdLimit, pdData.pagination.total)} dari {pdData.pagination.total}
+            </p>
+            <div className="flex gap-1">
+              <button disabled={pdPage <= 1} onClick={() => setPdPage(p => p - 1)} className="px-3 py-1.5 border border-zinc-300 rounded text-xs bg-white disabled:opacity-40 hover:bg-zinc-50">Prev</button>
+              {Array.from({ length: Math.min(pdData.pagination.total_pages, 5) }).map((_, i) => {
+                let pageNum: number
+                const total = pdData.pagination.total_pages
+                if (total <= 5) pageNum = i + 1
+                else if (pdPage <= 3) pageNum = i + 1
+                else if (pdPage >= total - 2) pageNum = total - 4 + i
+                else pageNum = pdPage - 2 + i
+                return (
+                  <button key={pageNum} onClick={() => setPdPage(pageNum)} className={`px-3 py-1.5 border border-zinc-300 rounded text-xs ${pageNum === pdPage ? 'bg-blue-600 text-white' : 'bg-white hover:bg-zinc-50'}`}>{pageNum}</button>
+                )
+              })}
+              <button disabled={pdPage >= pdData.pagination.total_pages} onClick={() => setPdPage(p => p + 1)} className="px-3 py-1.5 border border-zinc-300 rounded text-xs bg-white disabled:opacity-40 hover:bg-zinc-50">Next</button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const resetFilters = () => {
     setPdFilterTA('')
     setPdFilterJenjang('')
@@ -415,113 +505,14 @@ export default function RekapKecamatanPage() {
 
             {/* Table */}
             {!pdLoading && !pdError && (
-              <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm whitespace-nowrap">
-                    <thead>
-                      <tr className="bg-zinc-50 border-b border-zinc-200 sticky top-0 z-10">
-                        <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('nama')}>
-                          No <SortIcon col="nama" />
-                        </th>
-                        <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('npsn')}>
-                          NPSN <SortIcon col="npsn" />
-                        </th>
-                        <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100 min-w-[180px]" onClick={() => toggleSort('nama')}>
-                          Nama Sekolah <SortIcon col="nama" />
-                        </th>
-                        <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('desa')}>
-                          Desa <SortIcon col="desa" />
-                        </th>
-                        <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('status')}>
-                          Status <SortIcon col="status" />
-                        </th>
-                        {sortedSchools[0]?.jenjang === 'sd'
-                          ? KELAS_SD.map(k => (
-                              <th key={k} className="px-2 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort(k)}>
-                                {k.replace('Kelas ', 'Kls ')} <SortIcon col={k} />
-                              </th>
-                            ))
-                          : KELAS_KB.map(k => (
-                              <th key={k} className="px-2 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort(k)}>
-                                {k} <SortIcon col={k} />
-                              </th>
-                            ))
-                        }
-                        <th className="px-3 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('totalL')}>
-                          L <SortIcon col="totalL" />
-                        </th>
-                        <th className="px-3 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('totalP')}>
-                          P <SortIcon col="totalP" />
-                        </th>
-                        <th className="px-3 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('total')}>
-                          Total <SortIcon col="total" />
-                        </th>
-                        <th className="px-3 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('rombel')}>
-                          Rombel <SortIcon col="rombel" />
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedSchools.length === 0 ? (
-                        <tr>
-                          <td colSpan={12 + (sortedSchools[0]?.jenjang === 'sd' ? KELAS_SD.length : KELAS_KB.length)} className="px-4 py-8 text-center text-zinc-400">
-                            {pdSearch || pdFilterTA || pdFilterJenjang || pdFilterStatus || pdFilterDesa
-                              ? 'Tidak ada data yang cocok dengan filter'
-                              : 'Belum ada data peserta didik'}
-                          </td>
-                        </tr>
-                      ) : sortedSchools.map((school, idx) => {
-                        const isSd = school.jenjang === 'sd'
-                        const kelasKeys = isSd ? KELAS_SD : KELAS_KB
-                        return (
-                          <tr key={school.id} onClick={() => setSelectedSchool(school)} className="border-b border-zinc-100 hover:bg-blue-50 cursor-pointer transition-colors">
-                            <td className="px-3 py-2.5 text-zinc-500">{(pdPage - 1) * pdLimit + idx + 1}</td>
-                            <td className="px-3 py-2.5 font-mono text-xs">{school.npsn}</td>
-                            <td className="px-3 py-2.5 font-medium text-zinc-900 min-w-[180px]">{school.nama}</td>
-                            <td className="px-3 py-2.5 text-zinc-600">{school.desa}</td>
-                            <td className="px-3 py-2.5">
-                              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${school.status === 'negeri' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
-                                {school.status === 'negeri' ? 'Negeri' : 'Swasta'}
-                              </span>
-                            </td>
-                            {kelasKeys.map(k => (
-                              <td key={k} className="px-2 py-2.5 text-center text-zinc-700">{school.kelasData[k] || 0}</td>
-                            ))}
-                            <td className="px-3 py-2.5 text-center font-medium text-indigo-700">{school.totalL}</td>
-                            <td className="px-3 py-2.5 text-center font-medium text-pink-700">{school.totalP}</td>
-                            <td className="px-3 py-2.5 text-center font-bold text-zinc-900">{school.total}</td>
-                            <td className="px-3 py-2.5 text-center text-zinc-600">{school.rombel}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+              pdFilterJenjang ? (
+                renderSchoolTable(sortedSchools)
+              ) : (
+                <div className="space-y-6">
+                  {renderSchoolTable(sdList, 'Sekolah Dasar (SD)')}
+                  {renderSchoolTable(kbList, 'Kelompok Belajar (KB)')}
                 </div>
-
-                {/* Pagination */}
-                {pdData?.pagination && pdData.pagination.total_pages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200 bg-zinc-50">
-                    <p className="text-xs text-zinc-500">
-                      Menampilkan {(pdPage - 1) * pdLimit + 1}-{Math.min(pdPage * pdLimit, pdData.pagination.total)} dari {pdData.pagination.total}
-                    </p>
-                    <div className="flex gap-1">
-                      <button disabled={pdPage <= 1} onClick={() => setPdPage(p => p - 1)} className="px-3 py-1.5 border border-zinc-300 rounded text-xs bg-white disabled:opacity-40 hover:bg-zinc-50">Prev</button>
-                      {Array.from({ length: Math.min(pdData.pagination.total_pages, 5) }).map((_, i) => {
-                        let pageNum: number
-                        const total = pdData.pagination.total_pages
-                        if (total <= 5) pageNum = i + 1
-                        else if (pdPage <= 3) pageNum = i + 1
-                        else if (pdPage >= total - 2) pageNum = total - 4 + i
-                        else pageNum = pdPage - 2 + i
-                        return (
-                          <button key={pageNum} onClick={() => setPdPage(pageNum)} className={`px-3 py-1.5 border border-zinc-300 rounded text-xs ${pageNum === pdPage ? 'bg-blue-600 text-white' : 'bg-white hover:bg-zinc-50'}`}>{pageNum}</button>
-                        )
-                      })}
-                      <button disabled={pdPage >= pdData.pagination.total_pages} onClick={() => setPdPage(p => p + 1)} className="px-3 py-1.5 border border-zinc-300 rounded text-xs bg-white disabled:opacity-40 hover:bg-zinc-50">Next</button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              )
             )}
           </div>
         )}
