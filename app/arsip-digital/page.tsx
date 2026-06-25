@@ -55,8 +55,6 @@ export default function ArsipDigitalPage() {
   const [importForm, setImportForm] = useState({ module_type: 'pegawai', category: '', document_type: '', employee_id: '', school_id: '', deskripsi: '' })
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ summary?: { total: number; success: number; failed: number }; results?: any[] } | null>(null)
-  const [migrating, setMigrating] = useState(false)
-  const [migrateResult, setMigrateResult] = useState<string | null>(null)
   const [previewDoc, setPreviewDoc] = useState<any | null>(null)
   const [editDoc, setEditDoc] = useState<any | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -167,28 +165,6 @@ export default function ArsipDigitalPage() {
             <button onClick={() => { setShowImportLink(true); setImportResult(null); setImportLinks('') }} className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg text-sm hover:bg-blue-50 flex items-center gap-2">
               <Link className="w-4 h-4" /> Import Link
             </button>
-            {role === 'super_admin' && (
-              <button
-                onClick={async () => {
-                  if (!confirm('Migrasi semua dokumen pegawai yang sudah diupload ke Arsip Digital?')) return
-                  setMigrating(true)
-                  setMigrateResult(null)
-                  try {
-                    const res = await fetch('/api/arsip-digital/migrate', { method: 'POST' })
-                    const data = await res.json()
-                    setMigrateResult(data.message || data.error || 'Selesai')
-                    setRefreshKey(k => k + 1)
-                  } catch (err: any) {
-                    setMigrateResult('Gagal: ' + err.message)
-                  } finally { setMigrating(false) }
-                }}
-                disabled={migrating}
-                className="px-4 py-2 border border-amber-500 text-amber-600 rounded-lg text-sm hover:bg-amber-50 flex items-center gap-2 disabled:opacity-50"
-              >
-                <Loader2 className={`w-4 h-4 ${migrating ? 'animate-spin' : ''}`} />
-                {migrating ? 'Migrasi...' : 'Migrasi Data'}
-              </button>
-            )}
             <button onClick={() => setShowUpload(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 flex items-center gap-2">
               <Upload className="w-4 h-4" /> Upload Arsip
             </button>
@@ -211,14 +187,6 @@ export default function ArsipDigitalPage() {
             </div>
           ))}
         </div>
-
-        {/* Migrate Result */}
-        {migrateResult && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800 flex items-center justify-between">
-            <span>{migrateResult}</span>
-            <button onClick={() => setMigrateResult(null)} className="text-emerald-500 hover:text-emerald-700"><X className="w-4 h-4" /></button>
-          </div>
-        )}
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-1 bg-zinc-100 p-1 rounded-lg">

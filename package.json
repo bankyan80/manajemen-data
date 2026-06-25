@@ -9,7 +9,8 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx db/seed.ts"
+    "db:seed": "tsx db/seed.ts",
+    "db:migrate-arsip": "tsx db/migrate-arsip.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
