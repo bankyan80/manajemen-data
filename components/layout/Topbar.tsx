@@ -81,9 +81,6 @@ export default function Topbar({ user }: TopbarProps) {
             MSD
           </span>
         </Link>
-        <span className="hidden rounded-full bg-secondary-soft px-2.5 py-0.5 text-[11px] font-semibold text-secondary-dark sm:inline-block">
-          SD & KB
-        </span>
       </div>
 
       <div className="relative hidden max-w-md flex-1 sm:block">
