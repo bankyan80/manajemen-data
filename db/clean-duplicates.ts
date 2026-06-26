@@ -19,10 +19,11 @@ async function cleanTP(tp: string) {
 
   for (const r of allRows) {
     const key = `${r.nik}|${r.school_id}|${r.kelas_kelompok}`
+    const id = Number(r.id)
     if (seen.has(key)) {
-      deleteIds.push(r.id)
+      deleteIds.push(id)
     } else {
-      seen.set(key, r.id)
+      seen.set(key, id)
     }
   }
 
