@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
   if (!jenjang) return NextResponse.json({ error: 'Jenjang wajib' }, { status: 400 })
   if (!kelas_kelompok) return NextResponse.json({ error: 'Kelas/kelompok wajib' }, { status: 400 })
 
-  const [inserted] = await db.insert(students).values({
+  await db.insert(students).values({
     school_id: body.school_id,
     tahun_pelajaran,
     jenjang,
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     nama_orang_tua: nama_orang_tua || null,
     no_hp: no_hp || null,
     status_siswa: 'aktif',
-  }).returning()
+  })
 
-  return NextResponse.json(inserted, { status: 201 })
+  return NextResponse.json({ success: true }, { status: 201 })
 }

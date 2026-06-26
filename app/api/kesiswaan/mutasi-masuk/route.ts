@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   if (!body.nama) return NextResponse.json({ error: 'Nama wajib' }, { status: 400 })
   if (!body.kelas_kelompok) return NextResponse.json({ error: 'Kelompok tujuan wajib' }, { status: 400 })
 
-  const [mut] = await db.insert(studentMutations).values({
+  await db.insert(studentMutations).values({
     school_id: schoolId,
     jenis: 'masuk',
     tanggal: body.tanggal,
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     alasan: body.alasan || null,
     dokumen_url: body.dokumen_url || null,
     keterangan: body.keterangan || null,
-  }).returning()
+  })
 
   // Auto-insert into students table
   const school = await db.select({ jenjang: schools.jenjang }).from(schools).where(eq(schools.id, schoolId)).limit(1)
@@ -104,5 +104,5 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  return NextResponse.json(mut[0], { status: 201 })
+  return NextResponse.json({ success: true }, { status: 201 })
 }
