@@ -280,7 +280,8 @@ export default function KesiswaanPage() {
       tanggal: m.tanggal, nama: m.nama, nisn: m.nisn || '',
       jenis_kelamin: m.jenis_kelamin || 'laki-laki',
       kelas_kelompok: m.kelas_kelompok,
-      sekolah_asal: m.sekolah_asal || '', alasan: m.alasan || '',
+      sekolah_asal: m.sekolah_asal || '', sekolah_tujuan: m.sekolah_tujuan || '',
+      alasan: m.alasan || '',
       dokumen_url: m.dokumen_url || '', keterangan: m.keterangan || '',
     })
     setSelectedId(m.id)
