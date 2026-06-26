@@ -138,6 +138,8 @@ const DOC_TYPE_KEYWORDS: [RegExp, string][] = [
   [/^ijazah/i, 'Ijazah'],
   [/^sertifikat/i, 'Sertifikat'],
   [/^(foto|photo|pas\s*foto|foto\s*profil)/i, 'Foto'],
+  [/^skp\b/i, 'SKP'],
+  [/^sasaran\s*kinerja/i, 'SKP'],
   [/^dp3/i, 'Dokumen Lainnya'],
   [/^penilaian/i, 'Dokumen Lainnya'],
   [/^dokumen\s*lain/i, 'Dokumen Lainnya'],

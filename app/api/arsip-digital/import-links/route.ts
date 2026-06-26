@@ -23,6 +23,23 @@ async function resolveLinks(
   const resolved: ImportFile[] = []
   const driveAvailable = !!process.env.GOOGLE_DRIVE_CLIENT_EMAIL
 
+  let pegawaiList: { id: string; nama: string; nip: string | null }[] = []
+  if (options.autoMap) {
+    pegawaiList = await db!
+      .select({ id: employees.id, nama: employees.nama, nip: employees.nip })
+      .from(employees)
+      .then(rows => rows)
+  }
+
+  function matchEmployee(fileName: string): string | undefined {
+    const name = fileName.replace(/\.[^.]+$/, '').trim().toLowerCase()
+    for (const e of pegawaiList) {
+      if (e.nip && name.includes(e.nip)) return e.id
+      if (name.includes(e.nama.toLowerCase())) return e.id
+    }
+    return undefined
+  }
+
   for (const raw of inputLinks) {
     const url = raw.trim()
     if (!url) continue
@@ -32,13 +49,8 @@ async function resolveLinks(
     if (parsed.type === 'folder' && driveAvailable) {
       const subfolders = await listSubfolders(parsed.id)
       if (subfolders.length > 0 && options.autoMap) {
-        const namaList = await db!
-          .select({ id: employees.id, nama: employees.nama })
-          .from(employees)
-          .then(rows => rows)
-
         for (const sf of subfolders) {
-          const match = namaList.find(e =>
+          const match = pegawaiList.find(e =>
             e.nama.toLowerCase().includes(sf.name.toLowerCase()) ||
             sf.name.toLowerCase().includes(e.nama.toLowerCase()),
           )
@@ -58,14 +70,22 @@ async function resolveLinks(
         const files = await listFilesInFolder(parsed.id)
         for (const f of files) {
           if (f.mimeType === 'application/vnd.google-apps.folder') continue
+          const dt = detectDocumentType(f.name)
           resolved.push({
             url: f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`,
             fileId: f.id,
+            employee_id: options.autoMap ? matchEmployee(f.name) : undefined,
+            document_type: dt || options.defaultCategory || undefined,
           })
         }
       }
     } else {
-      resolved.push({ url, fileId: parsed.id })
+      const dt = driveAvailable ? detectDocumentType(url) : null
+      resolved.push({
+        url, fileId: parsed.id,
+        employee_id: options.autoMap ? matchEmployee(url) : undefined,
+        document_type: dt || options.defaultCategory || undefined,
+      })
     }
   }
   return resolved
