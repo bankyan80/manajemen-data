@@ -128,6 +128,7 @@ export const students = sqliteTable('students', {
   tanggal_lahir: text('tanggal_lahir'),
   alamat: text('alamat'),
   nama_orang_tua: text('nama_orang_tua'),
+  no_hp: text('no_hp'),
   status_siswa: text('status_siswa').notNull().default('aktif'),
   ...timestamps,
 })
@@ -329,6 +330,28 @@ export const alumni = sqliteTable('alumni', {
   tempat_lahir: text('tempat_lahir'),
   tanggal_lahir: text('tanggal_lahir'),
   kelas: text('kelas').notNull(),
+  ...timestamps,
+})
+
+// ============================================================
+// STUDENT MUTATIONS (Mutasi Masuk / Keluar)
+// ============================================================
+
+export const studentMutations = sqliteTable('student_mutations', {
+  ...id,
+  school_id: text('school_id').notNull().references(() => schools.id),
+  student_id: text('student_id').references(() => students.id),
+  jenis: text('jenis').notNull(), // masuk | keluar
+  tanggal: text('tanggal').notNull(),
+  nama: text('nama').notNull(),
+  nisn: text('nisn'),
+  jenis_kelamin: text('jenis_kelamin'), // laki-laki | perempuan
+  kelas_kelompok: text('kelas_kelompok').notNull(),
+  sekolah_asal: text('sekolah_asal'), // untuk mutasi masuk
+  sekolah_tujuan: text('sekolah_tujuan'), // untuk mutasi keluar
+  alasan: text('alasan'),
+  dokumen_url: text('dokumen_url'),
+  keterangan: text('keterangan'),
   ...timestamps,
 })
 
