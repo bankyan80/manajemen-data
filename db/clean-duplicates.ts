@@ -4,6 +4,7 @@ import { students } from './schema'
 import { sql } from 'drizzle-orm'
 
 async function cleanTP(tp: string) {
+  if (!db) return 0
   console.log(`\n=== Cleaning TP ${tp} SD ===`)
 
   // Get all unique records (one per nik+school+class)
