@@ -32,7 +32,7 @@ async function resolveLinks(
     if (parsed.type === 'folder' && driveAvailable) {
       const subfolders = await listSubfolders(parsed.id)
       if (subfolders.length > 0 && options.autoMap) {
-        const namaList = await db
+        const namaList = await db!
           .select({ id: employees.id, nama: employees.nama })
           .from(employees)
           .then(rows => rows)
