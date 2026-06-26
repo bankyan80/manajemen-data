@@ -46,7 +46,7 @@ export async function POST() {
   let skip = 0
 
   for (const s of allStudents) {
-    if (s.jenjang === 'kb') {
+    if (s.jenjang === 'kb' || s.jenjang === 'tk') {
       skip++
       continue
     }

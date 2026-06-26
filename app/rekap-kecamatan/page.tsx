@@ -8,6 +8,7 @@ import { useData, fetchJson } from '@/lib/useData'
 
 const TABS = ['Rekap Sekolah/Lembaga', 'Rekap Peserta Didik', 'Rekap GTK', 'Rekap Sarpras', 'Rekap Dokumen Pegawai']
 const KELAS_SD = ['Kelas I', 'Kelas II', 'Kelas III', 'Kelas IV', 'Kelas V', 'Kelas VI']
+const KELAS_TK = ['Kelompok A', 'Kelompok B']
 const KELAS_KB = ['Kelompok A', 'Kelompok B']
 
 type SchoolRow = {
@@ -72,9 +73,12 @@ export default function RekapKecamatanPage() {
   if (role === 'operator_sekolah') { router.push('/dashboard'); return null }
 
   const sdSchools = (schools || []).filter((s: any) => s.jenjang === 'sd')
+  const tkSchools = (schools || []).filter((s: any) => s.jenjang === 'tk')
   const kbSchools = (schools || []).filter((s: any) => s.jenjang === 'kb')
   const sdNegeri = sdSchools.filter((s: any) => s.status === 'negeri').length
   const sdSwasta = sdSchools.filter((s: any) => s.status === 'swasta').length
+  const tkNegeri = tkSchools.filter((s: any) => s.status === 'negeri').length
+  const tkSwasta = tkSchools.filter((s: any) => s.status === 'swasta').length
   const kbNegeri = kbSchools.filter((s: any) => s.status === 'negeri').length
   const kbSwasta = kbSchools.filter((s: any) => s.status === 'swasta').length
 
@@ -110,17 +114,18 @@ export default function RekapKecamatanPage() {
   }
 
   const sdList = sortedSchools.filter(s => s.jenjang === 'sd')
+  const tkList = sortedSchools.filter(s => s.jenjang === 'tk')
   const kbList = sortedSchools.filter(s => s.jenjang === 'kb')
 
-  const renderSchoolTable = (schools: SchoolRow[], title?: string) => {
-    const isSd = title === 'sd' || (title !== 'kb' && schools[0]?.jenjang === 'sd')
-    const kelasKeys = isSd ? KELAS_SD : KELAS_KB
+  const renderSchoolTable = (schools: SchoolRow[], jenjangKey?: string) => {
+    const kelasKeys = jenjangKey === 'sd' ? KELAS_SD : jenjangKey === 'tk' ? KELAS_TK : KELAS_KB
     const colCount = 9 + kelasKeys.length
     const noFilterActive = !pdSearch && !pdFilterTA && !pdFilterJenjang && !pdFilterStatus && !pdFilterDesa
 
+    const title = jenjangKey === 'sd' ? 'Sekolah Dasar (SD)' : jenjangKey === 'tk' ? 'Taman Kanak-Kanak (TK)' : 'Kelompok Belajar (KB)'
     return (
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
-        {title && <div className="px-4 py-3 border-b border-zinc-200 font-semibold text-zinc-900">{title}</div>}
+        <div className="px-4 py-3 border-b border-zinc-200 font-semibold text-zinc-900">{title}</div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm whitespace-nowrap">
             <thead>
@@ -132,7 +137,7 @@ export default function RekapKecamatanPage() {
                 <th className="px-3 py-3 text-left font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('status')}>Status <SortIcon col="status" /></th>
                 {kelasKeys.map(k => (
                   <th key={k} className="px-2 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort(k)}>
-                    {isSd ? k.replace('Kelas ', 'Kls ') : k} <SortIcon col={k} />
+                    {jenjangKey === 'sd' ? k.replace('Kelas ', 'Kls ') : k} <SortIcon col={k} />
                   </th>
                 ))}
                 <th className="px-3 py-3 text-center font-semibold text-zinc-700 cursor-pointer select-none hover:bg-zinc-100" onClick={() => toggleSort('totalL')}>L <SortIcon col="totalL" /></th>
@@ -242,6 +247,9 @@ export default function RekapKecamatanPage() {
             <p className="text-2xl font-bold text-blue-700">{sdSchools.length}</p><p className="text-xs text-zinc-500">Total SD</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 text-center">
+            <p className="text-2xl font-bold text-orange-700">{tkSchools.length}</p><p className="text-xs text-zinc-500">Total TK</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 text-center">
             <p className="text-2xl font-bold text-purple-700">{kbSchools.length}</p><p className="text-xs text-zinc-500">Total KB</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 text-center">
@@ -268,6 +276,7 @@ export default function RekapKecamatanPage() {
           <select value={filterJenjang} onChange={e => setFilterJenjang(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
             <option value="">Semua Jenjang</option>
             <option value="sd">SD</option>
+            <option value="tk">TK</option>
             <option value="kb">KB</option>
           </select>
         </div>
@@ -294,6 +303,14 @@ export default function RekapKecamatanPage() {
                       <td className="px-4 py-3 font-bold">{sdSchools.length}</td>
                     </tr>
                   )}
+                  {(!filterJenjang || filterJenjang === 'tk') && (
+                    <tr className="border-b border-zinc-100">
+                      <td className="px-4 py-3 font-medium">TK</td>
+                      <td className="px-4 py-3">{tkNegeri}</td>
+                      <td className="px-4 py-3">{tkSwasta}</td>
+                      <td className="px-4 py-3 font-bold">{tkSchools.length}</td>
+                    </tr>
+                  )}
                   {(!filterJenjang || filterJenjang === 'kb') && (
                     <tr className="border-b border-zinc-100">
                       <td className="px-4 py-3 font-medium">KB</td>
@@ -305,8 +322,8 @@ export default function RekapKecamatanPage() {
                   {!filterJenjang && (
                     <tr className="bg-blue-50 font-bold">
                       <td className="px-4 py-3">Total</td>
-                      <td className="px-4 py-3">{sdNegeri + kbNegeri}</td>
-                      <td className="px-4 py-3">{sdSwasta + kbSwasta}</td>
+                      <td className="px-4 py-3">{sdNegeri + tkNegeri + kbNegeri}</td>
+                      <td className="px-4 py-3">{sdSwasta + tkSwasta + kbSwasta}</td>
                       <td className="px-4 py-3">{schools?.length || 0}</td>
                     </tr>
                   )}
@@ -351,9 +368,10 @@ export default function RekapKecamatanPage() {
                   <label className="text-xs text-zinc-500 mb-1 block">Jenjang</label>
                   <select value={pdFilterJenjang} onChange={e => { setPdFilterJenjang(e.target.value); setPdPage(1) }} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
                     <option value="">Semua</option>
-                    <option value="sd">SD</option>
-                    <option value="kb">KB</option>
-                  </select>
+                     <option value="sd">SD</option>
+                     <option value="tk">TK</option>
+                     <option value="kb">KB</option>
+                   </select>
                 </div>
                 <div className="flex-1 min-w-[100px]">
                   <label className="text-xs text-zinc-500 mb-1 block">Status</label>
@@ -506,11 +524,12 @@ export default function RekapKecamatanPage() {
             {/* Table */}
             {!pdLoading && !pdError && (
               pdFilterJenjang ? (
-                renderSchoolTable(sortedSchools)
+                renderSchoolTable(sortedSchools, pdFilterJenjang)
               ) : (
                 <div className="space-y-6">
-                  {renderSchoolTable(sdList, 'Sekolah Dasar (SD)')}
-                  {renderSchoolTable(kbList, 'Kelompok Belajar (KB)')}
+                  {renderSchoolTable(sdList, 'sd')}
+                  {renderSchoolTable(tkList, 'tk')}
+                  {renderSchoolTable(kbList, 'kb')}
                 </div>
               )
             )}
@@ -601,7 +620,7 @@ export default function RekapKecamatanPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {(selectedSchool.jenjang === 'sd' ? KELAS_SD : KELAS_KB).map(k => {
+                        {(selectedSchool.jenjang === 'sd' ? KELAS_SD : selectedSchool.jenjang === 'tk' ? KELAS_TK : KELAS_KB).map(k => {
                           const total = selectedSchool.kelasData[k as keyof typeof selectedSchool.kelasData] || 0
                           if (total === 0) return null
                           return (

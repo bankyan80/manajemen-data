@@ -10,6 +10,7 @@ export enum Role {
 
 export enum Jenjang {
   SD = 'sd',
+  TK = 'tk',
   KB = 'kb',
 }
 

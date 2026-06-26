@@ -53,6 +53,7 @@ export default function KelembagaanPage() {
           <select value={filterJenjang} onChange={e => setFilterJenjang(e.target.value)} className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
             <option value="">Semua Jenjang</option>
             <option value="sd">SD</option>
+            <option value="tk">TK</option>
             <option value="kb">KB</option>
           </select>
           <span className="text-sm text-zinc-500">{filtered.length} lembaga</span>
@@ -79,7 +80,7 @@ export default function KelembagaanPage() {
                     <td className="px-4 py-3 font-medium text-zinc-900">{d.nama}</td>
                     <td className="px-4 py-3">{d.npsn}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.jenjang === 'sd' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{d.jenjang?.toUpperCase()}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.jenjang === 'sd' ? 'bg-blue-100 text-blue-700' : d.jenjang === 'tk' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}`}>{d.jenjang?.toUpperCase()}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.status === 'negeri' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{d.status?.toUpperCase()}</span>
@@ -113,7 +114,7 @@ export default function KelembagaanPage() {
                 <>
                   <Field label="Nama" value={form.nama} onChange={v => setForm({ ...form, nama: v })} />
                   <Field label="NPSN" value={form.npsn} onChange={v => setForm({ ...form, npsn: v })} />
-                  <Select label="Jenjang" value={form.jenjang} onChange={v => setForm({ ...form, jenjang: v })} options={['sd', 'kb']} labels={{ sd: 'SD', kb: 'KB' }} />
+                  <Select label="Jenjang" value={form.jenjang} onChange={v => setForm({ ...form, jenjang: v })} options={['sd', 'tk', 'kb']} labels={{ sd: 'SD', tk: 'TK', kb: 'KB' }} />
                   <Select label="Status" value={form.status} onChange={v => setForm({ ...form, status: v })} options={['negeri', 'swasta']} labels={{ negeri: 'Negeri', swasta: 'Swasta' }} />
                   <Field label="Alamat" value={form.alamat} onChange={v => setForm({ ...form, alamat: v })} />
                   <Field label="Desa" value={form.desa} onChange={v => setForm({ ...form, desa: v })} />

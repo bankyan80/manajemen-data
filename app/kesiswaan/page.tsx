@@ -10,7 +10,7 @@ import { GraduationCap, Loader2 } from 'lucide-react'
 export default function KesiswaanPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'sd' | 'kb'>('sd')
+  const [activeTab, setActiveTab] = useState<'sd' | 'tk' | 'kb'>('sd')
   const [filterSekolah, setFilterSekolah] = useState('')
   const [filterTp, setFilterTp] = useState('')
   const [naikLoading, setNaikLoading] = useState(false)
@@ -74,7 +74,8 @@ export default function KesiswaanPage() {
 
         <div className="flex gap-1 bg-zinc-100 p-1 rounded-lg w-fit">
           <button onClick={() => setActiveTab('sd')} className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'sd' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>SD</button>
-          <button onClick={() => setActiveTab('kb')} className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'kb' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>TK &amp; KB</button>
+          <button onClick={() => setActiveTab('tk')} className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'tk' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>TK</button>
+          <button onClick={() => setActiveTab('kb')} className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === 'kb' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>KB</button>
         </div>
 
         <div className="flex gap-4 items-center flex-wrap">

@@ -73,7 +73,7 @@ export default function KurikulumPage() {
                       <td className="px-4 py-3 font-medium text-zinc-900">{s.nama}</td>
                       <td className="px-4 py-3">{s.npsn}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.jenjang === 'sd' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{s.jenjang.toUpperCase()}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.jenjang === 'sd' ? 'bg-blue-100 text-blue-700' : s.jenjang === 'tk' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}`}>{s.jenjang.toUpperCase()}</span>
                       </td>
                       <td className="px-4 py-3 uppercase">{s.status}</td>
                       <td className="px-4 py-3">{s.desa}</td>

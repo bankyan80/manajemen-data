@@ -48,6 +48,7 @@ function mapPendidikan(p: string | null): string | null {
 function mapJenjang(j: string): string {
   const upper = j.toUpperCase()
   if (upper === 'SD') return 'sd'
+  if (upper === 'TK') return 'tk'
   return 'kb'
 }
 

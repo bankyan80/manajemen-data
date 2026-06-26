@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx'
 export const dynamic = 'force-dynamic'
 
 const KELAS_SD = ['Kelas I', 'Kelas II', 'Kelas III', 'Kelas IV', 'Kelas V', 'Kelas VI']
+const KELAS_TK = ['Kelompok A', 'Kelompok B']
 const KELAS_KB = ['Kelompok A', 'Kelompok B']
 
 export async function GET(req: NextRequest) {
@@ -115,6 +116,8 @@ export async function GET(req: NextRequest) {
     const data: Record<string, number> = {}
     if (jenjang === 'sd') {
       for (const k of KELAS_SD) data[k] = map.get(k)?.total || 0
+    } else if (jenjang === 'tk') {
+      for (const k of KELAS_TK) data[k] = map.get(k)?.total || 0
     } else {
       for (const k of KELAS_KB) data[k] = map.get(k)?.total || 0
     }
@@ -176,6 +179,8 @@ export async function GET(req: NextRequest) {
       }
       if (s.jenjang === 'sd') {
         for (const k of KELAS_SD) row[k] = s.kelasData[k] || 0
+      } else if (s.jenjang === 'tk') {
+        for (const k of KELAS_TK) row[k] = s.kelasData[k] || 0
       } else {
         for (const k of KELAS_KB) row[k] = s.kelasData[k] || 0
       }

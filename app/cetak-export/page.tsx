@@ -29,7 +29,7 @@ export default function CetakExportPage() {
     icon: string
   }[] = [
     ...(isOperator ? [{
-      title: `Cetak Laporan ${userJenjang === 'kb' ? 'KB' : 'SD'}`,
+      title: `Cetak Laporan ${userJenjang === 'sd' ? 'SD' : userJenjang === 'tk' ? 'TK' : 'KB'}`,
       desc: `Cetak laporan bulanan ${userSchool?.nama || ''}`,
       color: 'blue',
       icon: 'printer',
@@ -39,19 +39,24 @@ export default function CetakExportPage() {
       color: 'blue',
       icon: 'printer',
     }, {
+      title: 'Cetak Laporan TK',
+      desc: 'Cetak laporan bulanan TK',
+      color: 'orange',
+      icon: 'printer',
+    }, {
       title: 'Cetak Laporan KB',
       desc: 'Cetak laporan bulanan KB',
       color: 'purple',
       icon: 'printer',
     }]),
     {
-      title: isOperator ? `Export Excel ${userJenjang === 'kb' ? 'KB' : 'SD'}` : 'Export Excel',
+      title: isOperator ? `Export Excel ${userJenjang === 'sd' ? 'SD' : userJenjang === 'tk' ? 'TK' : 'KB'}` : 'Export Excel',
       desc: isOperator ? `Download data ${userSchool?.nama || ''}` : 'Export data ke spreadsheet',
       color: 'emerald',
       icon: 'excel',
     },
     {
-      title: isOperator ? `Export PDF ${userJenjang === 'kb' ? 'KB' : 'SD'}` : 'Export PDF',
+      title: isOperator ? `Export PDF ${userJenjang === 'sd' ? 'SD' : userJenjang === 'tk' ? 'TK' : 'KB'}` : 'Export PDF',
       desc: isOperator ? `Download PDF ${userSchool?.nama || ''}` : 'Export data ke PDF',
       color: 'red',
       icon: 'pdf',
@@ -60,6 +65,7 @@ export default function CetakExportPage() {
 
   const colorMap: Record<string, { bg: string; text: string; btn: string; hover: string }> = {
     blue: { bg: 'bg-blue-100', text: 'text-blue-700', btn: 'bg-blue-600', hover: 'hover:bg-blue-700' },
+    orange: { bg: 'bg-orange-100', text: 'text-orange-700', btn: 'bg-orange-600', hover: 'hover:bg-orange-700' },
     purple: { bg: 'bg-purple-100', text: 'text-purple-700', btn: 'bg-purple-600', hover: 'hover:bg-purple-700' },
     emerald: { bg: 'bg-emerald-100', text: 'text-emerald-700', btn: 'bg-emerald-600', hover: 'hover:bg-emerald-700' },
     red: { bg: 'bg-red-100', text: 'text-red-700', btn: 'bg-red-600', hover: 'hover:bg-red-700' },

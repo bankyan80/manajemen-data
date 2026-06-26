@@ -29,6 +29,10 @@ export async function GET() {
     ? await db.select({ value: count() }).from(schools).where(sql`${schools.id} = ${userSekolahId} AND ${schools.jenjang} = 'sd'`)
     : await db.select({ value: count() }).from(schools).where(eq(schools.jenjang, 'sd'))
 
+  const [tkCount] = isOperator
+    ? await db.select({ value: count() }).from(schools).where(sql`${schools.id} = ${userSekolahId} AND ${schools.jenjang} = 'tk'`)
+    : await db.select({ value: count() }).from(schools).where(eq(schools.jenjang, 'tk'))
+
   const [kbCount] = isOperator
     ? await db.select({ value: count() }).from(schools).where(sql`${schools.id} = ${userSekolahId} AND ${schools.jenjang} = 'kb'`)
     : await db.select({ value: count() }).from(schools).where(eq(schools.jenjang, 'kb'))
@@ -75,6 +79,7 @@ export async function GET() {
 
   return NextResponse.json({
     totalSD: sdCount.value,
+    totalTK: tkCount.value,
     totalKB: kbCount.value,
     totalGTK: empCount,
     totalDocuments: docCount,
