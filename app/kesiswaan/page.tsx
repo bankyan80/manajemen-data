@@ -820,7 +820,7 @@ export default function KesiswaanPage() {
                 ['Dokumen', selectedMut.dokumen_url ? <a href={selectedMut.dokumen_url} target="_blank" className="text-blue-600 underline">Lihat Dokumen</a> : '-'],
                 ['Keterangan', selectedMut.keterangan || '-'],
               ].map(([l, v]) => (
-                <div key={l} className={l === 'Alasan' || l === 'Keterangan' ? 'md:col-span-2' : ''}>
+                <div key={l as string} className={l === 'Alasan' || l === 'Keterangan' ? 'md:col-span-2' : ''}>
                   <div className="text-zinc-500 mb-0.5">{l}</div>
                   <div className="font-medium">{v}</div>
                 </div>
