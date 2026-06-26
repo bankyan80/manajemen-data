@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { students, schools } from '@/db/schema'
-import { eq, sql, like, count } from 'drizzle-orm'
+import { eq, sql, like, count, desc } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     .from(students)
     .leftJoin(schools, eq(students.school_id, schools.id))
     .where(whereConditions)
-    .orderBy(students.nama)
+    .orderBy(desc(students.kelas_kelompok), students.nama)
     .limit(limit)
     .offset(offset)
 
