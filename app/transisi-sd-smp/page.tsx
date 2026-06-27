@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { Search, Plus, Loader2, CheckCircle } from 'lucide-react'
-import { usePermissions } from '@/lib/usePermissions'
+
 
 const TABS = ['Calon Masuk SMP', 'Anak Lanjut SMP', 'SMP Tujuan', 'Anak Tidak Melanjutkan', 'Anak Lanjut Non Formal', 'Rekap Transisi Kecamatan']
 
@@ -76,10 +76,6 @@ export default function TransisiSdSmpPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
 
-  const { can } = usePermissions()
-  useEffect(() => {
-    if (can('transisi') === false) router.push('/dashboard')
-  }, [can, router])
   if (!session) { router.push('/login'); return null }
 
   const items = transData?.data || []

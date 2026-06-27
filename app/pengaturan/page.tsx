@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { X, Loader2, Check, Lock, Search } from 'lucide-react'
-import { usePermissions } from '@/lib/usePermissions'
+
 
 const TABS = ['Manajemen User', 'Role & Hak Akses', 'Data Kecamatan', 'Tahun Pelajaran', 'Template Laporan', 'Koneksi Google Drive', 'Koneksi Google Spreadsheet', 'Backup Data', 'Log Aktivitas']
 
@@ -169,10 +169,6 @@ export default function PengaturanPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
 
-  const { can } = usePermissions()
-  useEffect(() => {
-    if (can('pengaturan') === false) router.push('/dashboard')
-  }, [can, router])
   if (!session) { router.push('/login'); return null }
 
   const visibleUsers = usersData?.filter(u => u.role !== 'pegawai') || []

@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { Loader2, Trash2, FileText, Download } from 'lucide-react'
-import { usePermissions } from '@/lib/usePermissions'
+
 
 const TABS = ['Data Kepala Sekolah', 'Data Guru', 'Data Tenaga Kependidikan', 'Status Pegawai', 'Sertifikasi', 'Pendidikan Terakhir', 'BUP/Pensiun']
 
@@ -51,10 +51,6 @@ export default function GtkPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
 
-  const { can } = usePermissions()
-  useEffect(() => {
-    if (can('gtk') === false) router.push('/dashboard')
-  }, [can, router])
   if (!session) { router.push('/login'); return null }
 
   const role = (session?.user as any)?.role

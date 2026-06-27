@@ -6,7 +6,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useData, fetchJson } from '@/lib/useData'
 import { Printer, FileSpreadsheet, FileText } from 'lucide-react'
 import { useEffect } from 'react'
-import { usePermissions } from '@/lib/usePermissions'
+
 
 export default function CetakExportPage() {
   const { data: session, status } = useSession()
@@ -15,10 +15,7 @@ export default function CetakExportPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
 
-  const { can } = usePermissions()
-  useEffect(() => {
-    if (can('cetak_export') === false) router.push('/dashboard')
-  }, [can, router])
+
   if (!session) { router.push('/login'); return null }
 
   const role = (session?.user as any)?.role
