@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
-import { usePageGuard } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 
 const BULAN = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
@@ -18,9 +18,11 @@ export default function MonitoringPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
 
-  const allowed = usePageGuard('monitoring')
+  const { can } = usePermissions()
+  useEffect(() => {
+    if (can('monitoring') === false) router.push('/dashboard')
+  }, [can, router])
   if (!session) { router.push('/login'); return null }
-  if (!allowed) return null
 
   const role = (session?.user as any)?.role
 

@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { PackageOpen, Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
-import { usePageGuard } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 
 type TabKey = 'tanah' | 'bangunan' | 'ruang' | 'sarana' | 'buku'
 
@@ -128,9 +128,11 @@ export default function SarprasPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
 
-  const allowed = usePageGuard('sarpras')
+  const { can } = usePermissions()
+  useEffect(() => {
+    if (can('sarpras') === false) router.push('/dashboard')
+  }, [can, router])
   if (!session) { router.push('/login'); return null }
-  if (!allowed) return null
 
   const role = session.user?.role
   const userSchoolId = session.user?.sekolah_id

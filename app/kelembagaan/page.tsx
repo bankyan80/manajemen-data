@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { Loader2 } from 'lucide-react'
-import { usePageGuard } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 
 export default function KelembagaanPage() {
   const { data: session, status } = useSession()
@@ -43,9 +43,11 @@ export default function KelembagaanPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
 
-  const allowed = usePageGuard('kelembagaan')
+  const { can } = usePermissions()
+  useEffect(() => {
+    if (can('kelembagaan') === false) router.push('/dashboard')
+  }, [can, router])
   if (!session) { router.push('/login'); return null }
-  if (!allowed) return null
 
   const filtered = filterJenjang ? (schools || []).filter(d => d.jenjang === filterJenjang) : (schools || [])
 

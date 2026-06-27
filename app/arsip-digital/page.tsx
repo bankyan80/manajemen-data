@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { Search, Download, Eye, Edit3, Trash2, Upload, X, FileText, FileImage, FileSpreadsheet, FileArchive, Plus, Loader2, Link } from 'lucide-react'
-import { usePageGuard } from '@/lib/usePermissions'
+import { usePermissions } from '@/lib/usePermissions'
 
 const TABS = ['Dokumen Pegawai', 'Dokumen Sekolah', 'Dokumen Persuratan', 'Dokumen Lainnya', 'Riwayat Upload']
 const MODULE_MAP: Record<string, string> = { 'Dokumen Pegawai': 'pegawai', 'Dokumen Sekolah': 'sekolah', 'Dokumen Persuratan': 'surat', 'Dokumen Lainnya': 'lainnya', 'Riwayat Upload': '' }
@@ -87,9 +87,11 @@ export default function ArsipDigitalPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
 
-  const allowed = usePageGuard('arsip_dokumen')
+  const { can } = usePermissions()
+  useEffect(() => {
+    if (can('arsip_dokumen') === false) router.push('/dashboard')
+  }, [can, router])
   if (!session) { router.push('/login'); return null }
-  if (!allowed) return null
 
   const role = (session?.user as any)?.role
   const rows = arsipData?.data || []

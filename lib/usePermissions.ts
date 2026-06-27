@@ -42,19 +42,3 @@ export function usePermissions() {
 
   return { can, permissions, role }
 }
-
-export function usePageGuard(feature: PermissionFeature) {
-  const { can } = usePermissions()
-  const router = useRouter()
-  const { data: session, status } = useSession()
-  const [show, setShow] = useState(false)
-
-  useEffect(() => {
-    if (status === 'loading') return
-    if (!session) { router.push('/login'); return }
-    if (!can(feature)) { router.push('/dashboard'); return }
-    setShow(true)
-  }, [session, status, feature, can, router])
-
-  return show
-}
