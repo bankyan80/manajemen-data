@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { students, schools } from '@/db/schema'
-import { eq, sql, like, count, desc } from 'drizzle-orm'
+import { eq, sql, like, count, desc, and, ne, inArray } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,6 +104,20 @@ export async function POST(req: NextRequest) {
     no_hp: no_hp || null,
     status_siswa: 'aktif',
   })
+
+  // Jika siswa SD ditambahkan dengan NIK, otomatis non-aktifkan data TK/KB dengan NIK sama
+  if (jenjang === 'sd' && nik) {
+    await db
+      .update(students)
+      .set({ status_siswa: 'pindah' })
+      .where(
+        and(
+          eq(students.nik, nik),
+          inArray(students.jenjang, ['tk', 'kb']),
+          ne(students.status_siswa, 'pindah'),
+        )
+      )
+  }
 
   return NextResponse.json({ success: true }, { status: 201 })
 }
