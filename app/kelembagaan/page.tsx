@@ -42,9 +42,9 @@ export default function KelembagaanPage() {
   }, [selected, form])
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
-  if (!session) { router.push('/login'); return null }
 
   const allowed = usePageGuard('kelembagaan')
+  if (!session) { router.push('/login'); return null }
   if (!allowed) return null
 
   const filtered = filterJenjang ? (schools || []).filter(d => d.jenjang === filterJenjang) : (schools || [])

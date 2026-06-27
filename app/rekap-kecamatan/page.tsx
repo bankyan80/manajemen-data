@@ -68,9 +68,9 @@ export default function RekapKecamatanPage() {
   )
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
-  if (!session) { router.push('/login'); return null }
 
   const allowed = usePageGuard('rekap_kecamatan')
+  if (!session) { router.push('/login'); return null }
   if (!allowed) return null
 
   const role = (session?.user as any)?.role

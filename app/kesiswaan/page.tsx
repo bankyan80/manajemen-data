@@ -383,9 +383,9 @@ export default function KesiswaanPage() {
   }
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
-  if (!session) { router.push('/login'); return null }
 
   const allowed = usePageGuard('kesiswaan')
+  if (!session) { router.push('/login'); return null }
   if (!allowed) return null
 
   const selectedStudent = selectedId ? students.find(s => s.id === selectedId) : null

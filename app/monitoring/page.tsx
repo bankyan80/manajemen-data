@@ -17,9 +17,9 @@ export default function MonitoringPage() {
   const { data: reportData, loading } = useData<any>('reports', () => fetchJson('/api/reports'))
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
-  if (!session) { router.push('/login'); return null }
 
   const allowed = usePageGuard('monitoring')
+  if (!session) { router.push('/login'); return null }
   if (!allowed) return null
 
   const role = (session?.user as any)?.role

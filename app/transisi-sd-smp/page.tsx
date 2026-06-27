@@ -75,9 +75,9 @@ export default function TransisiSdSmpPage() {
   const isVirtual = (d: any) => typeof d.id === 'string' && d.id.endsWith('-auto')
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
-  if (!session) { router.push('/login'); return null }
 
   const allowed = usePageGuard('transisi')
+  if (!session) { router.push('/login'); return null }
   if (!allowed) return null
 
   const items = transData?.data || []

@@ -168,9 +168,9 @@ export default function PengaturanPage() {
   ) : []
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
-  if (!session) { router.push('/login'); return null }
 
   const allowed = usePageGuard('pengaturan')
+  if (!session) { router.push('/login'); return null }
   if (!allowed) return null
 
   const visibleUsers = usersData?.filter(u => u.role !== 'pegawai') || []

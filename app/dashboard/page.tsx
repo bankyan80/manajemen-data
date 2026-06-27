@@ -26,6 +26,7 @@ interface DashboardStats {
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const allowed = usePageGuard('dashboard')
   const { data: stats, loading: statsLoading } = useData<DashboardStats>('dashboard-stats', () =>
     fetchJson('/api/dashboard-stats')
   )
@@ -46,8 +47,6 @@ export default function DashboardPage() {
   }
 
   if (!session) return null
-
-  const allowed = usePageGuard('dashboard')
   if (!allowed) return null
 
   return (

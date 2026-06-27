@@ -86,9 +86,9 @@ export default function ArsipDigitalPage() {
   const changeTab = (i: number) => { setActiveTab(i); setPage(1); setFilterJenis(''); setFilterTahun('') }
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
-  if (!session) { router.push('/login'); return null }
 
   const allowed = usePageGuard('arsip_dokumen')
+  if (!session) { router.push('/login'); return null }
   if (!allowed) return null
 
   const role = (session?.user as any)?.role
