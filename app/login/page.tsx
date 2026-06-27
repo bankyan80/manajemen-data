@@ -53,8 +53,8 @@ function LoginContent() {
       <div className="w-full max-w-md">
         <div className="card px-8 py-10 sm:px-12">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary p-3 shadow-lg shadow-primary/20">
-              <Image src="/tutwuri.png" alt="Tut Wuri" width={48} height={48} className="h-full w-full object-contain" />
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
+              <Image src="/tutwuri.png" alt="Tut Wuri" width={80} height={80} className="h-full w-full object-contain" />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-text-main sm:text-2xl">
               Manajemen Satu Data
