@@ -104,7 +104,7 @@ Buka [http://localhost:3000](http://localhost:3000) di browser.
 | `GOOGLE_SHEETS_CLIENT_EMAIL`   | Service account email untuk Sheets     |
 | `GOOGLE_SHEETS_PRIVATE_KEY`    | Private key service account Sheets     |
 | `GOOGLE_SPREADSHEET_ID`        | ID spreadsheet untuk ekspor data       |
-| `NEXTAUTH_URL`                 | URL aplikasi (http://localhost:3000)   |
+| `NEXTAUTH_URL`                 | URL aplikasi (https://timker-bidik.online)   |
 | `NEXTAUTH_SECRET`              | Secret key untuk NextAuth              |
 
 ## Deployment ke Vercel

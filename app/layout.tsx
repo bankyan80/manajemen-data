@@ -11,7 +11,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Manajemen Satu Data",
   description: "Manajemen Satu Data",
-  icons: { icon: '/tutwuri.png' },
+  icons: {
+    icon: '/tutwuri.png',
+    apple: '/tutwuri.png',
+  },
 };
 
 export default function RootLayout({

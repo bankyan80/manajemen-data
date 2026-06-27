@@ -5,7 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { fetchJson } from '@/lib/useData'
-import { Plus, Edit2, Trash2, Eye, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, Eye, X, ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react'
 
 const KELAS_OPTIONS: Record<string, string[]> = {
   sd: ['1', '2', '3', '4', '5', '6'],
@@ -124,6 +124,8 @@ export default function KesiswaanPage() {
     kelas_kelompok: '', status_siswa: 'aktif', tahun_pelajaran: '2026/2027',
   })
   const [form, setForm] = useState(emptyForm())
+  const [nikLookupLoading, setNikLookupLoading] = useState(false)
+  const [nikLookupMsg, setNikLookupMsg] = useState('')
 
   const emptyMutasiForm = (jenis: 'masuk' | 'keluar') => ({
     tanggal: new Date().toISOString().split('T')[0],
@@ -139,6 +141,44 @@ export default function KesiswaanPage() {
     const t = setTimeout(() => setDebouncedQ(searchQ), 400)
     return () => clearTimeout(t)
   }, [searchQ])
+
+  // NIK autofill lookup (khusus SD)
+  useEffect(() => {
+    const nik = form.nik?.trim()
+    if (jenjang !== 'sd' || !nik || nik.length < 10) {
+      setNikLookupMsg('')
+      return
+    }
+    setNikLookupLoading(true)
+    setNikLookupMsg('')
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/kesiswaan/students/lookup-nik?nik=${encodeURIComponent(nik)}&jenjang=sd`)
+        const json = await res.json()
+        if (json.data) {
+          setForm(f => ({
+            ...f,
+            nama: json.data.nama || f.nama,
+            nisn: json.data.nisn || f.nisn,
+            jenis_kelamin: json.data.jenis_kelamin || f.jenis_kelamin,
+            tempat_lahir: json.data.tempat_lahir || f.tempat_lahir,
+            tanggal_lahir: json.data.tanggal_lahir || f.tanggal_lahir,
+            alamat: json.data.alamat || f.alamat,
+            nama_orang_tua: json.data.nama_orang_tua || f.nama_orang_tua,
+            no_hp: json.data.no_hp || f.no_hp,
+          }))
+          setNikLookupMsg('Data ditemukan, field terisi otomatis ✓')
+        } else {
+          setNikLookupMsg('Data tidak ditemukan, isi manual')
+        }
+      } catch {
+        setNikLookupMsg('Gagal mencari data')
+      } finally {
+        setNikLookupLoading(false)
+      }
+    }, 600)
+    return () => clearTimeout(t)
+  }, [form.nik, jenjang])
 
   const fetchStudents = useCallback(async () => {
     setLoading(true)
@@ -333,6 +373,7 @@ export default function KesiswaanPage() {
   const openAdd = (sub: Submenu) => {
     if (sub === 'peserta-didik') {
       setForm(emptyForm())
+      setNikLookupMsg('')
     } else {
       setMutForm(emptyMutasiForm(sub === 'mutasi-masuk' ? 'masuk' : 'keluar'))
     }
@@ -602,8 +643,19 @@ export default function KesiswaanPage() {
               <input value={form.nama} onChange={e => setForm(f => ({ ...f, nama: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">NIS / NIK</label>
-              <input value={form.nik} onChange={e => setForm(f => ({ ...f, nik: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                NIS / NIK {jenjang === 'sd' && <span className="text-xs text-blue-500 font-normal"> (isi NIK untuk autofill)</span>}
+              </label>
+              <div className="relative">
+                <input value={form.nik} onChange={e => setForm(f => ({ ...f, nik: e.target.value }))}
+                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm pr-8" />
+                {nikLookupLoading && <Loader2 className="w-4 h-4 absolute right-2.5 top-3 animate-spin text-zinc-400" />}
+              </div>
+              {nikLookupMsg && (
+                <p className={`text-xs mt-1 ${nikLookupMsg.includes('✓') ? 'text-green-600' : 'text-amber-600'}`}>
+                  {nikLookupMsg}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>

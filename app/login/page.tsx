@@ -60,7 +60,7 @@ function LoginContent() {
               Manajemen Satu Data
             </h1>
             <p className="mt-2 text-sm text-text-muted">
-              Sistem Terpadu Laporan SD & KB Tingkat Kecamatan
+              Sistem Terpadu Laporan Pendidikan Dasar Tingkat Kecamatan Lemahabang
             </p>
           </div>
 

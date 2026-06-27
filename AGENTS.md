@@ -9,7 +9,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Constraints & Preferences
 - Next.js 16.2.9 (App Router, Turbopack), Turso/libSQL (Drizzle ORM), NextAuth v4, Tailwind CSS v4, Recharts
-- Deployed on Vercel at `satu-data-seven.vercel.app` (project: `satu-data`, org: `yanuarhidayat80-6265s-projects`)
+- Deployed on Vercel at `timker-bidik.online` (project: `satu-data`, org: `yanuarhidayat80-6265s-projects`)
 - Git repo: `github.com/bankyan80/manajemen-data` (branch: `master`)
 - Vercel Blob Storage for file uploads
 - Navigation menu: `bg-primary` (`#1e3a8a`) with white text
