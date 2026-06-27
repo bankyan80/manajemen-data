@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useData, fetchJson } from '@/lib/useData'
 import { Printer, FileSpreadsheet, FileText } from 'lucide-react'
+import { usePageGuard } from '@/lib/usePermissions'
 
 export default function CetakExportPage() {
   const { data: session, status } = useSession()
@@ -13,6 +14,9 @@ export default function CetakExportPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
+
+  const allowed = usePageGuard('cetak_export')
+  if (!allowed) return null
 
   const role = (session?.user as any)?.role
   const userSekolahId = (session?.user as any)?.sekolah_id

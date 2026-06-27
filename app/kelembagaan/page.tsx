@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
 import { Loader2 } from 'lucide-react'
+import { usePageGuard } from '@/lib/usePermissions'
 
 export default function KelembagaanPage() {
   const { data: session, status } = useSession()
@@ -42,6 +43,9 @@ export default function KelembagaanPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
+
+  const allowed = usePageGuard('kelembagaan')
+  if (!allowed) return null
 
   const filtered = filterJenjang ? (schools || []).filter(d => d.jenjang === filterJenjang) : (schools || [])
 

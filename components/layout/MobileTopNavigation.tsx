@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePermissions, type PermissionFeature } from '@/lib/usePermissions'
 import {
   LayoutDashboard,
   Users,
@@ -19,6 +20,7 @@ interface NavItem {
   label: string
   href: string
   icon: React.ReactNode
+  feature: PermissionFeature
   roles: string[]
 }
 
@@ -27,66 +29,77 @@ const navItems: NavItem[] = [
     label: 'Dashboard',
     href: '/dashboard',
     icon: <LayoutDashboard className="h-5 w-5" />,
+    feature: 'dashboard',
     roles: ['admin_kecamatan', 'operator_sekolah', 'pegawai'],
   },
   {
     label: 'GTK',
     href: '/gtk',
     icon: <IdCard className="h-5 w-5" />,
+    feature: 'gtk',
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
     label: 'Kesiswaan',
     href: '/kesiswaan',
     icon: <Users className="h-5 w-5" />,
+    feature: 'kesiswaan',
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
     label: 'Sarpras',
     href: '/sarpras',
     icon: <Building2 className="h-5 w-5" />,
+    feature: 'sarpras',
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
     label: 'Kelembagaan',
     href: '/kelembagaan',
     icon: <Landmark className="h-5 w-5" />,
+    feature: 'kelembagaan',
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
     label: 'SPMB',
     href: '/spmb',
     icon: <ClipboardList className="h-5 w-5" />,
+    feature: 'spmb',
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
     label: 'Transisi',
     href: '/transisi-sd-smp',
     icon: <ArrowRightLeft className="h-5 w-5" />,
+    feature: 'transisi',
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
     label: 'Rekap',
     href: '/rekap-kecamatan',
     icon: <FileText className="h-5 w-5" />,
+    feature: 'rekap_kecamatan',
     roles: ['admin_kecamatan'],
   },
   {
     label: 'Cetak',
     href: '/cetak-export',
     icon: <Printer className="h-5 w-5" />,
+    feature: 'cetak_export',
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
   {
     label: 'Arsip',
     href: '/arsip-digital',
     icon: <Archive className="h-5 w-5" />,
+    feature: 'arsip_dokumen',
     roles: ['admin_kecamatan', 'operator_sekolah', 'pegawai'],
   },
   {
     label: 'Pengaturan',
     href: '/pengaturan',
     icon: <Settings className="h-5 w-5" />,
+    feature: 'pengaturan',
     roles: ['admin_kecamatan', 'operator_sekolah'],
   },
 ]
@@ -100,10 +113,15 @@ export default function MobileTopNavigation({
   currentPath,
   userRole,
 }: MobileTopNavigationProps) {
+  const { can } = usePermissions()
+
   return (
     <nav className="fixed top-16 left-0 right-0 z-40 flex h-14 items-center border-b border-primary-dark bg-primary shadow-sm sm:hidden">
       <div className="flex w-full items-center gap-1 overflow-x-auto px-2 scrollbar-none">
-        {navItems.filter(item => item.roles.includes(userRole)).map((item) => {
+        {navItems
+          .filter(item => item.roles.includes(userRole))
+          .filter(item => can(item.feature))
+          .map((item) => {
           const isActive = currentPath === item.href
           return (
             <Link

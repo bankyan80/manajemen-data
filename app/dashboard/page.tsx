@@ -12,6 +12,7 @@ import MonthlyReportChart from '@/components/dashboard/MonthlyReportChart'
 import DistrictRecapCard from '@/components/dashboard/DistrictRecapCard'
 import { School, Users, BookOpen, FileText } from 'lucide-react'
 import { useData, fetchJson } from '@/lib/useData'
+import { usePageGuard } from '@/lib/usePermissions'
 
 interface DashboardStats {
   totalSD: number; totalTK: number; totalKB: number; totalGTK: number
@@ -45,6 +46,9 @@ export default function DashboardPage() {
   }
 
   if (!session) return null
+
+  const allowed = usePageGuard('dashboard')
+  if (!allowed) return null
 
   return (
     <AppShellTopbar>

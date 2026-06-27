@@ -5,6 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
+import { usePageGuard } from '@/lib/usePermissions'
 
 export default function ArsipDokumenPage() {
   const { data: session, status } = useSession()
@@ -16,6 +17,9 @@ export default function ArsipDokumenPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
+
+  const allowed = usePageGuard('arsip_dokumen')
+  if (!allowed) return null
 
   const docs = docData?.data || []
   const byKategori = docData?.byKategori || []

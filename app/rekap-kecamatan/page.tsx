@@ -5,6 +5,7 @@ import AppShellTopbar from '@/components/layout/AppShellTopbar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useData, fetchJson } from '@/lib/useData'
+import { usePageGuard } from '@/lib/usePermissions'
 
 const TABS = ['Rekap Sekolah/Lembaga', 'Rekap Peserta Didik', 'Rekap GTK', 'Rekap Sarpras', 'Rekap Dokumen Pegawai']
 const KELAS_SD = ['Kelas I', 'Kelas II', 'Kelas III', 'Kelas IV', 'Kelas V', 'Kelas VI']
@@ -68,6 +69,9 @@ export default function RekapKecamatanPage() {
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
   if (!session) { router.push('/login'); return null }
+
+  const allowed = usePageGuard('rekap_kecamatan')
+  if (!allowed) return null
 
   const role = (session?.user as any)?.role
   if (role === 'operator_sekolah') { router.push('/dashboard'); return null }

@@ -10,6 +10,7 @@ import {
   BarChart3, Users, BookOpen, AlertTriangle,
   CheckCircle, Eye,
 } from 'lucide-react'
+import { usePageGuard } from '@/lib/usePermissions'
 
 const TAHUN_PELAJARAN = Array.from({ length: 10 }, (_, i) => {
   const a = 2026 + i; return `${a}/${a + 1}`
@@ -72,6 +73,9 @@ function SpmbContent({ isAdmin, sekolahId }: { isAdmin: boolean; sekolahId?: str
   const [modal, setModal] = useState<{ type: string; data?: any } | null>(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  const allowed = usePageGuard('spmb')
+  if (!allowed) return null
 
   const showToast = (ok: boolean, msg: string) => {
     setToast({ ok, msg })
