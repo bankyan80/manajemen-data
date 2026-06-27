@@ -39,7 +39,7 @@ export async function GET() {
 
   const empCount = await filterCount(employees, employees.sekolah_id)
   const docCount = await filterCount(employeeDocuments, employeeDocuments.school_id)
-  const stuCount = await filterCount(students, students.school_id)
+  const stuCount = await filterCount(students, students.school_id, sql`${students.tahun_pelajaran} = '2026/2027'`)
   const verified = await filterCount(employeeDocuments, employeeDocuments.school_id, eq(employeeDocuments.status_verifikasi, 'sudah_diverifikasi'))
   const pending = await filterCount(employeeDocuments, employeeDocuments.school_id, eq(employeeDocuments.status_verifikasi, 'belum_diverifikasi'))
 
