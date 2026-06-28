@@ -4,7 +4,7 @@ import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { db } from './db'
-import { users } from '../db/schema'
+import { users, schools } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import type { Role } from '../types'
 
@@ -38,6 +38,14 @@ export const authOptions: NextAuthOptions = {
         const isValid = bcrypt.compareSync(credentials.password, user.password)
         if (!isValid) return null
 
+        let sekolah_jenjang: string | null = null
+        if (db && user.sekolah_id) {
+          try {
+            const school = await db.select({ jenjang: schools.jenjang }).from(schools).where(eq(schools.id, user.sekolah_id)).limit(1)
+            sekolah_jenjang = school[0]?.jenjang || null
+          } catch {}
+        }
+
         return {
           id: user.id,
           name: user.name,
@@ -45,6 +53,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role as Role,
           sekolah_id: user.sekolah_id,
           pegawai_id: user.pegawai_id,
+          sekolah_jenjang,
         }
       },
     }),
@@ -56,6 +65,7 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role as Role
         token.sekolah_id = (user as any).sekolah_id
         token.pegawai_id = (user as any).pegawai_id
+        token.sekolah_jenjang = (user as any).sekolah_jenjang
       }
       return token
     },
@@ -65,6 +75,7 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).role = token.role as Role
         ;(session.user as any).sekolah_id = token.sekolah_id
         ;(session.user as any).pegawai_id = token.pegawai_id
+        ;(session.user as any).sekolah_jenjang = token.sekolah_jenjang
       }
       return session
     },

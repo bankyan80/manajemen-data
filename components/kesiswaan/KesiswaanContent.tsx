@@ -124,18 +124,14 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
 
   const [mutating, setMutating] = useState(false)
 
-  // Auto-detect operator's school jenjang (only when no defaultJenjang provided)
-  const [userSchool, setUserSchool] = useState<any>(null)
+  // Auto-detect operator's school jenjang from session
+  const sekolahJenjang = (session?.user as any)?.sekolah_jenjang
   useEffect(() => {
-    if (!defaultJenjang && role === 'operator_sekolah' && userSekolahId && !userSchool) {
-      fetch(`/api/schools/${userSekolahId}`).then(r => r.json()).then(data => {
-        if (data?.jenjang) {
-          setUserSchool(data)
-          setJenjang(data.jenjang)
-        }
-      }).catch(() => {})
+    if (status !== 'authenticated' || defaultJenjang) return
+    if (role === 'operator_sekolah' && sekolahJenjang && jenjangList.includes(sekolahJenjang) && jenjang !== sekolahJenjang) {
+      setJenjang(sekolahJenjang)
     }
-  }, [defaultJenjang, role, userSekolahId, userSchool])
+  }, [status, defaultJenjang, role, sekolahJenjang, jenjang, jenjangList])
 
   // Forms
   const emptyForm = () => ({
