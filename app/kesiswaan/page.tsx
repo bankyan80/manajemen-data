@@ -143,10 +143,10 @@ export default function KesiswaanPage() {
     return () => clearTimeout(t)
   }, [searchQ])
 
-  // NIK autofill lookup (khusus SD)
+  // NIK autofill lookup
   useEffect(() => {
     const nik = form.nik?.trim()
-    if (jenjang !== 'sd' || !nik || nik.length < 10) {
+    if (!nik || nik.length < 10) {
       setNikLookupMsg('')
       return
     }
@@ -154,7 +154,7 @@ export default function KesiswaanPage() {
     setNikLookupMsg('')
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/kesiswaan/students/lookup-nik?nik=${encodeURIComponent(nik)}&jenjang=sd`)
+        const res = await fetch(`/api/kesiswaan/students/lookup-nik?nik=${encodeURIComponent(nik)}&jenjang=${jenjang}`)
         const json = await res.json()
         if (json.data) {
           setForm(f => ({
@@ -443,7 +443,7 @@ export default function KesiswaanPage() {
 
             {/* Filters */}
             <div className="flex flex-wrap gap-3 items-center">
-              <input type="text" placeholder="Cari nama/NISN/NIK..." value={searchQ} onChange={e => { setSearchQ(e.target.value); setStudentsPage(1) }}
+              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN/NIK..." : "Cari nama/NIK..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setStudentsPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white w-64" />
               <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setStudentsPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
@@ -521,7 +521,7 @@ export default function KesiswaanPage() {
         {submenu === 'mutasi-masuk' && mode === 'list' && (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3 items-center">
-              <input type="text" placeholder="Cari nama/NISN..." value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutMasukPage(1) }}
+              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutMasukPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white w-64" />
               <button onClick={() => openAdd('mutasi-masuk')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5">
                 <Plus className="w-4 h-4" /> Tambah Mutasi Masuk
@@ -580,7 +580,7 @@ export default function KesiswaanPage() {
         {submenu === 'mutasi-keluar' && mode === 'list' && (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3 items-center">
-              <input type="text" placeholder="Cari nama/NISN..." value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutKeluarPage(1) }}
+              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutKeluarPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white w-64" />
               <button onClick={() => openAdd('mutasi-keluar')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5">
                 <Plus className="w-4 h-4" /> Tambah Mutasi Keluar
@@ -646,7 +646,7 @@ export default function KesiswaanPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                NIS / NIK {jenjang === 'sd' && <span className="text-xs text-blue-500 font-normal"> (isi NIK untuk autofill)</span>}
+                NIS / NIK <span className="text-xs text-blue-500 font-normal"> (isi NIK untuk autofill)</span>
               </label>
               <div className="relative">
                 <input value={form.nik} onChange={e => setForm(f => ({ ...f, nik: e.target.value }))}
@@ -659,10 +659,10 @@ export default function KesiswaanPage() {
                 </p>
               )}
             </div>
-            <div>
+            {jenjang === 'sd' && <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
               <input value={form.nisn} onChange={e => setForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
-            </div>
+            </div>}
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">Jenis Kelamin *</label>
               <select value={form.jenis_kelamin} onChange={e => setForm(f => ({ ...f, jenis_kelamin: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
@@ -722,7 +722,7 @@ export default function KesiswaanPage() {
               {[
                 ['Nama', selectedStudent.nama],
                 ['NIS / NIK', selectedStudent.nik || '-'],
-                ['NISN', selectedStudent.nisn || '-'],
+                ...(selectedStudent.jenjang === 'sd' ? [['NISN', selectedStudent.nisn || '-']] as const : []),
                 ['Jenis Kelamin', selectedStudent.jenis_kelamin || '-'],
                 ['Tempat Lahir', selectedStudent.tempat_lahir || '-'],
                 ['Tanggal Lahir', selectedStudent.tanggal_lahir || '-'],
@@ -762,10 +762,10 @@ export default function KesiswaanPage() {
               <label className="block text-sm font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
               <input value={mutForm.nama} onChange={e => setMutForm(f => ({ ...f, nama: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>
-            <div>
+            {jenjang === 'sd' && <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
               <input value={mutForm.nisn} onChange={e => setMutForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
-            </div>
+            </div>}
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">Jenis Kelamin</label>
               <select value={mutForm.jenis_kelamin} onChange={e => setMutForm(f => ({ ...f, jenis_kelamin: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
@@ -819,10 +819,10 @@ export default function KesiswaanPage() {
               <label className="block text-sm font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
               <input value={mutForm.nama} onChange={e => setMutForm(f => ({ ...f, nama: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>
-            <div>
+            {jenjang === 'sd' && <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
               <input value={mutForm.nisn} onChange={e => setMutForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
-            </div>
+            </div>}
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">Jenis Kelamin</label>
               <select value={mutForm.jenis_kelamin} onChange={e => setMutForm(f => ({ ...f, jenis_kelamin: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
@@ -864,7 +864,7 @@ export default function KesiswaanPage() {
               {[
                 ['Tanggal', selectedMut.tanggal],
                 ['Nama', selectedMut.nama],
-                ['NISN', selectedMut.nisn || '-'],
+                ...(jenjang === 'sd' ? [['NISN', selectedMut.nisn || '-']] as const : []),
                 ['Jenis Kelamin', selectedMut.jenis_kelamin || '-'],
                 [KELAS_LABEL[jenjang], selectedMut.kelas_kelompok],
                 ...(submenu === 'mutasi-masuk'
