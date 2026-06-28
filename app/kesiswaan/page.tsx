@@ -9,7 +9,7 @@ import { Plus, Edit2, Trash2, Eye, X, ChevronLeft, ChevronRight, Loader2, Search
 
 
 const KELAS_OPTIONS: Record<string, string[]> = {
-  sd: ['1', '2', '3', '4', '5', '6'],
+  sd: ['Kelas I', 'Kelas II', 'Kelas III', 'Kelas IV', 'Kelas V', 'Kelas VI'],
   tk: ['Kelompok A', 'Kelompok B'],
   kb: ['2\u20133 Tahun', '3\u20134 Tahun', '4\u20135 Tahun'],
 }
