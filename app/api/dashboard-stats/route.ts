@@ -40,6 +40,9 @@ export async function GET() {
   const empCount = await filterCount(employees, employees.sekolah_id)
   const docCount = await filterCount(employeeDocuments, employeeDocuments.school_id)
   const stuCount = await filterCount(students, students.school_id, sql`${students.tahun_pelajaran} = '2026/2027'`)
+  const stuSdCount = await filterCount(students, students.school_id, sql`${students.jenjang} = 'sd' AND ${students.tahun_pelajaran} = '2026/2027'`)
+  const stuTkCount = await filterCount(students, students.school_id, sql`${students.jenjang} = 'tk' AND ${students.tahun_pelajaran} = '2025/2026'`)
+  const stuKbCount = await filterCount(students, students.school_id, sql`${students.jenjang} = 'kb' AND ${students.tahun_pelajaran} = '2025/2026'`)
   const verified = await filterCount(employeeDocuments, employeeDocuments.school_id, eq(employeeDocuments.status_verifikasi, 'sudah_diverifikasi'))
   const pending = await filterCount(employeeDocuments, employeeDocuments.school_id, eq(employeeDocuments.status_verifikasi, 'belum_diverifikasi'))
 
@@ -84,6 +87,9 @@ export async function GET() {
     totalGTK: empCount,
     totalDocuments: docCount,
     totalStudents: stuCount,
+    totalStudentsSd: stuSdCount,
+    totalStudentsTk: stuTkCount,
+    totalStudentsKb: stuKbCount,
     documentsVerified: verified,
     documentsPending: pending,
     reportsSubmitted: reportSubmitted.value,

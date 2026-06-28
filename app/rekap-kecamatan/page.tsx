@@ -51,7 +51,13 @@ export default function RekapKecamatanPage() {
 
   const buildPdParams = () => {
     const p = new URLSearchParams()
-    if (pdFilterTA) p.set('tahun_pelajaran', pdFilterTA)
+    if (pdFilterTA) {
+      p.set('tahun_pelajaran', pdFilterTA)
+    } else {
+      p.set('tahun_pelajaran_sd', '2026/2027')
+      p.set('tahun_pelajaran_tk', '2025/2026')
+      p.set('tahun_pelajaran_kb', '2025/2026')
+    }
     if (pdFilterJenjang) p.set('jenjang', pdFilterJenjang)
     if (pdFilterStatus) p.set('status', pdFilterStatus)
     if (pdFilterDesa) p.set('desa', pdFilterDesa)
@@ -217,7 +223,13 @@ export default function RekapKecamatanPage() {
 
   const exportExcel = () => {
     const params = new URLSearchParams()
-    if (pdFilterTA) params.set('tahun_pelajaran', pdFilterTA)
+    if (pdFilterTA) {
+      params.set('tahun_pelajaran', pdFilterTA)
+    } else {
+      params.set('tahun_pelajaran_sd', '2026/2027')
+      params.set('tahun_pelajaran_tk', '2025/2026')
+      params.set('tahun_pelajaran_kb', '2025/2026')
+    }
     if (pdFilterJenjang) params.set('jenjang', pdFilterJenjang)
     if (pdFilterStatus) params.set('status', pdFilterStatus)
     if (pdFilterDesa) params.set('desa', pdFilterDesa)
@@ -244,7 +256,7 @@ export default function RekapKecamatanPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold text-zinc-900">Rekap Kecamatan</h1>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 text-center">
             <p className="text-2xl font-bold text-blue-700">{sdSchools.length}</p><p className="text-xs text-zinc-500">Total SD</p>
           </div>
@@ -264,7 +276,13 @@ export default function RekapKecamatanPage() {
             <p className="text-2xl font-bold text-red-700">{stats?.reportsSubmitted || 0}</p><p className="text-xs text-zinc-500">Total Laporan</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 text-center">
-            <p className="text-2xl font-bold text-cyan-700">{stats?.totalStudents || 0}</p><p className="text-xs text-zinc-500">Total Peserta Didik</p>
+            <p className="text-2xl font-bold text-cyan-700">{stats?.totalStudentsSd || 0}</p><p className="text-xs text-zinc-500">SD (TP 2026/2027)</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 text-center">
+            <p className="text-2xl font-bold text-orange-700">{stats?.totalStudentsTk || 0}</p><p className="text-xs text-zinc-500">TK (TP 2025/2026)</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4 text-center">
+            <p className="text-2xl font-bold text-purple-700">{stats?.totalStudentsKb || 0}</p><p className="text-xs text-zinc-500">KB (TP 2025/2026)</p>
           </div>
         </div>
 
@@ -358,9 +376,9 @@ export default function RekapKecamatanPage() {
             <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-4">
               <div className="flex flex-wrap gap-3 items-end">
                 <div className="flex-1 min-w-[140px]">
-                  <label className="text-xs text-zinc-500 mb-1 block">Tahun Ajaran</label>
+                  <label className="text-xs text-zinc-500 mb-1 block">Tahun Ajaran <span className="text-zinc-400">(Default: SD=2026/2027, TK/KB=2025/2026)</span></label>
                   <select value={pdFilterTA} onChange={e => { setPdFilterTA(e.target.value); setPdPage(1) }} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
-                    <option value="">Semua TA</option>
+                    <option value="">Default (per jenjang)</option>
                     {(pdData?.filters?.tahunPelajaran || []).map((ta: string) => (
                       <option key={ta} value={ta}>{ta}</option>
                     ))}

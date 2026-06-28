@@ -21,6 +21,9 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const tahunPelajaran = searchParams.get('tahun_pelajaran')
+  const tahunPelajaranSd = searchParams.get('tahun_pelajaran_sd') || '2026/2027'
+  const tahunPelajaranTk = searchParams.get('tahun_pelajaran_tk') || '2025/2026'
+  const tahunPelajaranKb = searchParams.get('tahun_pelajaran_kb') || '2025/2026'
   const jenjang = searchParams.get('jenjang')
   const statusFilter = searchParams.get('status')
   const desaFilter = searchParams.get('desa')
@@ -87,7 +90,15 @@ export async function GET(req: NextRequest) {
   let studentWhere = sql`1=1`
   studentWhere = sql`${studentWhere} AND ${students.school_id} IN (${sql.join(schoolIds.map(id => sql`${id}`), sql`, `)})`
   if (tahunPelajaran) {
+    // Single TP filter for all jenjang (when user manually selects from dropdown)
     studentWhere = sql`${studentWhere} AND ${students.tahun_pelajaran} = ${tahunPelajaran}`
+  } else {
+    // Per-jenjang TP: SD → 2026/2027, TK → 2025/2026, KB → 2025/2026
+    studentWhere = sql`${studentWhere} AND (
+      (${students.jenjang} = 'sd' AND ${students.tahun_pelajaran} = ${tahunPelajaranSd})
+      OR (${students.jenjang} = 'tk' AND ${students.tahun_pelajaran} = ${tahunPelajaranTk})
+      OR (${students.jenjang} = 'kb' AND ${students.tahun_pelajaran} = ${tahunPelajaranKb})
+    )`
   }
 
   // Get student data grouped by school + class
