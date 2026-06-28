@@ -51,6 +51,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Operator school_id filter**: API students, mutasi-masuk, mutasi-keluar auto-filter by `sekolah_id` session untuk operator; admin tetap lihat semua
 - **Kesiswaan page**: `jenjang` type `''` dihapus, default `'sd'`; operator auto-detect school jenjang via `/api/schools/:id`; "Semua" tab dihapus kembali
 - All changes pushed to `master` and deployed to Vercel production
+- **Cleanup TK/KB duplicates**: `scripts/clean-tk-kb-duplicates.ts` removed **134** duplicate records (same NIK, same school — kept oldest)
+- **Cleanup SD duplicates**: `scripts/clean-sd-duplicates.ts` removed **4,373** duplicate promotion records (kept highest kelas) — batch-optimized; zero duplicates across all jenjang
+- **Import Dapodik**: `scripts/import-dapodik.ts` imported **840** siswa dari 45 file Excel Dapodik; perbandingan Dapodik 7.058 vs DB 7.066 (selisih hanya 8)
+- **Error boundaries**: `app/error.tsx` global + `components/ui/PageError.tsx` reusable
+- **Loading states**: 10 `loading.tsx` files across data-heavy pages + `components/ui/PageLoading.tsx`
 
 ### In Progress
 - (none)
@@ -71,7 +76,6 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Kesiswaan page default `jenjang='sd'` bukan `''` — operator auto-detect jenjang sekolah masing-masing
 
 ## Next Steps
-- Error boundaries (`error.tsx`) dan loading states (`loading.tsx`) untuk semua page
 - Pagination di API endpoint yang belum punya
 - Database transactions untuk multi-step writes
 - Import data pegawai KB PERMATA BUNDA jika ada file Excel
@@ -102,3 +106,6 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `app/api/kesiswaan/mutasi-masuk/route.ts` & `mutasi-keluar/route.ts`: GET — operator filter sekolah_id via session
 - `app/kesiswaan/page.tsx`: Default jenjang `'sd'`; auto-detect operator school jenjang; No "Semua" tab; NISN hanya untuk SD
 - `AUDIT_REPORT.md`: Full audit report (38/100 score, 37+ findings)
+- `scripts/check-duplicates.ts`: duplicate detection across all jenjang
+- `scripts/clean-tk-kb-duplicates.ts`: removed 134 TK/KB duplicates
+- `scripts/clean-sd-duplicates.ts`: removed 4,373 SD promotion duplicates (batch-optimized)
