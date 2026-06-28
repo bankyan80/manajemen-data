@@ -9,12 +9,14 @@ import { Plus, Edit2, Trash2, Eye, X, ChevronLeft, ChevronRight, Loader2, Search
 
 
 const KELAS_OPTIONS: Record<string, string[]> = {
+  '': ['Kelas I', 'Kelas II', 'Kelas III', 'Kelas IV', 'Kelas V', 'Kelas VI', 'Kelompok A', 'Kelompok B', '2\u20133 Tahun', '3\u20134 Tahun', '4\u20135 Tahun'],
   sd: ['Kelas I', 'Kelas II', 'Kelas III', 'Kelas IV', 'Kelas V', 'Kelas VI'],
   tk: ['Kelompok A', 'Kelompok B'],
   kb: ['2\u20133 Tahun', '3\u20134 Tahun', '4\u20135 Tahun'],
 }
 
 const KELAS_LABEL: Record<string, string> = {
+  '': 'Kelas / Rombel / Usia',
   sd: 'Kelas / Rombel',
   tk: 'Kelompok Belajar',
   kb: 'Kelompok Usia',
@@ -79,7 +81,7 @@ function EmptyState({ text }: { text: string }) {
 }
 
 type Submenu = 'peserta-didik' | 'mutasi-masuk' | 'mutasi-keluar'
-type Jenjang = 'sd' | 'tk' | 'kb'
+type Jenjang = 'sd' | 'tk' | 'kb' | ''
 type TabMode = 'list' | 'add' | 'edit' | 'detail'
 
 export default function KesiswaanPage() {
@@ -88,7 +90,7 @@ export default function KesiswaanPage() {
   const role = (session?.user as any)?.role
   const userSekolahId = (session?.user as any)?.sekolah_id
 
-  const [jenjang, setJenjang] = useState<Jenjang>('sd')
+  const [jenjang, setJenjang] = useState<Jenjang | ''>('')
   const [submenu, setSubmenu] = useState<Submenu>('peserta-didik')
   const [mode, setMode] = useState<TabMode>('list')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -185,15 +187,13 @@ export default function KesiswaanPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams({
-        jenjang, page: String(studentsPage), limit: '20',
+        page: String(studentsPage), limit: '20',
         tahun_pelajaran: '2026/2027',
       })
+      if (jenjang) params.set('jenjang', jenjang)
       if (filterKelas) params.set('kelas', filterKelas)
       if (filterStatus) params.set('status', filterStatus)
       if (debouncedQ) params.set('q', debouncedQ)
-      if (role !== 'operator_sekolah') {
-        // no school_id filter = all schools for admin
-      }
       const res = await fetchJson<{ data: Student[]; total: number; total_pages: number }>(
         `/api/kesiswaan/students?${params}`
       )
@@ -401,7 +401,11 @@ export default function KesiswaanPage() {
 
         {/* Jenjang Tabs */}
         <div className="flex gap-1 bg-zinc-100 p-1 rounded-lg w-fit">
-          {(['sd', 'tk', 'kb'] as Jenjang[]).map(j => (
+          <button onClick={() => { setJenjang(''); setMode('list') }}
+            className={`px-4 py-2 rounded-md text-sm font-medium uppercase ${jenjang === '' ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>
+            Semua
+          </button>
+          {(['sd', 'tk', 'kb'] as Jenjang[]).filter(j => j).map(j => (
             <button key={j} onClick={() => { setJenjang(j); setMode('list') }}
               className={`px-4 py-2 rounded-md text-sm font-medium uppercase ${jenjang === j ? 'bg-white text-blue-700 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}>
               {j}
@@ -443,7 +447,7 @@ export default function KesiswaanPage() {
 
             {/* Filters */}
             <div className="flex flex-wrap gap-3 items-center">
-              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN/NIK..." : "Cari nama/NIK..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setStudentsPage(1) }}
+              <input type="text" placeholder={jenjang === 'sd' || jenjang === '' ? "Cari nama/NISN/NIK..." : "Cari nama/NIK..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setStudentsPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white w-64" />
               <select value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setStudentsPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
@@ -471,7 +475,7 @@ export default function KesiswaanPage() {
                       <tr className="bg-zinc-50 border-b border-zinc-200">
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700 w-10">No</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">NIS</th>
-                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">NISN</th>
+                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">{jenjang === '' ? 'NISN / NIK' : 'NISN'}</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Nama</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">JK</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">TTL</th>
@@ -521,7 +525,7 @@ export default function KesiswaanPage() {
         {submenu === 'mutasi-masuk' && mode === 'list' && (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3 items-center">
-              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama/NIK..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutMasukPage(1) }}
+              <input type="text" placeholder={jenjang === '' ? "Cari nama/NISN/NIK..." : jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama/NIK..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutMasukPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white w-64" />
               <button onClick={() => openAdd('mutasi-masuk')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5">
                 <Plus className="w-4 h-4" /> Tambah Mutasi Masuk
@@ -537,7 +541,7 @@ export default function KesiswaanPage() {
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700 w-10">No</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Tanggal</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Nama</th>
-                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">{jenjang === 'sd' ? 'NISN' : 'NIK'}</th>
+                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">{jenjang === '' ? 'NISN / NIK' : jenjang === 'sd' ? 'NISN' : 'NIK'}</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Asal Sekolah</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">{KELAS_LABEL[jenjang]} Tujuan</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Alasan</th>
@@ -551,7 +555,7 @@ export default function KesiswaanPage() {
                           <td className="px-3 py-2.5 text-zinc-400">{(mutMasukPage - 1) * 20 + i + 1}</td>
                           <td className="px-3 py-2.5">{m.tanggal}</td>
                           <td className="px-3 py-2.5 font-medium text-zinc-900">{m.nama}</td>
-                          <td className="px-3 py-2.5">{jenjang === 'sd' ? (m.nisn || '-') : (m.nik || '-')}</td>
+                          <td className="px-3 py-2.5">{jenjang === '' ? (m.nisn || m.nik || '-') : jenjang === 'sd' ? (m.nisn || '-') : (m.nik || '-')}</td>
                           <td className="px-3 py-2.5">{m.sekolah_asal || '-'}</td>
                           <td className="px-3 py-2.5">{m.kelas_kelompok}</td>
                           <td className="px-3 py-2.5 text-xs">{m.alasan || '-'}</td>
@@ -580,7 +584,7 @@ export default function KesiswaanPage() {
         {submenu === 'mutasi-keluar' && mode === 'list' && (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3 items-center">
-              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama/NIK..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutKeluarPage(1) }}
+              <input type="text" placeholder={jenjang === '' ? "Cari nama/NISN/NIK..." : jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama/NIK..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutKeluarPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white w-64" />
               <button onClick={() => openAdd('mutasi-keluar')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5">
                 <Plus className="w-4 h-4" /> Tambah Mutasi Keluar
@@ -596,7 +600,7 @@ export default function KesiswaanPage() {
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700 w-10">No</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Tanggal</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Nama</th>
-                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">{jenjang === 'sd' ? 'NISN' : 'NIK'}</th>
+                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">{jenjang === '' ? 'NISN / NIK' : jenjang === 'sd' ? 'NISN' : 'NIK'}</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">{KELAS_LABEL[jenjang]}</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Sekolah Tujuan</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Alasan</th>
@@ -610,7 +614,7 @@ export default function KesiswaanPage() {
                           <td className="px-3 py-2.5 text-zinc-400">{(mutKeluarPage - 1) * 20 + i + 1}</td>
                           <td className="px-3 py-2.5">{m.tanggal}</td>
                           <td className="px-3 py-2.5 font-medium text-zinc-900">{m.nama}</td>
-                          <td className="px-3 py-2.5">{jenjang === 'sd' ? (m.nisn || '-') : (m.nik || '-')}</td>
+                          <td className="px-3 py-2.5">{jenjang === '' ? (m.nisn || m.nik || '-') : jenjang === 'sd' ? (m.nisn || '-') : (m.nik || '-')}</td>
                           <td className="px-3 py-2.5">{m.kelas_kelompok}</td>
                           <td className="px-3 py-2.5">{m.sekolah_tujuan || '-'}</td>
                           <td className="px-3 py-2.5 text-xs">{m.alasan || '-'}</td>
@@ -659,7 +663,7 @@ export default function KesiswaanPage() {
                 </p>
               )}
             </div>
-            {jenjang === 'sd' && <div>
+            {(jenjang === 'sd' || jenjang === '') && <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
               <input value={form.nisn} onChange={e => setForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>}
@@ -762,7 +766,16 @@ export default function KesiswaanPage() {
               <label className="block text-sm font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
               <input value={mutForm.nama} onChange={e => setMutForm(f => ({ ...f, nama: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>
-            {jenjang === 'sd' ? <div>
+            {jenjang === '' ? <>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
+                <input value={mutForm.nisn} onChange={e => setMutForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-zinc-700 mb-1">NIK</label>
+                <input value={mutForm.nik} onChange={e => setMutForm(f => ({ ...f, nik: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
+              </div>
+            </> : jenjang === 'sd' ? <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
               <input value={mutForm.nisn} onChange={e => setMutForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div> : <div>
@@ -822,7 +835,16 @@ export default function KesiswaanPage() {
               <label className="block text-sm font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
               <input value={mutForm.nama} onChange={e => setMutForm(f => ({ ...f, nama: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>
-            {jenjang === 'sd' ? <div>
+            {jenjang === '' ? <>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
+                <input value={mutForm.nisn} onChange={e => setMutForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-zinc-700 mb-1">NIK</label>
+                <input value={mutForm.nik} onChange={e => setMutForm(f => ({ ...f, nik: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
+              </div>
+            </> : jenjang === 'sd' ? <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
               <input value={mutForm.nisn} onChange={e => setMutForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div> : <div>
@@ -870,7 +892,7 @@ export default function KesiswaanPage() {
               {[
                 ['Tanggal', selectedMut.tanggal],
                 ['Nama', selectedMut.nama],
-                ...(jenjang === 'sd' ? [['NISN', selectedMut.nisn || '-']] as const : [['NIK', selectedMut.nik || '-']] as const),
+                ...(jenjang === '' ? [['NISN', selectedMut.nisn || '-'], ['NIK', selectedMut.nik || '-']] as const : jenjang === 'sd' ? [['NISN', selectedMut.nisn || '-']] as const : [['NIK', selectedMut.nik || '-']] as const),
                 ['Jenis Kelamin', selectedMut.jenis_kelamin || '-'],
                 [KELAS_LABEL[jenjang], selectedMut.kelas_kelompok],
                 ...(submenu === 'mutasi-masuk'
