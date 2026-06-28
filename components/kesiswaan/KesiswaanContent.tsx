@@ -82,6 +82,11 @@ type Submenu = 'peserta-didik' | 'mutasi-masuk' | 'mutasi-keluar'
 export type Jenjang = 'sd' | 'tk' | 'kb'
 type TabMode = 'list' | 'add' | 'edit' | 'detail'
 
+function tahunPelajaran(jenjang: Jenjang): string {
+  if (jenjang === 'sd') return '2026/2027'
+  return '2025/2026'
+}
+
 interface KesiswaanContentProps {
   allowedJenjang?: Jenjang[]
   defaultJenjang?: Jenjang
@@ -137,7 +142,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
   const emptyForm = () => ({
     nama: '', nik: '', nisn: '', jenis_kelamin: 'laki-laki',
     tempat_lahir: '', tanggal_lahir: '', alamat: '', nama_orang_tua: '', no_hp: '',
-    kelas_kelompok: '', status_siswa: 'aktif', tahun_pelajaran: '2026/2027',
+    kelas_kelompok: '', status_siswa: 'aktif', tahun_pelajaran: tahunPelajaran(jenjang),
   })
   const [form, setForm] = useState(emptyForm())
   const [nikLookupLoading, setNikLookupLoading] = useState(false)
@@ -201,7 +206,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
     try {
       const params = new URLSearchParams({
         jenjang, page: String(studentsPage), limit: '20',
-        tahun_pelajaran: '2026/2027',
+        tahun_pelajaran: tahunPelajaran(jenjang),
       })
       if (filterKelas) params.set('kelas', filterKelas)
       if (filterStatus) params.set('status', filterStatus)
