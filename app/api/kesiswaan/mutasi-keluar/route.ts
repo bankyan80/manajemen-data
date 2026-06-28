@@ -9,6 +9,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
 
   const { searchParams } = new URL(req.url)
   const school_id = searchParams.get('school_id')
@@ -18,7 +21,9 @@ export async function GET(req: NextRequest) {
   const offset = (page - 1) * limit
 
   let whereConditions = sql`${studentMutations.jenis} = 'keluar'`
-  if (school_id) {
+  if (role === 'operator_sekolah' && userSekolahId) {
+    whereConditions = sql`${whereConditions} AND ${studentMutations.school_id} = ${userSekolahId}`
+  } else if (school_id) {
     whereConditions = sql`${whereConditions} AND ${studentMutations.school_id} = ${school_id}`
   }
   if (q) {
