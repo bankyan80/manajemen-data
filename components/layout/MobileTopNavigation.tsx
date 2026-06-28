@@ -67,6 +67,7 @@ const navItems: NavItem[] = [
     icon: <ClipboardList className="h-5 w-5" />,
     feature: 'spmb',
     roles: ['admin_kecamatan', 'operator_sekolah'],
+    jenjang: ['sd'],
   },
   {
     label: 'Transisi',
@@ -125,7 +126,7 @@ export default function MobileTopNavigation({
         {navItems
           .filter(item => item.roles.includes(userRole))
           .filter(item => can(item.feature))
-          .filter(item => !item.jenjang || item.jenjang.includes(userJenjang))
+          .filter(item => !item.jenjang || !userJenjang || item.jenjang.includes(userJenjang))
           .map((item) => {
           const isActive = currentPath === item.href
           return (
