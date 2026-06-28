@@ -89,3 +89,8 @@ export async function auth() {
 export default auth
 
 export { signIn, signOut } from 'next-auth/react'
+
+export async function requireApiAuth() {
+  const session = await getServerSession(authOptions)
+  return session
+}

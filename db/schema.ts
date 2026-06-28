@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core'
 
 // ============================================================
 // HELPERS
@@ -33,7 +33,10 @@ export const users = sqliteTable('users', {
   avatar_url: text('avatar_url'),
   ...isActive,
   ...timestamps,
-})
+}, (table) => ({
+  usersSekolahIdx: index('idx_users_sekolah_id').on(table.sekolah_id),
+  usersPegawaiIdx: index('idx_users_pegawai_id').on(table.pegawai_id),
+}))
 
 // ============================================================
 // SCHOOLS
@@ -53,7 +56,10 @@ export const schools = sqliteTable('schools', {
   longitude: real('longitude'),
   ...isActive,
   ...timestamps,
-})
+}, (table) => ({
+  schoolsJenjangIdx: index('idx_schools_jenjang').on(table.jenjang),
+  schoolsDesaIdx: index('idx_schools_desa').on(table.desa),
+}))
 
 // ============================================================
 // EMPLOYEES
@@ -82,7 +88,9 @@ export const employees = sqliteTable('employees', {
   foto_url: text('foto_url'),
   ...isActive,
   ...timestamps,
-})
+}, (table) => ({
+  empSekolahIdIdx: index('idx_employees_sekolah_id').on(table.sekolah_id),
+}))
 
 // ============================================================
 // EMPLOYEE DOCUMENTS
@@ -108,7 +116,10 @@ export const employeeDocuments = sqliteTable('employee_documents', {
   uploaded_at: integer('uploaded_at'),
   verified_at: integer('verified_at'),
   ...timestamps,
-})
+}, (table) => ({
+  edEmployeeIdx: index('idx_ed_employee_id').on(table.employee_id),
+  edSchoolIdx: index('idx_ed_school_id').on(table.school_id),
+}))
 
 // ============================================================
 // STUDENTS
@@ -131,7 +142,12 @@ export const students = sqliteTable('students', {
   no_hp: text('no_hp'),
   status_siswa: text('status_siswa').notNull().default('aktif'),
   ...timestamps,
-})
+}, (table) => ({
+  schoolsSchoolIdx: index('idx_students_school_id').on(table.school_id),
+  studentsNikIdx: index('idx_students_nik').on(table.nik),
+  studentsNisnIdx: index('idx_students_nisn').on(table.nisn),
+  studentsTpJenjangIdx: index('idx_students_tp_jenjang').on(table.tahun_pelajaran, table.jenjang),
+}))
 
 // ============================================================
 // STUDENT RECAPS
@@ -150,7 +166,10 @@ export const studentRecaps = sqliteTable('student_recaps', {
   siswa_keluar: integer('siswa_keluar').notNull().default(0),
   keterangan: text('keterangan'),
   ...timestamps,
-})
+}, (table) => ({
+  srSchoolIdx: index('idx_sr_school_id').on(table.school_id),
+  srTpSemesterIdx: index('idx_sr_tp_semester').on(table.tahun_pelajaran, table.semester),
+}))
 
 // ============================================================
 // TANAH (Lahan)
@@ -169,7 +188,9 @@ export const tanah = sqliteTable('tanah', {
   pemilik: text('pemilik'),
   luas_siap_bangun: real('luas_siap_bangun').default(0),
   ...timestamps,
-})
+}, (table) => ({
+  tanahSchoolIdx: index('idx_tanah_school_id').on(table.school_id),
+}))
 
 // ============================================================
 // BANGUNAN (Gedung)
@@ -194,7 +215,9 @@ export const bangunan = sqliteTable('bangunan', {
   kondisi_atap: integer('kondisi_atap').default(0),
   keterangan: text('keterangan'),
   ...timestamps,
-})
+}, (table) => ({
+  bangunanSchoolIdx: index('idx_bangunan_school_id').on(table.school_id),
+}))
 
 // ============================================================
 // RUANG
@@ -214,7 +237,10 @@ export const ruang = sqliteTable('ruang', {
   jenis_ruang: text('jenis_ruang').default('umum'), // umum | wc | dapur | kantin
   peruntukan_wc: text('peruntukan_wc'), // guru_l | guru_p | siswa_l | siswa_p | difabel
   ...timestamps,
-})
+}, (table) => ({
+  ruangSchoolIdx: index('idx_ruang_school_id').on(table.school_id),
+  ruangBangunanIdx: index('idx_ruang_bangunan_id').on(table.bangunan_id),
+}))
 
 // ============================================================
 // SUB-RUANG (sekat/bilik dalam ruangan)
@@ -226,7 +252,9 @@ export const subRuang = sqliteTable('sub_ruang', {
   nama: text('nama').notNull(),
   jumlah: integer('jumlah').default(1),
   ...timestamps,
-})
+}, (table) => ({
+  subRuangRuangIdx: index('idx_sub_ruang_ruang_id').on(table.ruang_id),
+}))
 
 // ============================================================
 // SARANA (Alat, APE, inventaris)
@@ -241,7 +269,10 @@ export const sarana = sqliteTable('sarana', {
   jumlah: integer('jumlah').default(0),
   kondisi: text('kondisi').default('baik'), // baik | rusak
   ...timestamps,
-})
+}, (table) => ({
+  saranaSchoolIdx: index('idx_sarana_school_id').on(table.school_id),
+  saranaRuangIdx: index('idx_sarana_ruang_id').on(table.ruang_id),
+}))
 
 // ============================================================
 // BUKU (Perpustakaan)
@@ -254,7 +285,9 @@ export const buku = sqliteTable('buku', {
   jumlah_judul: integer('jumlah_judul').default(0),
   jumlah_eksemplar: integer('jumlah_eksemplar').default(0),
   ...timestamps,
-})
+}, (table) => ({
+  bukuSchoolIdx: index('idx_buku_school_id').on(table.school_id),
+}))
 
 // ============================================================
 // REPORTS
@@ -273,7 +306,10 @@ export const reports = sqliteTable('reports', {
   verified_at: integer('verified_at'),
   catatan_revisi: text('catatan_revisi'),
   ...timestamps,
-})
+}, (table) => ({
+  reportsSchoolIdx: index('idx_reports_school_id').on(table.school_id),
+  reportsPeriodeIdx: index('idx_reports_periode').on(table.tahun, table.periode_bulan),
+}))
 
 // ============================================================
 // ACTIVITY LOGS
@@ -287,7 +323,10 @@ export const activityLogs = sqliteTable('activity_logs', {
   record_id: text('record_id'),
   description: text('description'),
   created_at: integer('created_at').notNull().$defaultFn(() => Date.now()),
-})
+}, (table) => ({
+  alUserIdIdx: index('idx_al_user_id').on(table.user_id),
+  alCreatedAtIdx: index('idx_al_created_at').on(table.created_at),
+}))
 
 // ============================================================
 // SETTINGS
@@ -313,7 +352,10 @@ export const notifications = sqliteTable('notifications', {
   is_read: integer('is_read').notNull().default(0),
   related_link: text('related_link'),
   created_at: integer('created_at').notNull().$defaultFn(() => Date.now()),
-})
+}, (table) => ({
+  notifUserIdIdx: index('idx_notif_user_id').on(table.user_id),
+  notifUnreadIdx: index('idx_notif_unread').on(table.user_id, table.is_read),
+}))
 
 // ============================================================
 // ALUMNI
@@ -331,7 +373,10 @@ export const alumni = sqliteTable('alumni', {
   tanggal_lahir: text('tanggal_lahir'),
   kelas: text('kelas').notNull(),
   ...timestamps,
-})
+}, (table) => ({
+  alumniSchoolIdx: index('idx_alumni_school_id').on(table.school_id),
+  alumniTahunLulusIdx: index('idx_alumni_tahun_lulus').on(table.tahun_lulus),
+}))
 
 // ============================================================
 // STUDENT MUTATIONS (Mutasi Masuk / Keluar)
@@ -354,7 +399,11 @@ export const studentMutations = sqliteTable('student_mutations', {
   dokumen_url: text('dokumen_url'),
   keterangan: text('keterangan'),
   ...timestamps,
-})
+}, (table) => ({
+  smSchoolIdx: index('idx_sm_school_id').on(table.school_id),
+  smStudentIdx: index('idx_sm_student_id').on(table.student_id),
+  smNikIdx: index('idx_sm_nik').on(table.nik),
+}))
 
 // ============================================================
 // PPDB / SPMB
@@ -385,7 +434,9 @@ export const ppdb = sqliteTable('ppdb', {
   rekap_usia_p: text('rekap_usia_p'),
   kekurangan_kelebihan_kuota: integer('kekurangan_kelebihan_kuota').default(0),
   ...timestamps,
-})
+}, (table) => ({
+  ppdbSchoolIdx: index('idx_ppdb_school_id').on(table.school_id),
+}))
 
 // ============================================================
 // SPMB / PPDB — DAYA TAMPUNG
@@ -398,7 +449,9 @@ export const spmbDayaTampung = sqliteTable('spmb_daya_tampung', {
   jumlah_rombel: integer('jumlah_rombel').notNull().default(0),
   kuota_per_rombel: integer('kuota_per_rombel').notNull().default(28),
   ...timestamps,
-})
+}, (table) => ({
+  sdtSchoolIdx: index('idx_sdt_school_id').on(table.school_id),
+}))
 
 // ============================================================
 // SPMB / PPDB — PENDAFTAR
@@ -435,7 +488,12 @@ export const spmbPendaftar = sqliteTable('spmb_pendaftar', {
   verified_by: text('verified_by'),
   verified_at: integer('verified_at'),
   ...timestamps,
-})
+}, (table) => ({
+  spSchoolIdx: index('idx_sp_school_id').on(table.school_id),
+  spNikIdx: index('idx_sp_nik').on(table.nik),
+  spNoDaftarIdx: index('idx_sp_no_pendaftaran').on(table.no_pendaftaran),
+  spStatusIdx: index('idx_sp_status_seleksi').on(table.status_seleksi),
+}))
 
 // ============================================================
 // TRANSITIONS (SD → SMP)
@@ -456,7 +514,10 @@ export const transitions = sqliteTable('transitions', {
   kegiatan_transisi: text('kegiatan_transisi'),
   keterangan: text('keterangan'),
   ...timestamps,
-})
+}, (table) => ({
+  transSchoolIdx: index('idx_trans_school_id').on(table.school_id),
+  transStudentIdx: index('idx_trans_student_id').on(table.student_id),
+}))
 
 // ============================================================
 // ARSIP DIGITAL
@@ -482,4 +543,8 @@ export const arsipDigital = sqliteTable('arsip_digital', {
   deskripsi: text('deskripsi'),
   uploaded_at: integer('uploaded_at').notNull().$defaultFn(() => Date.now()),
   ...timestamps,
-})
+}, (table) => ({
+  arsipSchoolIdx: index('idx_arsip_school_id').on(table.school_id),
+  arsipEmployeeIdx: index('idx_arsip_employee_id').on(table.employee_id),
+  arsipModuleIdx: index('idx_arsip_module_type').on(table.module_type),
+}))

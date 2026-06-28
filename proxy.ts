@@ -9,10 +9,44 @@ const protectedPaths = [
   "/rekap-kecamatan", "/cetak-export", "/pengaturan",
 ];
 
+const securityHeaders = {
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+
+function addSecurityHeaders(response: NextResponse) {
+  for (const [key, value] of Object.entries(securityHeaders)) {
+    response.headers.set(key, value);
+  }
+  return response;
+}
+
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  if (path === "/login") return NextResponse.next();
+  if (req.method === "OPTIONS") {
+    const res = NextResponse.json({}, { status: 200 });
+    return addSecurityHeaders(res);
+  }
+
+  if (path === "/login") {
+    const res = NextResponse.next();
+    return addSecurityHeaders(res);
+  }
+
+  const isApiRoute = path.startsWith("/api/") && !path.startsWith("/api/auth/");
+
+  if (isApiRoute) {
+    const token = await getToken({ req });
+    if (!token) {
+      const res = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return addSecurityHeaders(res);
+    }
+    const res = NextResponse.next();
+    return addSecurityHeaders(res);
+  }
 
   const isProtected = protectedPaths.some((p) => path.startsWith(p));
 
@@ -20,29 +54,34 @@ export async function proxy(req: NextRequest) {
     const token = await getToken({ req });
 
     if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      const res = NextResponse.redirect(new URL("/login", req.url));
+      return addSecurityHeaders(res);
     }
 
     const role = token.role as string;
 
     if (path.startsWith("/pengaturan") && role !== "admin_kecamatan") {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      const res = NextResponse.redirect(new URL("/dashboard", req.url));
+      return addSecurityHeaders(res);
     }
 
     if (role === "pegawai") {
       const allowedPaths = ["/dashboard", "/arsip-dokumen"];
       const isAllowed = allowedPaths.some((p) => path.startsWith(p));
       if (!isAllowed && path !== "/") {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        const res = NextResponse.redirect(new URL("/dashboard", req.url));
+        return addSecurityHeaders(res);
       }
     }
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  return addSecurityHeaders(res);
 }
 
 export const config = {
   matcher: [
+    "/api/:path*",
     "/dashboard/:path*",
     "/kesiswaan/:path*",
     "/gtk/:path*",

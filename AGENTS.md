@@ -30,9 +30,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Linked Vercel Blob store `manajemen-data` to project via REST API
 - Pulled `BLOB_READ_WRITE_TOKEN` to `.env.local` — verified present for local dev
 - Updated `.gitignore` to exclude `.env*.local`
-- Fixed `lib/useData.ts` — supports `null` key (skip fetch)
+- Made `lib/useData.ts` — supports `null` key (skip fetch)
 - Made "Edit Izin" on Pengaturan → Role & Hak Akses functional with toggle modal (11 features × 3 roles), saves JSON to `settings` table
 - Built and deployed — all API routes live
+- **Fix React error #310**: Split SPMB page into server component (`page.tsx`) + client component (`_client.tsx`) — `useSession()` pindah ke server, menghilangkan konflik hook dengan navigasi
+- **NIK field di mutasi**: Tambah kolom `nik` ke tabel `student_mutations` via schema + `drizzle-kit push`, update API routes (mutasi-masuk & mutasi-keluar) untuk simpan & cari NIK, form mutasi sekarang tampilkan field NIK untuk TK/KB (NISN hanya untuk SD)
 
 ### In Progress
 - (none)
@@ -56,9 +58,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - SPMB store `manajemen-data` (store_JKHFiOYgL9C4cbdy) — public access, iad1 region
 
 ## Relevant Files
-- `app/spmb/page.tsx`: Full SPMB page (admin + operator), all table/modals/forms inline
+- `app/spmb/page.tsx`: Server component wrapper — fetch session server-side, then render `_client.tsx`
+- `app/spmb/_client.tsx`: Full SPMB page client component (admin + operator), all table/modals/forms inline
 - `app/api/spmb/*/route.ts`: 6 API route files for SPMB CRUD, rekap, upload, export
-- `db/schema.ts`: Added `spmbDayaTampung` and `spmbPendaftar` tables
+- `db/schema.ts`: Added `spmbDayaTampung` and `spmbPendaftar` tables; added `nik` to `studentMutations`
 - `lib/useData.ts`: Updated to accept `string | null` key (skip fetch when null)
 - `app/pengaturan/page.tsx`: Settings page — Roles & Permissions tab with Edit Izin modal
 - `app/api/settings/route.ts`: GET all settings, PUT key/value with upsert
+- `app/api/kesiswaan/mutasi-masuk/route.ts` & `app/api/kesiswaan/mutasi-keluar/route.ts`: Now support `nik` field (insert, search, select)
+- `app/kesiswaan/page.tsx`: Mutasi forms show NIK for TK/KB, NISN only for SD
