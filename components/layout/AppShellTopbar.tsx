@@ -20,6 +20,7 @@ export default function AppShellTopbar({ children }: AppShellTopbarProps) {
         email: session.user.email,
         role: session.user.role,
         avatar_url: session.user.avatar_url,
+        sekolah_jenjang: (session.user as any).sekolah_jenjang,
       }
     : null
 
@@ -30,12 +31,14 @@ export default function AppShellTopbar({ children }: AppShellTopbarProps) {
         <TopNavigation
           currentPath={pathname}
           userRole={user?.role || ''}
+          userJenjang={user?.sekolah_jenjang || ''}
         />
       </div>
       <div className="sm:hidden">
         <MobileTopNavigation
           currentPath={pathname}
           userRole={user?.role || ''}
+          userJenjang={user?.sekolah_jenjang || ''}
         />
       </div>
       <main className="min-h-screen bg-zinc-50 pt-16">

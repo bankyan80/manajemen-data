@@ -22,6 +22,7 @@ interface NavItem {
   icon: React.ReactNode
   feature: PermissionFeature
   roles: string[]
+  jenjang?: string[]
 }
 
 const navItems: NavItem[] = [
@@ -73,6 +74,7 @@ const navItems: NavItem[] = [
     icon: <ArrowRightLeft className="h-5 w-5" />,
     feature: 'transisi',
     roles: ['admin_kecamatan', 'operator_sekolah'],
+    jenjang: ['sd'],
   },
   {
     label: 'Rekap',
@@ -107,11 +109,13 @@ const navItems: NavItem[] = [
 interface MobileTopNavigationProps {
   currentPath: string
   userRole: string
+  userJenjang: string
 }
 
 export default function MobileTopNavigation({
   currentPath,
   userRole,
+  userJenjang,
 }: MobileTopNavigationProps) {
   const { can } = usePermissions()
 
@@ -121,6 +125,7 @@ export default function MobileTopNavigation({
         {navItems
           .filter(item => item.roles.includes(userRole))
           .filter(item => can(item.feature))
+          .filter(item => !item.jenjang || item.jenjang.includes(userJenjang))
           .map((item) => {
           const isActive = currentPath === item.href
           return (
