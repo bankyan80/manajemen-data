@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     whereConditions = sql`${whereConditions} AND ${studentMutations.school_id} = ${school_id}`
   }
   if (q) {
-    whereConditions = sql`${whereConditions} AND (${studentMutations.nama} LIKE ${'%' + q + '%'} OR ${studentMutations.nisn} LIKE ${'%' + q + '%'})`
+    whereConditions = sql`${whereConditions} AND (${studentMutations.nama} LIKE ${'%' + q + '%'} OR ${studentMutations.nisn} LIKE ${'%' + q + '%'} OR ${studentMutations.nik} LIKE ${'%' + q + '%'})`
   }
 
   const [totalResult] = await db.select({ value: count() }).from(studentMutations).leftJoin(schools, eq(studentMutations.school_id, schools.id)).where(whereConditions)
@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
       tanggal: studentMutations.tanggal,
       nama: studentMutations.nama,
       nisn: studentMutations.nisn,
+      nik: studentMutations.nik,
       jenis_kelamin: studentMutations.jenis_kelamin,
       kelas_kelompok: studentMutations.kelas_kelompok,
       sekolah_tujuan: studentMutations.sekolah_tujuan,
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
     tanggal: body.tanggal,
     nama: body.nama,
     nisn: body.nisn || null,
+    nik: body.nik || null,
     jenis_kelamin: body.jenis_kelamin || 'laki-laki',
     kelas_kelompok: body.kelas_kelompok,
     sekolah_tujuan: body.sekolah_tujuan || null,

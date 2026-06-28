@@ -27,7 +27,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!existing.length || existing[0].jenis !== 'keluar') return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json()
-  const allowed = ['tanggal','nama','nisn','jenis_kelamin','kelas_kelompok','sekolah_tujuan','alasan','dokumen_url','keterangan']
+  const allowed = ['tanggal','nama','nisn','nik','jenis_kelamin','kelas_kelompok','sekolah_tujuan','alasan','dokumen_url','keterangan']
   const updateData: Record<string, any> = {}
   for (const key of allowed) {
     if (body[key] !== undefined) updateData[key] = body[key]

@@ -30,10 +30,10 @@ interface Student {
 
 interface Mutation {
   id: string; school_id: string; student_id?: string
-  tanggal: string; nama: string; nisn: string; jenis_kelamin: string
+  tanggal: string; nama: string; nisn: string; nik: string; jenis_kelamin: string
   kelas_kelompok: string; sekolah_asal?: string; sekolah_tujuan?: string
   alasan: string; dokumen_url?: string; keterangan: string
-  created_at: number; school_nama?: string
+  created_at: string; school_nama: string
 }
 
 function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
@@ -130,7 +130,7 @@ export default function KesiswaanPage() {
 
   const emptyMutasiForm = (jenis: 'masuk' | 'keluar') => ({
     tanggal: new Date().toISOString().split('T')[0],
-    nama: '', nisn: '', jenis_kelamin: 'laki-laki',
+    nama: '', nisn: '', nik: '', jenis_kelamin: 'laki-laki',
     kelas_kelompok: '',
     sekolah_asal: '', sekolah_tujuan: '',
     alasan: '', dokumen_url: '', keterangan: '',
@@ -318,7 +318,7 @@ export default function KesiswaanPage() {
 
   const handleEditMutMasuk = (m: Mutation) => {
     setMutForm({
-      tanggal: m.tanggal, nama: m.nama, nisn: m.nisn || '',
+      tanggal: m.tanggal, nama: m.nama, nisn: m.nisn || '', nik: m.nik || '',
       jenis_kelamin: m.jenis_kelamin || 'laki-laki',
       kelas_kelompok: m.kelas_kelompok,
       sekolah_asal: m.sekolah_asal || '', sekolah_tujuan: m.sekolah_tujuan || '',
@@ -360,7 +360,7 @@ export default function KesiswaanPage() {
 
   const handleEditMutKeluar = (m: Mutation) => {
     setMutForm({
-      tanggal: m.tanggal, nama: m.nama, nisn: m.nisn || '',
+      tanggal: m.tanggal, nama: m.nama, nisn: m.nisn || '', nik: m.nik || '',
       jenis_kelamin: m.jenis_kelamin || 'laki-laki',
       kelas_kelompok: m.kelas_kelompok,
       sekolah_asal: m.sekolah_asal || '', sekolah_tujuan: m.sekolah_tujuan || '',
@@ -521,7 +521,7 @@ export default function KesiswaanPage() {
         {submenu === 'mutasi-masuk' && mode === 'list' && (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3 items-center">
-              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutMasukPage(1) }}
+              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama/NIK..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutMasukPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white w-64" />
               <button onClick={() => openAdd('mutasi-masuk')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5">
                 <Plus className="w-4 h-4" /> Tambah Mutasi Masuk
@@ -537,7 +537,7 @@ export default function KesiswaanPage() {
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700 w-10">No</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Tanggal</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Nama</th>
-                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">NISN</th>
+                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">{jenjang === 'sd' ? 'NISN' : 'NIK'}</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Asal Sekolah</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">{KELAS_LABEL[jenjang]} Tujuan</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Alasan</th>
@@ -551,7 +551,7 @@ export default function KesiswaanPage() {
                           <td className="px-3 py-2.5 text-zinc-400">{(mutMasukPage - 1) * 20 + i + 1}</td>
                           <td className="px-3 py-2.5">{m.tanggal}</td>
                           <td className="px-3 py-2.5 font-medium text-zinc-900">{m.nama}</td>
-                          <td className="px-3 py-2.5">{m.nisn || '-'}</td>
+                          <td className="px-3 py-2.5">{jenjang === 'sd' ? (m.nisn || '-') : (m.nik || '-')}</td>
                           <td className="px-3 py-2.5">{m.sekolah_asal || '-'}</td>
                           <td className="px-3 py-2.5">{m.kelas_kelompok}</td>
                           <td className="px-3 py-2.5 text-xs">{m.alasan || '-'}</td>
@@ -580,7 +580,7 @@ export default function KesiswaanPage() {
         {submenu === 'mutasi-keluar' && mode === 'list' && (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3 items-center">
-              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutKeluarPage(1) }}
+              <input type="text" placeholder={jenjang === 'sd' ? "Cari nama/NISN..." : "Cari nama/NIK..."} value={searchQ} onChange={e => { setSearchQ(e.target.value); setMutKeluarPage(1) }}
                 className="px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white w-64" />
               <button onClick={() => openAdd('mutasi-keluar')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5">
                 <Plus className="w-4 h-4" /> Tambah Mutasi Keluar
@@ -596,7 +596,7 @@ export default function KesiswaanPage() {
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700 w-10">No</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Tanggal</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Nama</th>
-                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">NISN</th>
+                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">{jenjang === 'sd' ? 'NISN' : 'NIK'}</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">{KELAS_LABEL[jenjang]}</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Sekolah Tujuan</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Alasan</th>
@@ -610,7 +610,7 @@ export default function KesiswaanPage() {
                           <td className="px-3 py-2.5 text-zinc-400">{(mutKeluarPage - 1) * 20 + i + 1}</td>
                           <td className="px-3 py-2.5">{m.tanggal}</td>
                           <td className="px-3 py-2.5 font-medium text-zinc-900">{m.nama}</td>
-                          <td className="px-3 py-2.5">{m.nisn || '-'}</td>
+                          <td className="px-3 py-2.5">{jenjang === 'sd' ? (m.nisn || '-') : (m.nik || '-')}</td>
                           <td className="px-3 py-2.5">{m.kelas_kelompok}</td>
                           <td className="px-3 py-2.5">{m.sekolah_tujuan || '-'}</td>
                           <td className="px-3 py-2.5 text-xs">{m.alasan || '-'}</td>
@@ -762,9 +762,12 @@ export default function KesiswaanPage() {
               <label className="block text-sm font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
               <input value={mutForm.nama} onChange={e => setMutForm(f => ({ ...f, nama: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>
-            {jenjang === 'sd' && <div>
+            {jenjang === 'sd' ? <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
               <input value={mutForm.nisn} onChange={e => setMutForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
+            </div> : <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">NIK</label>
+              <input value={mutForm.nik} onChange={e => setMutForm(f => ({ ...f, nik: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>}
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">Jenis Kelamin</label>
@@ -819,9 +822,12 @@ export default function KesiswaanPage() {
               <label className="block text-sm font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
               <input value={mutForm.nama} onChange={e => setMutForm(f => ({ ...f, nama: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>
-            {jenjang === 'sd' && <div>
+            {jenjang === 'sd' ? <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
               <input value={mutForm.nisn} onChange={e => setMutForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
+            </div> : <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">NIK</label>
+              <input value={mutForm.nik} onChange={e => setMutForm(f => ({ ...f, nik: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>}
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">Jenis Kelamin</label>
@@ -864,7 +870,7 @@ export default function KesiswaanPage() {
               {[
                 ['Tanggal', selectedMut.tanggal],
                 ['Nama', selectedMut.nama],
-                ...(jenjang === 'sd' ? [['NISN', selectedMut.nisn || '-']] as const : []),
+                ...(jenjang === 'sd' ? [['NISN', selectedMut.nisn || '-']] as const : [['NIK', selectedMut.nik || '-']] as const),
                 ['Jenis Kelamin', selectedMut.jenis_kelamin || '-'],
                 [KELAS_LABEL[jenjang], selectedMut.kelas_kelompok],
                 ...(submenu === 'mutasi-masuk'

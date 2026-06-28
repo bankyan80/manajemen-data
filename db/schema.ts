@@ -345,6 +345,7 @@ export const studentMutations = sqliteTable('student_mutations', {
   tanggal: text('tanggal').notNull(),
   nama: text('nama').notNull(),
   nisn: text('nisn'),
+  nik: text('nik'),
   jenis_kelamin: text('jenis_kelamin'), // laki-laki | perempuan
   kelas_kelompok: text('kelas_kelompok').notNull(),
   sekolah_asal: text('sekolah_asal'), // untuk mutasi masuk
