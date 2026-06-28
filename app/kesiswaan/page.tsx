@@ -480,8 +480,8 @@ export default function KesiswaanPage() {
                     <thead>
                       <tr className="bg-zinc-50 border-b border-zinc-200">
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700 w-10">No</th>
-                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">NIS</th>
-                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">NISN</th>
+                        <th className="text-left px-3 py-3 font-semibold text-zinc-700">{jenjang === 'sd' ? 'NIS' : 'NIK'}</th>
+                        {jenjang === 'sd' && <th className="text-left px-3 py-3 font-semibold text-zinc-700">NISN</th>}
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">Nama</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">JK</th>
                         <th className="text-left px-3 py-3 font-semibold text-zinc-700">TTL</th>
@@ -497,7 +497,7 @@ export default function KesiswaanPage() {
                         <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                           <td className="px-3 py-2.5 text-zinc-400">{(studentsPage - 1) * 20 + i + 1}</td>
                           <td className="px-3 py-2.5">{s.nik || '-'}</td>
-                          <td className="px-3 py-2.5">{s.nisn || '-'}</td>
+                          {jenjang === 'sd' && <td className="px-3 py-2.5">{s.nisn || '-'}</td>}
                           <td className="px-3 py-2.5 font-medium text-zinc-900">{s.nama}</td>
                           <td className="px-3 py-2.5">{s.jenis_kelamin === 'laki-laki' ? 'L' : 'P'}</td>
                           <td className="px-3 py-2.5 text-xs">{s.tempat_lahir ? `${s.tempat_lahir}, ${s.tanggal_lahir || ''}` : '-'}</td>
@@ -656,7 +656,7 @@ export default function KesiswaanPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                NIS / NIK <span className="text-xs text-blue-500 font-normal"> (isi NIK untuk autofill)</span>
+                {jenjang === 'sd' ? 'NIS / NIK' : 'NIK'} <span className="text-xs text-blue-500 font-normal"> (isi NIK untuk autofill)</span>
               </label>
               <div className="relative">
                 <input value={form.nik} onChange={e => setForm(f => ({ ...f, nik: e.target.value }))}
@@ -731,7 +731,7 @@ export default function KesiswaanPage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               {[
                 ['Nama', selectedStudent.nama],
-                ['NIS / NIK', selectedStudent.nik || '-'],
+                [selectedStudent.jenjang === 'sd' ? 'NIS' : 'NIK', selectedStudent.nik || '-'],
                 ...(selectedStudent.jenjang === 'sd' ? [['NISN', selectedStudent.nisn || '-']] as const : []),
                 ['Jenis Kelamin', selectedStudent.jenis_kelamin || '-'],
                 ['Tempat Lahir', selectedStudent.tempat_lahir || '-'],
