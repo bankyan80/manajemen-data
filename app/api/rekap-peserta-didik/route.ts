@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 const KELAS_SD = ['Kelas I', 'Kelas II', 'Kelas III', 'Kelas IV', 'Kelas V', 'Kelas VI']
 const KELAS_TK = ['Kelompok A', 'Kelompok B']
-const KELAS_KB = ['2\u20133 Tahun', '3\u20134 Tahun', '4\u20135 Tahun']
+const KELAS_KB = ['Kelompok A', 'Kelompok B']
 
 export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
