@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 
     if (studentRows[0]) {
       const s = studentRows[0]
-      const asalTkPaud = s.jenjang === 'tk' || s.jenjang === 'kb' ? (s.school_nama || '') : ''
+      const asalTkPaud = s.school_nama || ''
       return NextResponse.json({
         data: {
           nama_lengkap: s.nama_lengkap,
