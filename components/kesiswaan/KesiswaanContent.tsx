@@ -181,7 +181,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
             ...f,
             nama: json.data.nama || f.nama,
             nisn: json.data.nisn || f.nisn,
-            jenis_kelamin: json.data.jenis_kelamin || f.jenis_kelamin,
+            jenis_kelamin: json.data.jenis_kelamin === 'L' ? 'laki-laki' : json.data.jenis_kelamin === 'P' ? 'perempuan' : (json.data.jenis_kelamin || f.jenis_kelamin),
             tempat_lahir: json.data.tempat_lahir || f.tempat_lahir,
             tanggal_lahir: json.data.tanggal_lahir || f.tanggal_lahir,
             alamat: json.data.alamat || f.alamat,
@@ -249,8 +249,8 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
   }, [submenu, fetchStudents, fetchMutMasuk, fetchMutKeluar])
 
   // Stats
-  const totalL = students.filter(s => s.jenis_kelamin === 'laki-laki').length
-  const totalP = students.filter(s => s.jenis_kelamin === 'perempuan').length
+  const totalL = students.filter(s => s.jenis_kelamin === 'laki-laki' || s.jenis_kelamin === 'L').length
+  const totalP = students.filter(s => s.jenis_kelamin === 'perempuan' || s.jenis_kelamin === 'P').length
   const totalAktif = students.filter(s => s.status_siswa === 'aktif').length
 
   const kelasOptions = KELAS_OPTIONS[jenjang] || []
@@ -289,7 +289,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
     if (!s) return
     setForm({
       nama: s.nama, nik: s.nik || '', nisn: s.nisn || '',
-      jenis_kelamin: s.jenis_kelamin || 'laki-laki',
+      jenis_kelamin: s.jenis_kelamin === 'L' ? 'laki-laki' : s.jenis_kelamin === 'P' ? 'perempuan' : (s.jenis_kelamin || 'laki-laki'),
       tempat_lahir: s.tempat_lahir || '', tanggal_lahir: s.tanggal_lahir || '',
       alamat: s.alamat || '', nama_orang_tua: s.nama_orang_tua || '',
       no_hp: s.no_hp || '', kelas_kelompok: s.kelas_kelompok,
@@ -336,7 +336,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
   const handleEditMutMasuk = (m: Mutation) => {
     setMutForm({
       tanggal: m.tanggal, nama: m.nama, nisn: m.nisn || '', nik: m.nik || '',
-      jenis_kelamin: m.jenis_kelamin || 'laki-laki',
+      jenis_kelamin: m.jenis_kelamin === 'L' ? 'laki-laki' : m.jenis_kelamin === 'P' ? 'perempuan' : (m.jenis_kelamin || 'laki-laki'),
       kelas_kelompok: m.kelas_kelompok,
       sekolah_asal: m.sekolah_asal || '', sekolah_tujuan: m.sekolah_tujuan || '',
       alasan: m.alasan || '',
@@ -378,7 +378,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
   const handleEditMutKeluar = (m: Mutation) => {
     setMutForm({
       tanggal: m.tanggal, nama: m.nama, nisn: m.nisn || '', nik: m.nik || '',
-      jenis_kelamin: m.jenis_kelamin || 'laki-laki',
+      jenis_kelamin: m.jenis_kelamin === 'L' ? 'laki-laki' : m.jenis_kelamin === 'P' ? 'perempuan' : (m.jenis_kelamin || 'laki-laki'),
       kelas_kelompok: m.kelas_kelompok,
       sekolah_asal: m.sekolah_asal || '', sekolah_tujuan: m.sekolah_tujuan || '',
       alasan: m.alasan || '',
@@ -508,7 +508,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
                           <td className="px-3 py-2.5">{s.nik || '-'}</td>
                           {jenjang === 'sd' && <td className="px-3 py-2.5">{s.nisn || '-'}</td>}
                           <td className="px-3 py-2.5 font-medium text-zinc-900">{s.nama}</td>
-                          <td className="px-3 py-2.5">{s.jenis_kelamin === 'laki-laki' ? 'L' : 'P'}</td>
+                          <td className="px-3 py-2.5">{s.jenis_kelamin === 'laki-laki' || s.jenis_kelamin === 'L' ? 'L' : 'P'}</td>
                           <td className="px-3 py-2.5 text-xs">{s.tempat_lahir ? `${s.tempat_lahir}, ${s.tanggal_lahir || ''}` : '-'}</td>
                           <td className="px-3 py-2.5">{s.kelas_kelompok}</td>
                           <td className="px-3 py-2.5">
@@ -742,7 +742,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
                 ['Nama', selectedStudent.nama],
                 [selectedStudent.jenjang === 'sd' ? 'NIS' : 'NIK', selectedStudent.nik || '-'],
                 ...(selectedStudent.jenjang === 'sd' ? [['NISN', selectedStudent.nisn || '-']] as const : []),
-                ['Jenis Kelamin', selectedStudent.jenis_kelamin || '-'],
+                ['Jenis Kelamin', selectedStudent.jenis_kelamin === 'L' ? 'Laki-laki' : selectedStudent.jenis_kelamin === 'P' ? 'Perempuan' : (selectedStudent.jenis_kelamin || '-')],
                 ['Tempat Lahir', selectedStudent.tempat_lahir || '-'],
                 ['Tanggal Lahir', selectedStudent.tanggal_lahir || '-'],
                 ['Alamat', selectedStudent.alamat || '-'],
@@ -892,7 +892,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
                 ['Tanggal', selectedMut.tanggal],
                 ['Nama', selectedMut.nama],
                 ...(jenjang === 'sd' ? [['NISN', selectedMut.nisn || '-'], ['NIK', selectedMut.nik || '-']] as const : [['NIK', selectedMut.nik || '-']] as const),
-                ['Jenis Kelamin', selectedMut.jenis_kelamin || '-'],
+                ['Jenis Kelamin', selectedMut.jenis_kelamin === 'L' ? 'Laki-laki' : selectedMut.jenis_kelamin === 'P' ? 'Perempuan' : (selectedMut.jenis_kelamin || '-')],
                 [KELAS_LABEL[jenjang], selectedMut.kelas_kelompok],
                 ...(submenu === 'mutasi-masuk'
                   ? [['Asal Sekolah', selectedMut.sekolah_asal || '-']]
