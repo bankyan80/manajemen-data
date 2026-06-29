@@ -45,7 +45,7 @@ const JALUR_LIST = [
 const DESA_LIST = ['', 'Lemahabang', 'Lemahabang Wetan', 'Lemahabang Kulon', 'Sigong', 'Kedawung', 'Tuk', 'Puloledang', 'Karangegel', 'Cilangkap', 'Picungpugur', 'Wangunreja', 'Sindanghayu', 'Bawang', 'Lemahabang Indah']
 
 
-export default function SpmbContent({ isAdmin, sekolahId }: { isAdmin: boolean; sekolahId?: string }) {
+export default function SpmbContent({ isAdmin, sekolahId, sekolahJenjang }: { isAdmin: boolean; sekolahId?: string; sekolahJenjang?: string }) {
   const router = useRouter()
 
   const [tahun, setTahun] = useState('2026/2027')
@@ -519,6 +519,7 @@ export default function SpmbContent({ isAdmin, sekolahId }: { isAdmin: boolean; 
             updateStatus={updateStatus}
             modal={modal} setModal={setModal}
             sekolahId={sekolahId}
+            sekolahJenjang={sekolahJenjang}
             emptyForm={emptyForm}
           />
         )}
@@ -806,7 +807,7 @@ function Row({ label, value }: { label: string; value?: string }) {
 
 function OperatorPendaftarSection({
   data, loading, search, setSearch, form, setForm, formError, saving,
-  savePendaftar, deletePendaftar, updateStatus, modal, setModal, sekolahId, emptyForm,
+  savePendaftar, deletePendaftar, updateStatus, modal, setModal, sekolahId, sekolahJenjang, emptyForm,
 }: any) {
   const [showForm, setShowForm] = useState(false)
   const [nikFound, setNikFound] = useState(false)
@@ -853,7 +854,7 @@ function OperatorPendaftarSection({
                 { key: 'tanggal_lahir', label: 'Tanggal Lahir', type: 'date' },
                 { key: 'alamat', label: 'Alamat', type: 'text' },
                 { key: 'desa', label: 'Desa', type: 'select', options: DESA_LIST.filter(Boolean) },
-                { key: 'asal_tk_paud', label: 'Asal TK/PAUD', type: 'text' },
+                ...(sekolahJenjang === 'sd' ? [{ key: 'asal_tk_paud', label: 'Asal TK/PAUD', type: 'text' }] : []),
                 { key: 'nama_orang_tua', label: 'Nama Orang Tua/Wali', type: 'text' },
                 { key: 'no_hp', label: 'Nomor HP', type: 'text' },
                 { key: 'jalur', label: 'Jalur Pendaftaran', type: 'select', options: ['domisili', 'afirmasi', 'mutasi'] },
