@@ -113,6 +113,9 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
   // Data
   const [students, setStudents] = useState<Student[]>([])
   const [studentsTotal, setStudentsTotal] = useState(0)
+  const [totalAktif, setTotalAktif] = useState(0)
+  const [totalL, setTotalL] = useState(0)
+  const [totalP, setTotalP] = useState(0)
   const [studentsPage, setStudentsPage] = useState(1)
   const [studentsPages, setStudentsPages] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -211,12 +214,15 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
       if (filterKelas) params.set('kelas', filterKelas)
       if (filterStatus) params.set('status', filterStatus)
       if (debouncedQ) params.set('q', debouncedQ)
-      const res = await fetchJson<{ data: Student[]; total: number; total_pages: number }>(
+      const res = await fetchJson<{ data: Student[]; total: number; total_pages: number; totalAktif: number; totalL: number; totalP: number }>(
         `/api/kesiswaan/students?${params}`
       )
       setStudents(res.data)
       setStudentsTotal(res.total)
       setStudentsPages(res.total_pages)
+      setTotalAktif(res.totalAktif || 0)
+      setTotalL(res.totalL || 0)
+      setTotalP(res.totalP || 0)
     } finally { setLoading(false) }
   }, [jenjang, studentsPage, filterKelas, filterStatus, debouncedQ, role])
 
@@ -247,11 +253,6 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
     else if (submenu === 'mutasi-masuk') fetchMutMasuk()
     else fetchMutKeluar()
   }, [submenu, fetchStudents, fetchMutMasuk, fetchMutKeluar])
-
-  // Stats
-  const totalL = students.filter(s => s.jenis_kelamin === 'laki-laki' || s.jenis_kelamin === 'L').length
-  const totalP = students.filter(s => s.jenis_kelamin === 'perempuan' || s.jenis_kelamin === 'P').length
-  const totalAktif = students.filter(s => s.status_siswa === 'aktif').length
 
   const kelasOptions = KELAS_OPTIONS[jenjang] || []
 

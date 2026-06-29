@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { students, schools } from '@/db/schema'
-import { eq, sql, like, count, desc, and, ne, inArray } from 'drizzle-orm'
+import { eq, sql, count, desc, and, ne, inArray, or } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +41,10 @@ export async function GET(req: NextRequest) {
   const [totalResult] = await db.select({ value: count() }).from(students).leftJoin(schools, eq(students.school_id, schools.id)).where(whereConditions)
   const total = totalResult.value
 
+  const [aktifResult] = await db.select({ value: count() }).from(students).leftJoin(schools, eq(students.school_id, schools.id)).where(and(whereConditions, eq(students.status_siswa, 'aktif')))
+  const [lResult] = await db.select({ value: count() }).from(students).leftJoin(schools, eq(students.school_id, schools.id)).where(and(whereConditions, or(eq(students.jenis_kelamin, 'L'), eq(students.jenis_kelamin, 'laki-laki'))))
+  const [pResult] = await db.select({ value: count() }).from(students).leftJoin(schools, eq(students.school_id, schools.id)).where(and(whereConditions, or(eq(students.jenis_kelamin, 'P'), eq(students.jenis_kelamin, 'perempuan'))))
+
   const rows = await db
     .select({
       id: students.id,
@@ -68,7 +72,7 @@ export async function GET(req: NextRequest) {
     .limit(limit)
     .offset(offset)
 
-  return NextResponse.json({ data: rows, total, page, limit, total_pages: Math.ceil(total / limit) })
+  return NextResponse.json({ data: rows, total, page, limit, total_pages: Math.ceil(total / limit), totalAktif: aktifResult.value, totalL: lResult.value, totalP: pResult.value })
 }
 
 export async function POST(req: NextRequest) {
