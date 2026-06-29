@@ -83,22 +83,55 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const [result] = await db.update(spmbPendaftar).set(updates).where(eq(spmbPendaftar.id, id)).returning()
 
   // Auto-create student record when accepted
-  if (updates.status_seleksi === 'diterima' && result) {
-    const existing = await db.select({ id: students.id }).from(students).where(eq(students.nik, result.nik)).limit(1)
-    if (existing.length === 0) {
-      // Determine jenjang & kelas from school
-      const [school] = await db.select({ jenjang: schools.jenjang }).from(schools).where(eq(schools.id, result.school_id)).limit(1)
-      const jenjang = school?.jenjang || 'sd'
-      const kelas_kelompok = jenjang === 'sd' ? 'Kelas I' : jenjang === 'tk' ? 'Kelompok A' : '2\u20133 Tahun'
+  if (updates.status_seleksi === 'diterima') {
+    // Re-fetch pendaftar to get full data (returning() may not return all fields)
+    const [pendaftar] = await db
+      .select({
+        nik: spmbPendaftar.nik,
+        school_id: spmbPendaftar.school_id,
+        tahun_pelajaran: spmbPendaftar.tahun_pelajaran,
+        nama_lengkap: spmbPendaftar.nama_lengkap,
+        jenis_kelamin: spmbPendaftar.jenis_kelamin,
+        tempat_lahir: spmbPendaftar.tempat_lahir,
+        tanggal_lahir: spmbPendaftar.tanggal_lahir,
+        alamat: spmbPendaftar.alamat,
+        no_hp: spmbPendaftar.no_hp,
+        nama_orang_tua: spmbPendaftar.nama_orang_tua,
+      })
+      .from(spmbPendaftar)
+      .where(eq(spmbPendaftar.id, id))
+      .limit(1)
 
-      const now = new Date().toISOString()
-      const jk = result.jenis_kelamin === 'laki-laki' ? 'L' : result.jenis_kelamin === 'perempuan' ? 'P' : result.jenis_kelamin
-      const r = result as any
-      const { randomUUID } = await import('crypto')
-      await db.run(sql`
-        INSERT INTO students (id, school_id, tahun_pelajaran, jenjang, kelas_kelompok, nama, nik, nisn, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, no_hp, nama_orang_tua, status_siswa, created_at, updated_at)
-        VALUES (${randomUUID()}, ${r.school_id}, ${r.tahun_pelajaran || '2026/2027'}, ${jenjang}, ${kelas_kelompok}, ${r.nama_lengkap}, ${r.nik}, NULL, ${jk}, ${r.tempat_lahir || ''}, ${r.tanggal_lahir || ''}, ${r.alamat || ''}, ${r.no_hp || ''}, ${r.nama_orang_tua || ''}, 'aktif', ${now}, ${now})
-      `)
+    if (pendaftar) {
+      const existing = await db.select({ id: students.id }).from(students).where(eq(students.nik, pendaftar.nik)).limit(1)
+      if (existing.length === 0) {
+        const [school] = await db.select({ jenjang: schools.jenjang }).from(schools).where(eq(schools.id, pendaftar.school_id)).limit(1)
+        const jenjang = school?.jenjang || 'sd'
+        const kelas_kelompok = jenjang === 'sd' ? 'Kelas I' : jenjang === 'tk' ? 'Kelompok A' : '2\u20133 Tahun'
+        const now = new Date().toISOString()
+        const jk = pendaftar.jenis_kelamin === 'laki-laki' ? 'L' : pendaftar.jenis_kelamin === 'perempuan' ? 'P' : pendaftar.jenis_kelamin
+        const { randomUUID } = await import('crypto')
+        const studentId = randomUUID()
+        await db.insert(students).values({
+          id: studentId,
+          school_id: pendaftar.school_id,
+          tahun_pelajaran: pendaftar.tahun_pelajaran || '2026/2027',
+          jenjang,
+          kelas_kelompok,
+          nama: pendaftar.nama_lengkap,
+          nik: pendaftar.nik,
+          nisn: null,
+          jenis_kelamin: jk,
+          tempat_lahir: pendaftar.tempat_lahir || '',
+          tanggal_lahir: pendaftar.tanggal_lahir || '',
+          alamat: pendaftar.alamat || '',
+          no_hp: pendaftar.no_hp || '',
+          nama_orang_tua: pendaftar.nama_orang_tua || '',
+          status_siswa: 'aktif',
+          created_at: now,
+          updated_at: now,
+        } as any)
+      }
     }
   }
 

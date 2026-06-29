@@ -149,11 +149,12 @@ export default function SpmbContent({ isAdmin, sekolahId, sekolahJenjang }: { is
 
   const updateStatus = async (id: string, field: string, value: string) => {
     try {
-      await fetch(`/api/spmb/pendaftar/${id}`, {
+      const res = await fetch(`/api/spmb/pendaftar/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value }),
       })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Gagal') }
       bump()
       showToast(true, 'Status diperbarui')
     } catch { showToast(false, 'Gagal memperbarui') }
