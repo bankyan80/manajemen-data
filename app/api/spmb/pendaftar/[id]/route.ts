@@ -108,7 +108,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         const [school] = await db.select({ jenjang: schools.jenjang }).from(schools).where(eq(schools.id, pendaftar.school_id)).limit(1)
         const jenjang = school?.jenjang || 'sd'
         const kelas_kelompok = jenjang === 'sd' ? 'Kelas I' : jenjang === 'tk' ? 'Kelompok A' : '2\u20133 Tahun'
-        const now = new Date().toISOString()
         const jk = pendaftar.jenis_kelamin === 'laki-laki' ? 'L' : pendaftar.jenis_kelamin === 'perempuan' ? 'P' : pendaftar.jenis_kelamin
         const { randomUUID } = await import('crypto')
         const studentId = randomUUID()
@@ -128,8 +127,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           no_hp: pendaftar.no_hp || '',
           nama_orang_tua: pendaftar.nama_orang_tua || '',
           status_siswa: 'aktif',
-          created_at: now,
-          updated_at: now,
         } as any)
       }
     }
