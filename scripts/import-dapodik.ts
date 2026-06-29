@@ -31,6 +31,7 @@ const SCHOOL_MAP: Record<string, string> = {
   'sd negeri 2 sarajaya': 'd999cf28-1190-4df6-9906-917f787da0a5',
   'sd negeri 3 cipeujeuh wetan': 'a4a76b6a-6d33-4fd1-8e53-41f4e42634c9',
   'sd negeri 3 sigong': '5657a80e-add8-433a-a365-c5be6c143ac8',
+  'sd negeri 4 sigong': '3f6e56a4-50fd-4f65-b3a7-6b460e734b4e',
   '12052026 sd negeri 3 sigong': '5657a80e-add8-433a-a365-c5be6c143ac8',
   'sd it al irsyad al islamiyyah': '14fcc9a2-d754-4319-ab4c-9b54e7ded46b',
   'tk aisyiyah lemahabang': '8aabec64-df8c-4f60-bbc6-6e7c4a03d385',
