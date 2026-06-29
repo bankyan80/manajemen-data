@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const school_id = searchParams.get('school_id')
   const jenjang = searchParams.get('jenjang')
   const kelas = searchParams.get('kelas')
-  const status = searchParams.get('status')
+  const status = searchParams.get('status') || 'aktif'
   const tahun_pelajaran = searchParams.get('tahun_pelajaran')
   const q = searchParams.get('q')
   const page = Math.max(1, parseInt(searchParams.get('page') || '1'))

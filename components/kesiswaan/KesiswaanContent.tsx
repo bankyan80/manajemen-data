@@ -106,7 +106,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
 
   // Filters
   const [filterKelas, setFilterKelas] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
+  const [filterStatus, setFilterStatus] = useState('aktif')
   const [searchQ, setSearchQ] = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
 
