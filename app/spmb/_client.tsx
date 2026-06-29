@@ -914,6 +914,11 @@ function OperatorPendaftarSection({
                     <td className="px-4 py-3 text-center"><Badge status={r.status_seleksi} colorMap={STATUS_COLORS} /></td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        {r.status_seleksi === 'pending' && (
+                          <button onClick={() => updateStatus(r.id, 'status_seleksi', 'diterima')} className="text-green-600 hover:text-green-700" title="Terima">
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                        )}
                         <button onClick={() => setModal({ type: 'upload', data: r })} className="text-primary-light hover:text-primary" title="Upload Dokumen">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                         </button>

@@ -86,21 +86,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (updates.status_seleksi === 'diterima' && result) {
     const existing = await db.select({ id: students.id }).from(students).where(eq(students.nik, result.nik)).limit(1)
     if (existing.length === 0) {
-      await db.insert(students).values({
-        school_id: result.school_id,
-        tahun_pelajaran: result.tahun_pelajaran || '2026/2027',
-        jenjang: 'sd',
-        kelas_kelompok: 'Kelas I',
-        nama: result.nama_lengkap,
-        nik: result.nik,
-        nisn: '',
-        jenis_kelamin: result.jenis_kelamin || 'laki-laki',
-        tempat_lahir: result.tempat_lahir || '',
-        tanggal_lahir: result.tanggal_lahir || '',
-        alamat: result.alamat || '',
-        nama_orang_tua: result.nama_orang_tua || '',
-        status_siswa: 'aktif',
-      })
+      // Determine jenjang & kelas from school
+      const [school] = await db.select({ jenjang: schools.jenjang }).from(schools).where(eq(schools.id, result.school_id)).limit(1)
+      const jenjang = school?.jenjang || 'sd'
+      const kelas_kelompok = jenjang === 'sd' ? 'Kelas I' : jenjang === 'tk' ? 'Kelompok A' : '2\u20133 Tahun'
+
+      const now = new Date().toISOString()
+      const jk = result.jenis_kelamin === 'laki-laki' ? 'L' : result.jenis_kelamin === 'perempuan' ? 'P' : result.jenis_kelamin
+      const r = result as any
+      const { randomUUID } = await import('crypto')
+      await db.run(sql`
+        INSERT INTO students (id, school_id, tahun_pelajaran, jenjang, kelas_kelompok, nama, nik, nisn, jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, no_hp, nama_orang_tua, status_siswa, created_at, updated_at)
+        VALUES (${randomUUID()}, ${r.school_id}, ${r.tahun_pelajaran || '2026/2027'}, ${jenjang}, ${kelas_kelompok}, ${r.nama_lengkap}, ${r.nik}, NULL, ${jk}, ${r.tempat_lahir || ''}, ${r.tanggal_lahir || ''}, ${r.alamat || ''}, ${r.no_hp || ''}, ${r.nama_orang_tua || ''}, 'aktif', ${now}, ${now})
+      `)
     }
   }
 
