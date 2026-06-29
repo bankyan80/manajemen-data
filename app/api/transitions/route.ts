@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
   const studentConditions = [
     eq(students.jenjang, 'sd'),
-    eq(students.kelas_kelompok, 'Kelas VI'),
+    like(students.kelas_kelompok, 'Kelas VI%'),
     eq(students.status_siswa, 'aktif'),
   ]
   if (currentTP) {
