@@ -119,6 +119,12 @@ export async function GET(req: NextRequest) {
     school_nama: s.school_nama || null,
   }))
 
+  const totalCalonMasukTable = recap.find(r => r.status_transisi === 'calon_masuk')?.total || 0
+  const recapWithVirtual = [
+    { status_transisi: 'calon_masuk', total: totalCalonMasukTable + virtualRows.length },
+    ...recap.filter(r => r.status_transisi !== 'calon_masuk'),
+  ]
+
   const allRows = [...rows, ...virtualRows].sort((a, b) => a.nama.localeCompare(b.nama))
 
   if (q) {
@@ -128,14 +134,14 @@ export async function GET(req: NextRequest) {
     )
     return NextResponse.json({
       data: filtered,
-      recap,
+      recap: recapWithVirtual,
       virtual_count: virtualRows.length,
     })
   }
 
   return NextResponse.json({
     data: allRows,
-    recap,
+    recap: recapWithVirtual,
     virtual_count: virtualRows.length,
   })
 }

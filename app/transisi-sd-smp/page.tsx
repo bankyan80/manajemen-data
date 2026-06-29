@@ -85,14 +85,23 @@ export default function TransisiSdSmpPage() {
     !search || d.nama.toLowerCase().includes(search.toLowerCase()) || (d.nisn || '').includes(search)
   )
 
+  function normalizeGender(jk: string) {
+    if (!jk) return ''
+    const g = jk.toLowerCase()
+    if (g === 'l' || g === 'laki-laki') return 'laki-laki'
+    if (g === 'p' || g === 'perempuan') return 'perempuan'
+    return jk
+  }
+
   function groupBySchool(data: any[]) {
     const map = new Map<string, { school_nama: string; laki: number; perempuan: number; total: number }>()
     for (const d of data) {
       const key = d.school_id
       if (!map.has(key)) map.set(key, { school_nama: d.school_nama || 'Unknown', laki: 0, perempuan: 0, total: 0 })
       const entry = map.get(key)!
-      if (d.jenis_kelamin === 'laki-laki') entry.laki++
-      else if (d.jenis_kelamin === 'perempuan') entry.perempuan++
+      const gender = normalizeGender(d.jenis_kelamin)
+      if (gender === 'laki-laki') entry.laki++
+      else if (gender === 'perempuan') entry.perempuan++
       entry.total++
     }
     return Array.from(map.values()).sort((a, b) => a.school_nama.localeCompare(b.school_nama))
@@ -166,9 +175,9 @@ export default function TransisiSdSmpPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
-                    <tr><td colSpan={isAdmin ? 4 : 6} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
-                  ) : isAdmin ? (
+                    {loading ? (
+                      <tr><td colSpan={isAdmin ? 4 : 7} className="px-4 py-8 text-center text-sm text-text-muted">Memuat...</td></tr>
+                    ) : isAdmin ? (
                     calonMasukSekolah.length === 0 ? (
                       <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-text-muted">Belum ada data calon masuk SMP</td></tr>
                     ) : calonMasukSekolah.map((s, i) => (
@@ -186,11 +195,11 @@ export default function TransisiSdSmpPage() {
                       <tr key={d.id || i} className="border-b border-zinc-100 hover:bg-zinc-50">
                         <td className="px-4 py-3 font-medium text-text-main">{d.nama}</td>
                         <td className="px-4 py-3">{d.nisn || '-'}</td>
-                        <td className="px-4 py-3">{d.jenis_kelamin || '-'}</td>
+                        <td className="px-4 py-3">{(() => { const g = normalizeGender(d.jenis_kelamin); return g === 'laki-laki' ? 'Laki-laki' : g === 'perempuan' ? 'Perempuan' : d.jenis_kelamin || '-' })()}</td>
                         <td className="px-4 py-3">{d.kelas}</td>
                         <td className="px-4 py-3">{d.school_nama || '-'}</td>
                         <td className="px-4 py-3">
-                          <span className={`badge ${STATUS_COLORS[d.status_transisi]?.replace('bg-', 'badge-') || 'badge-info'}`}>{STATUS_LABELS[d.status_transisi] || d.status_transisi}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[d.status_transisi] || 'bg-zinc-100 text-zinc-700'}`}>{STATUS_LABELS[d.status_transisi] || d.status_transisi}</span>
                         </td>
                         <td className="px-4 py-3 text-center">
                           {isVirtual(d) && (
