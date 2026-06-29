@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { spmbPendaftar, schools, students } from '@/db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,7 +103,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .limit(1)
 
     if (pendaftar) {
-      const existing = await db.select({ id: students.id }).from(students).where(eq(students.nik, pendaftar.nik)).limit(1)
+      const existing = await db.select({ id: students.id }).from(students).where(and(eq(students.nik, pendaftar.nik), eq(students.school_id, pendaftar.school_id))).limit(1)
       if (existing.length === 0) {
         const [school] = await db.select({ jenjang: schools.jenjang }).from(schools).where(eq(schools.id, pendaftar.school_id)).limit(1)
         const jenjang = school?.jenjang || 'sd'
