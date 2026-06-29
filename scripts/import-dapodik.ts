@@ -101,14 +101,14 @@ function parseRombel(val: any, jenjang: string): string {
     return s
   }
 
-  if (jenjang === 'tk') {
-    if (/^Kelompok\s+[AB]$/i.test(s)) {
-      return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
-    }
+  if (jenjang === 'tk' || jenjang === 'kb') {
+    // "A", "A1", "A2", "A3", "kelompok a", "Kelompok A2", "KELAS A.1" → Kelompok A
+    if (/^(kelas\s+|kelompok\s+)?a\.?\d*$/i.test(s)) return 'Kelompok A'
+    // "B", "B1", "B2", "B3", "B4", "B5", "kelompok b", "Kelompok B2", "KELAS B.1" → Kelompok B
+    if (/^(kelas\s+|kelompok\s+)?b\.?\d*$/i.test(s)) return 'Kelompok B'
     return s
   }
 
-  // kb — don't have rombel in Dapodik
   return s
 }
 

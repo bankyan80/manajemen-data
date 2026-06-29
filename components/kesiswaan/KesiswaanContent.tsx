@@ -694,6 +694,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
               <label className="block text-sm font-medium text-zinc-700 mb-1">{KELAS_LABEL[jenjang]} *</label>
               <select value={form.kelas_kelompok} onChange={e => setForm(f => ({ ...f, kelas_kelompok: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
                 <option value="">Pilih</option>
+                {form.kelas_kelompok && !kelasOptions.includes(form.kelas_kelompok) && <option value={form.kelas_kelompok}>{form.kelas_kelompok}</option>}
                 {kelasOptions.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
             </div>
@@ -775,6 +776,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
               <label className="block text-sm font-medium text-zinc-700 mb-1">{KELAS_LABEL[jenjang]} Tujuan *</label>
               <select value={mutForm.kelas_kelompok} onChange={e => setMutForm(f => ({ ...f, kelas_kelompok: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
                 <option value="">Pilih</option>
+                {mutForm.kelas_kelompok && !kelasOptions.includes(mutForm.kelas_kelompok) && <option value={mutForm.kelas_kelompok}>{mutForm.kelas_kelompok}</option>}
                 {kelasOptions.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
             </div>
@@ -836,6 +838,7 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
               <label className="block text-sm font-medium text-zinc-700 mb-1">{KELAS_LABEL[jenjang]} *</label>
               <select value={mutForm.kelas_kelompok} onChange={e => setMutForm(f => ({ ...f, kelas_kelompok: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm bg-white">
                 <option value="">Pilih</option>
+                {mutForm.kelas_kelompok && !kelasOptions.includes(mutForm.kelas_kelompok) && <option value={mutForm.kelas_kelompok}>{mutForm.kelas_kelompok}</option>}
                 {kelasOptions.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
             </div>
@@ -843,10 +846,10 @@ export default function KesiswaanContent({ allowedJenjang, defaultJenjang }: Kes
               <label className="block text-sm font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
               <input value={mutForm.nama} onChange={e => setMutForm(f => ({ ...f, nama: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
             </div>
-            {jenjang === 'sd' && <div>
+            <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NISN</label>
               <input value={mutForm.nisn} onChange={e => setMutForm(f => ({ ...f, nisn: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
-            </div>}
+            </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">NIK</label>
               <input value={mutForm.nik} onChange={e => setMutForm(f => ({ ...f, nik: e.target.value }))} className="w-full px-3 py-2 border border-zinc-300 rounded-lg text-sm" />
