@@ -76,7 +76,9 @@ export async function POST(req: NextRequest) {
 
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
-  if (role !== 'admin_kecamatan') {
+  const userSekolahId = (session?.user as any)?.sekolah_id
+
+  if (role !== 'admin_kecamatan' && role !== 'operator_sekolah') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -86,9 +88,12 @@ export async function POST(req: NextRequest) {
   const id = uuidv4()
   const now = Date.now()
 
+  // operator_sekolah only allowed for their own school
+  const sekolah_id = role === 'operator_sekolah' ? userSekolahId : body.sekolah_id
+
   await db.insert(employees).values({
     id,
-    sekolah_id: body.sekolah_id,
+    sekolah_id,
     nama: body.nama,
     nik: body.nik,
     nip: body.nip || null,

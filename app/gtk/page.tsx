@@ -29,7 +29,7 @@ export default function GtkPage() {
   useEffect(() => { fetchJson<any[]>('/api/schools').then(setSchools).catch(() => {}) }, [])
 
   const openEdit = (e: any) => { setSelected(e); setForm({ ...e }); setShowAdd(false) }
-  const openAdd = () => { setSelected({}); setForm({ sekolah_id: '', is_active: 1 }); setShowAdd(true) }
+  const openAdd = () => { setSelected({}); setForm({ sekolah_id: role === 'operator_sekolah' ? userSekolahId : '', is_active: 1 }); setShowAdd(true) }
   const closeDetail = () => { setSelected(null); setForm({}); setShowAdd(false) }
 
   const handleSave = useCallback(async () => {
@@ -66,6 +66,7 @@ export default function GtkPage() {
   if (!session) { router.push('/login'); return null }
 
   const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
 
   const filtered = (employees || []).filter(e =>
     (e.nama.toLowerCase().includes(search.toLowerCase()) ||
@@ -130,7 +131,7 @@ export default function GtkPage() {
             <option value="">Semua Pendidikan</option>
             {PENDIDIKAN_OPTIONS.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
-          {role === 'admin_kecamatan' && (
+          {(role === 'admin_kecamatan' || role === 'operator_sekolah') && (
             <button onClick={openAdd} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium ml-auto">+ Tambah Pegawai</button>
           )}
         </div>
@@ -432,7 +433,11 @@ export default function GtkPage() {
               <Field label="TMT Kerja" value={form.tmt_kerja || ''} onChange={v => setForm({ ...form, tmt_kerja: v })} />
               <Field label="Email" value={form.email || ''} onChange={v => setForm({ ...form, email: v })} />
               <Field label="No HP" value={form.no_hp || ''} onChange={v => setForm({ ...form, no_hp: v })} />
-              <Select label="Unit Kerja" value={form.sekolah_id || ''} onChange={v => setForm({ ...form, sekolah_id: v })} options={['', ...schools.map(s => s.id)]} labels={{ '': 'Pilih Sekolah...', ...Object.fromEntries(schools.map(s => [s.id, s.nama])) }} />
+              {role === 'operator_sekolah' && showAdd ? (
+                <Field label="Unit Kerja" value={schools.find(s => s.id === userSekolahId)?.nama || '-'} onChange={() => {}} />
+              ) : (
+                <Select label="Unit Kerja" value={form.sekolah_id || ''} onChange={v => setForm({ ...form, sekolah_id: v })} options={['', ...schools.map(s => s.id)]} labels={{ '': 'Pilih Sekolah...', ...Object.fromEntries(schools.map(s => [s.id, s.nama])) }} />
+              )}
               <Select label="Status Aktif" value={form.is_active === 0 ? '0' : '1'} onChange={v => setForm({ ...form, is_active: v === '0' ? 0 : 1 })} options={['1', '0']} labels={{ '1': 'Aktif', '0': 'Nonaktif' }} />
             </div>
 
