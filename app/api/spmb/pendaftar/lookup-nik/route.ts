@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { spmbPendaftar, students } from '@/db/schema'
+import { spmbPendaftar, students, schools } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
@@ -41,19 +41,28 @@ export async function GET(req: NextRequest) {
       alamat: students.alamat,
       nama_orang_tua: students.nama_orang_tua,
       no_hp: students.no_hp,
+      jenjang: students.jenjang,
+      school_nama: schools.nama,
     })
       .from(students)
+      .leftJoin(schools, eq(students.school_id, schools.id))
       .where(eq(students.nik, nik))
       .limit(1)
 
     if (studentRows[0]) {
       const s = studentRows[0]
+      const asalTkPaud = s.jenjang === 'tk' || s.jenjang === 'kb' ? (s.school_nama || '') : ''
       return NextResponse.json({
         data: {
-          ...s,
-          desa: '',
-          asal_tk_paud: '',
+          nama_lengkap: s.nama_lengkap,
           jenis_kelamin: s.jenis_kelamin === 'L' ? 'laki-laki' : s.jenis_kelamin === 'P' ? 'perempuan' : s.jenis_kelamin,
+          tempat_lahir: s.tempat_lahir,
+          tanggal_lahir: s.tanggal_lahir,
+          alamat: s.alamat,
+          desa: '',
+          asal_tk_paud: asalTkPaud,
+          nama_orang_tua: s.nama_orang_tua,
+          no_hp: s.no_hp,
         },
       })
     }
