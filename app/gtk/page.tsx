@@ -21,33 +21,45 @@ export default function GtkPage() {
   const [pendidikanFilter, setPendidikanFilter] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [form, setForm] = useState<any>({})
+  const [showAdd, setShowAdd] = useState(false)
   const [cleanupLoading, setCleanupLoading] = useState(false)
   const [cleanupResult, setCleanupResult] = useState<string | null>(null)
   const { data: employees, loading, error } = useData<any[]>(`employees-${refreshKey}`, () => fetchJson('/api/employees?show_nonaktif=1'))
   const [schools, setSchools] = useState<any[]>([])
   useEffect(() => { fetchJson<any[]>('/api/schools').then(setSchools).catch(() => {}) }, [])
 
-  const openEdit = (e: any) => { setSelected(e); setForm({ ...e }) }
-  const closeDetail = () => { setSelected(null); setForm({}) }
+  const openEdit = (e: any) => { setSelected(e); setForm({ ...e }); setShowAdd(false) }
+  const openAdd = () => { setSelected({}); setForm({ sekolah_id: '', is_active: 1 }); setShowAdd(true) }
+  const closeDetail = () => { setSelected(null); setForm({}); setShowAdd(false) }
 
   const handleSave = useCallback(async () => {
     if (!selected) return
+    if (showAdd && (!form.nama || !form.nik)) { alert('Nama dan NIK wajib diisi'); return }
     setSaving(true)
     try {
-      const res = await fetch(`/api/employees/${selected.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      if (!res.ok) throw new Error('Gagal menyimpan')
+      if (showAdd) {
+        const res = await fetch('/api/employees', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        })
+        if (!res.ok) throw new Error('Gagal menambah')
+      } else {
+        const res = await fetch(`/api/employees/${selected.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        })
+        if (!res.ok) throw new Error('Gagal menyimpan')
+      }
       closeDetail()
       setRefreshKey(k => k + 1)
     } catch (err: any) {
-      alert('Gagal menyimpan: ' + err.message)
+      alert('Gagal: ' + err.message)
     } finally {
       setSaving(false)
     }
-  }, [selected, form])
+  }, [selected, form, showAdd])
 
   if (status === 'loading') return <div className="p-8 text-center text-zinc-500">Memuat...</div>
 
@@ -118,6 +130,9 @@ export default function GtkPage() {
             <option value="">Semua Pendidikan</option>
             {PENDIDIKAN_OPTIONS.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
+          {role === 'admin_kecamatan' && (
+            <button onClick={openAdd} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium ml-auto">+ Tambah Pegawai</button>
+          )}
         </div>
 
         {activeTab !== 6 && (
@@ -394,11 +409,11 @@ export default function GtkPage() {
         )}
       </div>
 
-      {selected && (
+      {(selected || showAdd) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeDetail}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-              <h3 className="font-semibold text-zinc-900">Edit Pegawai</h3>
+              <h3 className="font-semibold text-zinc-900">{showAdd ? 'Tambah Pegawai' : 'Edit Pegawai'}</h3>
               <button onClick={closeDetail} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
             </div>
             <div className="px-6 py-4 space-y-3 text-sm">
@@ -421,6 +436,7 @@ export default function GtkPage() {
               <Select label="Status Aktif" value={form.is_active === 0 ? '0' : '1'} onChange={v => setForm({ ...form, is_active: v === '0' ? 0 : 1 })} options={['1', '0']} labels={{ '1': 'Aktif', '0': 'Nonaktif' }} />
             </div>
 
+            {!showAdd && (
             <div className="border-t border-zinc-200 px-6 py-4">
               <div className="flex items-center gap-2 mb-2">
                 <FileText className="w-4 h-4 text-zinc-500" />
@@ -428,10 +444,11 @@ export default function GtkPage() {
               </div>
               <p className="text-xs text-zinc-400">Dokumen pegawai dikelola di menu <a href="/arsip-digital" className="text-blue-600 hover:underline">Arsip Digital</a>.</p>
             </div>
+            )}
 
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-200">
               <div className="flex items-center gap-2">
-                {role === 'admin_kecamatan' && selected.is_active !== 0 && (
+                {!showAdd && role === 'admin_kecamatan' && selected.is_active !== 0 && (
                   <button
                     onClick={async () => {
                       if (!confirm(`Nonaktifkan ${selected.nama}?`)) return
@@ -457,7 +474,7 @@ export default function GtkPage() {
                     {saving ? 'Memproses...' : 'Nonaktifkan'}
                   </button>
                 )}
-                {role === 'admin_kecamatan' && selected.is_active === 0 && (
+                {!showAdd && role === 'admin_kecamatan' && selected.is_active === 0 && (
                   <button
                     onClick={async () => {
                       setSaving(true)

@@ -70,3 +70,46 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(rows, { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } })
 }
+
+export async function POST(req: NextRequest) {
+  if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  if (role !== 'admin_kecamatan') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const { v4: uuidv4 } = await import('uuid')
+
+  const id = uuidv4()
+  const now = Date.now()
+
+  await db.insert(employees).values({
+    id,
+    sekolah_id: body.sekolah_id,
+    nama: body.nama,
+    nik: body.nik,
+    nip: body.nip || null,
+    nuptk: body.nuptk || null,
+    email: body.email || null,
+    no_hp: body.no_hp || null,
+    tempat_lahir: body.tempat_lahir || null,
+    tanggal_lahir: body.tanggal_lahir || null,
+    jenis_kelamin: body.jenis_kelamin || null,
+    jabatan: body.jabatan || null,
+    status_pegawai: body.status_pegawai || null,
+    pangkat_golongan: body.pangkat_golongan || null,
+    pendidikan_terakhir: body.pendidikan_terakhir || null,
+    jurusan: body.jurusan || null,
+    sertifikasi: body.sertifikasi || null,
+    tmt_kerja: body.tmt_kerja || null,
+    tanggal_bup: body.tanggal_bup || null,
+    is_active: 1,
+    created_at: now,
+    updated_at: now,
+  })
+
+  return NextResponse.json({ success: true, id })
+}
