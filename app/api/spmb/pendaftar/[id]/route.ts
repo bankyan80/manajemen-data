@@ -84,7 +84,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   // Auto-create student record when accepted
   if (updates.status_seleksi === 'diterima') {
-    // Re-fetch pendaftar to get full data (returning() may not return all fields)
     const [pendaftar] = await db
       .select({
         nik: spmbPendaftar.nik,
@@ -103,7 +102,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .limit(1)
 
     if (pendaftar) {
+      console.log('[SPMB AUTO-CREATE] pendaftar found:', pendaftar.nama_lengkap, pendaftar.nik)
       const existing = await db.select({ id: students.id }).from(students).where(and(eq(students.nik, pendaftar.nik), eq(students.school_id, pendaftar.school_id))).limit(1)
+      console.log('[SPMB AUTO-CREATE] existing student:', existing.length)
       if (existing.length === 0) {
         const [school] = await db.select({ jenjang: schools.jenjang }).from(schools).where(eq(schools.id, pendaftar.school_id)).limit(1)
         const jenjang = school?.jenjang || 'sd'
@@ -111,6 +112,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         const jk = pendaftar.jenis_kelamin === 'laki-laki' ? 'L' : pendaftar.jenis_kelamin === 'perempuan' ? 'P' : pendaftar.jenis_kelamin
         const { randomUUID } = await import('crypto')
         const studentId = randomUUID()
+        console.log('[SPMB AUTO-CREATE] inserting student:', studentId, jenjang, kelas_kelompok, jk)
         await db.insert(students).values({
           id: studentId,
           school_id: pendaftar.school_id,
@@ -128,7 +130,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           nama_orang_tua: pendaftar.nama_orang_tua || '',
           status_siswa: 'aktif',
         } as any)
+        console.log('[SPMB AUTO-CREATE] insert done')
+      } else {
+        console.log('[SPMB AUTO-CREATE] student already exists, skipping')
       }
+    } else {
+      console.log('[SPMB AUTO-CREATE] pendaftar NOT FOUND after update')
     }
   }
 
