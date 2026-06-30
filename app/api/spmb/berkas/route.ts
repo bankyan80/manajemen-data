@@ -9,6 +9,7 @@ import { put } from '@vercel/blob'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -36,4 +37,9 @@ export async function POST(req: NextRequest) {
   await db.update(spmbPendaftar).set({ [field]: blob.url } as any).where(eq(spmbPendaftar.id, pendaftarId))
 
   return NextResponse.json({ data: { url: blob.url, jenis } })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

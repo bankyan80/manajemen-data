@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function GET(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
@@ -76,9 +77,15 @@ export async function GET(req: NextRequest) {
     )
   }
   return NextResponse.json({ data })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function POST(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
@@ -123,4 +130,9 @@ export async function POST(req: NextRequest) {
     status_seleksi: 'pending',
   }).returning()
   return NextResponse.json({ data: result })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 export async function GET() {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const rows = await db
     .select({
@@ -29,9 +30,15 @@ export async function GET() {
     .orderBy(users.name)
 
   return NextResponse.json(rows)
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function POST(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const body = await req.json()
   const { name, username, password, email, role, sekolah_id, pegawai_id } = body
@@ -45,4 +52,9 @@ export async function POST(req: NextRequest) {
     is_active: 1,
   }).returning()
   return NextResponse.json(newUser, { status: 201 })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 export async function DELETE() {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
 
   const toDelete = await db.select({ id: users.id }).from(users).where(eq(users.role, 'pegawai'))
@@ -20,4 +21,9 @@ export async function DELETE() {
   }
 
   return NextResponse.json({ deleted: ids.length, message: `Berhasil menghapus ${ids.length} user pegawai` })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

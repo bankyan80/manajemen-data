@@ -6,6 +6,7 @@ import { employeeDocuments } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
 
   const session = await getServerSession(authOptions)
@@ -23,4 +24,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!doc || !doc.drive_url) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   return NextResponse.redirect(doc.drive_url)
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

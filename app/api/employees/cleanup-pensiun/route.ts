@@ -8,6 +8,7 @@ import { lte, sql } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
 
   const session = await getServerSession(authOptions)
@@ -31,4 +32,9 @@ export async function POST(req: NextRequest) {
     nonaktifkan: affected,
     message: `${affected} pegawai dinonaktifkan karena sudah BUP`,
   })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

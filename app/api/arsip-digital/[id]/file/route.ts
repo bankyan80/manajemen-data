@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const { id } = await params
 
@@ -33,4 +34,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   return NextResponse.json({ error: 'File tidak tersedia' }, { status: 404 })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

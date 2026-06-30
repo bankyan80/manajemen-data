@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 export async function GET(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
 
   const session = await getServerSession(authOptions)
@@ -78,9 +79,15 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ data: rows, byKategori, statusCount })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function POST(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
 
   const session = await getServerSession(authOptions)
@@ -121,4 +128,9 @@ export async function POST(req: NextRequest) {
   })
 
   return NextResponse.json({ id, message: 'Dokumen berhasil ditambahkan' })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

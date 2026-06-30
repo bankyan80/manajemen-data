@@ -1,34 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeApi } from '@/lib/api-handler'
-import { guardApi, guardDb } from '@/lib/api-guard'
+import { guardApi } from '@/lib/api-guard'
 import { db } from '@/lib/db'
-import { schools, employees, students } from '@/db/schema-v2'
-import { eq, count, and, sql } from 'drizzle-orm'
+import { schools, employees, students } from '@/db/schema'
+import { eq, count, sql, and } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
 export const GET = (req: NextRequest) => safeApi(async () => {
   const { error: authErr } = await guardApi()
   if (authErr) return authErr
-  const dbErr = guardDb(db)
-  if (dbErr.error) return dbErr.error
+  if (!db) return NextResponse.json({ success: false, error: 'DB not configured' }, { status: 500 })
 
-  const _db = db!
+  const _db = db
   const question = req.nextUrl.searchParams.get('q')?.toLowerCase() || ''
 
   if (question.includes('sekolah') && (question.includes('butuh') || question.includes('kekurangan') || question.includes('kurang'))) {
-    const results = await _db
-      .select({
-        id: schools.id,
-        nama: schools.nama,
-        desa: schools.desa,
-        teacherCount: sql<number>`(SELECT COUNT(*) FROM employees WHERE sekolah_id = ${schools.id} AND is_active = 1)`,
-      })
+    const schoolRows = await _db
+      .select({ id: schools.id, nama: schools.nama, desa: schools.desa })
       .from(schools)
       .where(eq(schools.is_active, 1))
-      .having(sql`teacherCount < 7`)
-      .orderBy(sql`teacherCount ASC`)
-      .limit(10)
+
+    const counts = await _db
+      .select({ school_id: employees.sekolah_id, value: count() })
+      .from(employees)
+      .where(eq(employees.is_active, 1))
+      .groupBy(employees.sekolah_id)
+
+    const countMap = new Map(counts.map(c => [c.school_id, Number(c.value)]))
+    const results = schoolRows
+      .map(s => ({ id: s.id, nama: s.nama, desa: s.desa, teacherCount: countMap.get(s.id) || 0 }))
+      .filter(s => s.teacherCount < 7)
+      .sort((a, b) => a.teacherCount - b.teacherCount)
+      .slice(0, 10)
 
     return NextResponse.json({
       success: true,

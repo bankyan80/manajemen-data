@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 const TABLES: Record<string, any> = { tanah, bangunan, ruang, sub_ruang: subRuang, sarana, buku }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ table: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const { table } = await params
   const tbl = TABLES[table]
@@ -36,9 +37,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ tabl
 
   const data = await db.select().from(tbl).where(filters).orderBy(desc(tbl.created_at))
   return NextResponse.json(data)
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ table: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const { table } = await params
   const tbl = TABLES[table]
@@ -69,4 +76,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tab
 
   await db.insert(tbl).values(insertData)
   return NextResponse.json({ success: true, id })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

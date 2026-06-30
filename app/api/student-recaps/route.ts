@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 export async function GET(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
 
   const session = await getServerSession(authOptions)
@@ -48,4 +49,9 @@ export async function GET(req: NextRequest) {
     .orderBy(schools.nama, studentRecaps.kelas_kelompok)
 
   return NextResponse.json(rows)
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

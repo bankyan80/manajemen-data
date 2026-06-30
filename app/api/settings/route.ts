@@ -7,14 +7,21 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function GET() {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const rows = await db.select().from(settings)
   const map: Record<string, string> = {}
   for (const s of rows) map[s.key] = s.value
   return NextResponse.json(map)
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function PUT(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const body = await req.json()
   const { key, value } = body
@@ -27,4 +34,9 @@ export async function PUT(req: NextRequest) {
     await db.insert(settings).values({ key, value: String(value) })
   }
   return NextResponse.json({ success: true })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

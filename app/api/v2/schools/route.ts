@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeApi } from '@/lib/api-handler'
-import { guardApi, guardDb } from '@/lib/api-guard'
+import { guardApi } from '@/lib/api-guard'
 import { db } from '@/lib/db'
-import { schools, employees, students } from '@/db/schema-v2'
-import { count, eq, sql, desc } from 'drizzle-orm'
+import { schools, employees, students } from '@/db/schema'
+import { count, eq, sql, desc, inArray } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
 export const GET = (req: NextRequest) => safeApi(async () => {
   const { session, error } = await guardApi()
   if (error) return error
-  const dbErr = guardDb(db)
-  if (dbErr.error) return dbErr.error
+  if (!db) return NextResponse.json({ success: false, error: 'DB not configured' }, { status: 500 })
 
-  const _db = db!
+  const _db = db
   const role = (session?.user as any)?.role as string
   const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
 
@@ -47,12 +46,9 @@ export const GET = (req: NextRequest) => safeApi(async () => {
       kepala_id: schools.kepala_id,
       latitude: schools.latitude,
       longitude: schools.longitude,
-      health_score: sql<number>`0`,
       is_active: schools.is_active,
       created_at: schools.created_at,
       updated_at: schools.updated_at,
-      teacherCount: sql<number>`(SELECT COUNT(*) FROM employees WHERE sekolah_id = ${schools.id} AND is_active = 1)`,
-      studentCount: sql<number>`(SELECT COUNT(*) FROM students WHERE school_id = ${schools.id} AND status_siswa = 'aktif')`,
     })
     .from(schools)
     .where(whereConditions)
@@ -60,10 +56,37 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     .limit(limit)
     .offset(offset)
 
+  // Bulk fetch counts to avoid subquery parameter binding issues
+  const schoolIds = rows.map(r => r.id)
+  const teacherCounts = schoolIds.length > 0
+    ? await _db
+        .select({ school_id: employees.sekolah_id, value: count() })
+        .from(employees)
+        .where(inArray(employees.sekolah_id, schoolIds as [string, ...string[]]))
+        .groupBy(employees.sekolah_id)
+    : []
+  const studentCounts = schoolIds.length > 0
+    ? await _db
+        .select({ school_id: students.school_id, value: count() })
+        .from(students)
+        .where(inArray(students.school_id, schoolIds as [string, ...string[]]))
+        .groupBy(students.school_id)
+    : []
+
+  const tcMap = new Map(teacherCounts.map(t => [t.school_id, Number(t.value)]))
+  const scMap = new Map(studentCounts.map(s => [s.school_id, Number(s.value)]))
+
+  const mapped = rows.map(r => ({
+    ...r,
+    health_score: 0,
+    teacherCount: tcMap.get(r.id) || 0,
+    studentCount: scMap.get(r.id) || 0,
+  }))
+
   return NextResponse.json({
     success: true,
     data: {
-      schools: rows,
+      schools: mapped,
       pagination: { total, page, limit, total_pages: Math.ceil(total / limit) },
     },
   })

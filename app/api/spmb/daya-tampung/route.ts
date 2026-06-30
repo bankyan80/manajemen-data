@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function GET(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
@@ -65,9 +66,15 @@ export async function GET(req: NextRequest) {
   if (desa) data = data.filter((r: any) => r.desa?.toLowerCase() === desa.toLowerCase())
 
   return NextResponse.json({ data })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function POST(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
@@ -75,13 +82,24 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const [result] = await db.insert(spmbDayaTampung).values(body).returning()
   return NextResponse.json({ data: result })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function PATCH(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const body = await req.json()
   const { id, ...updates } = body
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
   const [result] = await db.update(spmbDayaTampung).set(updates).where(eq(spmbDayaTampung.id, id)).returning()
   return NextResponse.json({ data: result })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

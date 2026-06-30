@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 60
 
 export async function GET() {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const rows = await db
     .select({
@@ -26,4 +27,9 @@ export async function GET() {
     .limit(100)
 
   return NextResponse.json(rows)
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

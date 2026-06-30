@@ -6,6 +6,7 @@ import { students } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,9 +15,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const row = await db.select().from(students).where(eq(students.id, id)).limit(1)
   if (!row.length) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(row[0])
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -34,9 +41,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   await db.update(students).set(updateData).where(eq(students.id, id))
   return NextResponse.json({ success: true })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -47,4 +60,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   await db.delete(students).where(eq(students.id, id))
   return NextResponse.json({ success: true })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

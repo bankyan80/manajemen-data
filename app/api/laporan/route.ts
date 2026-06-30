@@ -8,6 +8,7 @@ import { eq, sql, and } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  try {
   if (!db) return new Response('DB not configured', { status: 500 })
 
   const session = await getServerSession(authOptions)
@@ -108,4 +109,9 @@ export async function GET(req: NextRequest) {
   }
 
   return new Response('Tipe tidak dikenal', { status: 400 })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

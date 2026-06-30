@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const { id } = await params
   const body = await req.json()
@@ -27,4 +28,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   await db.update(employees).set(update).where(eq(employees.id, id))
 
   return NextResponse.json({ success: true })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

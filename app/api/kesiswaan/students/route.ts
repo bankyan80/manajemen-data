@@ -8,6 +8,7 @@ import { eq, sql, count, desc, and, ne, inArray, or } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
@@ -73,9 +74,15 @@ export async function GET(req: NextRequest) {
     .offset(offset)
 
   return NextResponse.json({ data: rows, total, page, limit, total_pages: Math.ceil(total / limit), totalAktif: aktifResult.value, totalL: lResult.value, totalP: pResult.value })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function POST(req: NextRequest) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -124,4 +131,9 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ success: true }, { status: 201 })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }

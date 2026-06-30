@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 const TABLES: Record<string, any> = { tanah, bangunan, ruang, sub_ruang: subRuang, sarana, buku }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ table: string; id: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const { table, id } = await params
   const tbl = TABLES[table]
@@ -23,9 +24,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ta
 
   await db.update(tbl).set(update).where(eq(tbl.id, id))
   return NextResponse.json({ success: true })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ table: string; id: string }> }) {
+  try {
   if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
   const { table, id } = await params
   const tbl = TABLES[table]
@@ -33,4 +40,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   await db.delete(tbl).where(eq(tbl.id, id))
   return NextResponse.json({ success: true })
-}
+
+  } catch (e) {
+    console.error('[API Error]', e);
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
+  }
+  }
