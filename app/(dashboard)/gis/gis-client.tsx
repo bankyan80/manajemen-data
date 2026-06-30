@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Layers } from 'lucide-react'
 import type { Map as LeafletMap, LayerGroup } from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { safeFetch } from '@/lib/safe-fetch'
 
 interface FeatureGeometry {
@@ -43,26 +44,12 @@ export default function GisClient() {
   const [loading, setLoading] = useState(true)
   const [selectedSchool, setSelectedSchool] = useState<FeatureProperties | null>(null)
 
+  // Initialize map on mount
   useEffect(() => {
-    async function loadMap() {
-      try {
-        const result = await safeFetch<{ features: Feature[] }>(`/api/v2/gis/schools?layer=${activeLayer}`)
-        setFeatures(result.features || [])
-      } catch (err) {
-        console.error('Failed to load GIS data', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadMap()
-  }, [activeLayer])
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !mapRef.current) return
+    if (typeof window === 'undefined' || !mapRef.current || mapInstanceRef.current) return
 
     async function initMap() {
       const L = await import('leaflet')
-      await import('leaflet/dist/leaflet.css')
 
       delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
       L.Icon.Default.mergeOptions({
@@ -71,25 +58,58 @@ export default function GisClient() {
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       })
 
-      if (!mapInstanceRef.current) {
-        mapInstanceRef.current = L.map(mapRef.current!, {
-          center: [-7.0, 108.5],
-          zoom: 12,
-          zoomControl: true,
-        })
+      mapInstanceRef.current = L.map(mapRef.current!, {
+        center: [-7.0, 108.5],
+        zoom: 12,
+        zoomControl: true,
+      })
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors',
-          maxZoom: 18,
-        }).addTo(mapInstanceRef.current)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 18,
+      }).addTo(mapInstanceRef.current)
+
+      // Trigger resize after mount to fix rendering
+      setTimeout(() => mapInstanceRef.current?.invalidateSize(), 200)
+    }
+
+    initMap()
+  }, [])
+
+  // Load features when layer changes
+  useEffect(() => {
+    async function loadFeatures() {
+      setLoading(true)
+      try {
+        const result = await safeFetch<{ features: Feature[] }>(`/api/v2/gis/schools?layer=${activeLayer}`)
+        setFeatures(result.features || [])
+      } catch (err) {
+        console.error('Failed to load GIS data', err)
+        setFeatures([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadFeatures()
+  }, [activeLayer])
+
+  // Update markers when features change
+  useEffect(() => {
+    const map = mapInstanceRef.current
+    if (!map) return
+
+    async function updateMarkers() {
+      const m = mapInstanceRef.current
+      if (!m) return
+
+      if (markersRef.current) {
+        m.removeLayer(markersRef.current)
+        markersRef.current = null
       }
 
-      const map = mapInstanceRef.current
+      if (features.length === 0) return
 
-      if (markersRef.current && map) {
-        map.removeLayer(markersRef.current)
-      }
-
+      const L = await import('leaflet')
       const markerLayer = L.layerGroup()
 
       features.forEach((feature) => {
@@ -127,24 +147,19 @@ export default function GisClient() {
         markerLayer.addLayer(marker)
       })
 
-      if (map) {
-        markerLayer.addTo(map)
-      }
+      markerLayer.addTo(m)
       markersRef.current = markerLayer
 
-      if (features.length > 0 && map) {
-        const group = L.featureGroup(
-          features.map((f) =>
-            L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]])
-          )
+      // Fit bounds
+      const group = L.featureGroup(
+        features.map((f) =>
+          L.circleMarker([f.geometry.coordinates[1], f.geometry.coordinates[0]])
         )
-        map.fitBounds(group.getBounds(), { padding: [50, 50] })
-      }
+      )
+      m.fitBounds(group.getBounds(), { padding: [50, 50] })
     }
 
-    if (features.length > 0) {
-      initMap()
-    }
+    updateMarkers()
   }, [features])
 
   return (
@@ -214,7 +229,7 @@ export default function GisClient() {
         </div>
 
         <div className="flex-1">
-          <div className="card overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: 500 }}>
+          <div className="card overflow-hidden relative" style={{ height: 'calc(100vh - 200px)', minHeight: 500 }}>
             {loading && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
                 <div className="flex items-center gap-2 text-sm text-slate-500">
