@@ -35,7 +35,6 @@ export const GET = (req: NextRequest) => safeApi(async () => {
       desa: schools.desa,
       latitude: schools.latitude,
       longitude: schools.longitude,
-      health_score: schools.health_score,
     })
     .from(schools)
     .where(whereConditions)
@@ -111,7 +110,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
           ratio,
           certifiedTeachers: tc?.certified || 0,
           retiringSoon: tc?.retiring_soon || 0,
-          healthScore: s.health_score || 0,
+          healthScore: 0,
           markerColor,
         },
       }

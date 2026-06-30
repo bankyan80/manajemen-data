@@ -47,7 +47,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
       kepala_id: schools.kepala_id,
       latitude: schools.latitude,
       longitude: schools.longitude,
-      health_score: schools.health_score,
+      health_score: sql<number>`0`,
       is_active: schools.is_active,
       created_at: schools.created_at,
       updated_at: schools.updated_at,
