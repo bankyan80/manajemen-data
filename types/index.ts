@@ -461,7 +461,7 @@ export interface SessionUser {
   id: string
   name: string
   email: string
-  role: Role
+  role: string
   sekolah_id?: string | null
   pegawai_id?: string | null
   avatar_url?: string | null
@@ -481,7 +481,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string
-    role: Role
+    role: string
     sekolah_id?: string | null
     pegawai_id?: string | null
   }
