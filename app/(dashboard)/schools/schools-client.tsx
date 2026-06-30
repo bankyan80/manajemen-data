@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { safeFetch } from '@/lib/safe-fetch'
 import { useRouter } from 'next/navigation'
 import {
   School, Search, ChevronLeft, ChevronRight, MapPin,
@@ -85,14 +86,9 @@ export default function SchoolsClient() {
       if (search) params.set('q', search)
       if (jenjang) params.set('jenjang', jenjang)
 
-      const res = await fetch(`/api/v2/schools?${params}`)
-      const json = await res.json()
-      if (json.success) {
-        setSchools(json.data || [])
-        setPagination(json.pagination)
-      } else {
-        setError(json.error || 'Gagal memuat data sekolah')
-      }
+      const result = await safeFetch<{ data: SchoolRow[]; pagination: Pagination }>(`/api/v2/schools?${params}`)
+      setSchools(result.data || [])
+      setPagination(result.pagination)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {

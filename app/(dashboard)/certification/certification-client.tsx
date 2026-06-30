@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { safeFetch } from '@/lib/safe-fetch'
 import {
   Award, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
   AlertCircle, FileText, CheckCircle2, UserCheck, DollarSign,
@@ -96,14 +97,9 @@ export default function CertificationClient() {
       if (search) params.set('q', search)
       if (statusFilter) params.set('status', statusFilter)
 
-      const res = await fetch(`/api/v2/certification?${params}`)
-      const json = await res.json()
-      if (json.success) {
-        setCertifications(json.data || [])
-        setPagination(json.pagination)
-      } else {
-        setError(json.error || 'Gagal memuat data sertifikasi')
-      }
+      const result = await safeFetch<{ data: CertificationRow[]; pagination: Pagination }>(`/api/v2/certification?${params}`)
+      setCertifications(result.data || [])
+      setPagination(result.pagination)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {

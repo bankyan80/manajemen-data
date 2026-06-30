@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Layers } from 'lucide-react'
 import type { Map as LeafletMap, LayerGroup } from 'leaflet'
+import { safeFetch } from '@/lib/safe-fetch'
 
 interface FeatureGeometry {
   coordinates: [number, number]
@@ -45,11 +46,8 @@ export default function GisClient() {
   useEffect(() => {
     async function loadMap() {
       try {
-        const res = await fetch(`/api/v2/gis/schools?layer=${activeLayer}`)
-        const json = await res.json()
-        if (json.success) {
-          setFeatures(json.data.features)
-        }
+        const result = await safeFetch<{ features: Feature[] }>(`/api/v2/gis/schools?layer=${activeLayer}`)
+        setFeatures(result.features || [])
       } catch (err) {
         console.error('Failed to load GIS data', err)
       } finally {

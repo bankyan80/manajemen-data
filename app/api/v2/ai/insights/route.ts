@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
 import { schools, employees, students } from '@/db/schema-v2'
@@ -6,7 +7,7 @@ import { eq, count, sql, and } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export const GET = () => safeApi(async () => {
   const { error: authErr } = await guardApi()
   if (authErr) return authErr
   const dbErr = guardDb(db)
@@ -115,4 +116,4 @@ export async function GET() {
       generatedAt: new Date().toISOString(),
     },
   })
-}
+})

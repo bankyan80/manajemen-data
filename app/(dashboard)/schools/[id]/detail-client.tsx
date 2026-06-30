@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { safeFetch } from '@/lib/safe-fetch'
 import {
   ArrowLeft, MapPin, School, Users, GraduationCap,
   Building2, Archive, ChevronLeft, ChevronRight,
@@ -124,13 +125,10 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
     if (activeTab === 'guru') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTeachersLoading(true)
-      fetch(`/api/v2/teachers?sekolah_id=${school.id}&page=${teacherPage}&limit=10`)
-        .then(r => r.json())
-        .then(json => {
-          if (json.success) {
-            setTeachers(json.data || [])
-            setTeacherTotalPages(json.pagination?.total_pages || 1)
-          }
+      safeFetch<any>(`/api/v2/teachers?sekolah_id=${school.id}&page=${teacherPage}&limit=10`)
+        .then(result => {
+          setTeachers(result.data || [])
+          setTeacherTotalPages(result.pagination?.total_pages || 1)
         })
         .catch(console.error)
         .finally(() => setTeachersLoading(false))
@@ -141,13 +139,10 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
     if (activeTab === 'siswa') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setStudentsLoading(true)
-      fetch(`/api/v2/students?school_id=${school.id}&page=${studentPage}&limit=10`)
-        .then(r => r.json())
-        .then(json => {
-          if (json.success) {
-            setStudents(json.data || [])
-            setStudentTotalPages(json.pagination?.total_pages || 1)
-          }
+      safeFetch<any>(`/api/v2/students?school_id=${school.id}&page=${studentPage}&limit=10`)
+        .then(result => {
+          setStudents(result.data || [])
+          setStudentTotalPages(result.pagination?.total_pages || 1)
         })
         .catch(console.error)
         .finally(() => setStudentsLoading(false))

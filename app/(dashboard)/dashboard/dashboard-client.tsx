@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { safeFetch } from '@/lib/safe-fetch'
 import {
   School, Users, GraduationCap, AlertTriangle,
   TrendingUp, Award, Clock, Building, AlertCircle,
@@ -73,18 +74,14 @@ export default function DashboardClient() {
   useEffect(() => {
     async function fetchAll() {
       try {
-        const [kpiRes, trendRes, alertRes] = await Promise.all([
-          fetch('/api/v2/dashboard/kpi'),
-          fetch('/api/v2/dashboard/trends'),
-          fetch('/api/v2/dashboard/alerts'),
+        const [kpiData, trendData, alertData] = await Promise.all([
+          safeFetch<any>('/api/v2/dashboard/kpi'),
+          safeFetch<any>('/api/v2/dashboard/trends'),
+          safeFetch<any>('/api/v2/dashboard/alerts'),
         ])
-        const kpiData = await kpiRes.json()
-        const trendData = await trendRes.json()
-        const alertData = await alertRes.json()
-
-        if (kpiData.success) setKpi(kpiData.data)
-        if (trendData.success) setTrends(trendData.data?.studentTrend || [])
-        if (alertData.success) setAlerts(alertData.data || [])
+        setKpi(kpiData)
+        setTrends(trendData?.studentTrend || [])
+        setAlerts(alertData || [])
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Gagal memuat data dashboard')
       } finally {

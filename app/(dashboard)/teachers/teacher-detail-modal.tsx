@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { safeFetch } from '@/lib/safe-fetch'
 
 interface TeacherDetail {
   id: string
@@ -30,11 +31,8 @@ export default function TeacherDetailModal({
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`/api/v2/teachers?id=${teacherId}`)
-      .then(r => r.json())
-      .then(json => {
-        if (json.success && json.data?.[0]) setTeacher(json.data[0])
-      })
+    safeFetch<TeacherDetail[]>(`/api/v2/teachers?id=${teacherId}`)
+      .then(data => { if (data?.[0]) setTeacher(data[0]) })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [teacherId])

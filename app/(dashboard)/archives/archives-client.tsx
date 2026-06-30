@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { safeFetch } from '@/lib/safe-fetch'
 import {
   Archive, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
   AlertCircle, FileText, Download, Eye, Upload,
@@ -80,14 +81,9 @@ export default function ArchivesClient() {
       if (search) params.set('q', search)
       if (categoryFilter) params.set('category', categoryFilter)
 
-      const res = await fetch(`/api/v2/archives?${params}`)
-      const json = await res.json()
-      if (json.success) {
-        setArchives(json.data || [])
-        setPagination(json.pagination)
-      } else {
-        setError(json.error || 'Gagal memuat data arsip')
-      }
+      const result = await safeFetch<{ data: ArchiveRow[]; pagination: Pagination }>(`/api/v2/archives?${params}`)
+      setArchives(result.data || [])
+      setPagination(result.pagination)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {

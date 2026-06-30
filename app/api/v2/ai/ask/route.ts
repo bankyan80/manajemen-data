@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
 import { schools, employees, students } from '@/db/schema-v2'
@@ -6,7 +7,7 @@ import { eq, count, and, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest) {
+export const GET = (req: NextRequest) => safeApi(async () => {
   const { error: authErr } = await guardApi()
   if (authErr) return authErr
   const dbErr = guardDb(db)
@@ -86,4 +87,4 @@ export async function GET(req: NextRequest) {
       answer: 'Maaf, saya belum bisa menjawab pertanyaan tersebut. Coba tanyakan tentang: kekurangan guru, sertifikasi, atau pensiun guru.',
     },
   })
-}
+})

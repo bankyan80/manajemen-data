@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { safeFetch } from '@/lib/safe-fetch'
 import {
   Building2, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
   AlertCircle, FlaskConical, BookOpen, DoorOpen,
@@ -138,15 +139,10 @@ export default function InfrastructureClient() {
       if (jenisFilter) params.set('jenis', jenisFilter)
       if (kondisiFilter) params.set('kondisi', kondisiFilter)
 
-      const res = await fetch(`/api/v2/infrastructure?${params}`)
-      const json = await res.json()
-      if (json.success) {
-        setItems(json.data || [])
-        setPagination(json.pagination)
-        if (json.summary) setSummary(json.summary)
-      } else {
-        setError(json.error || 'Gagal memuat data infrastruktur')
-      }
+      const result = await safeFetch<{ data: InfraItem[]; pagination: Pagination; summary: Summary }>(`/api/v2/infrastructure?${params}`)
+      setItems(result.data || [])
+      setPagination(result.pagination)
+      if (result.summary) setSummary(result.summary)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {

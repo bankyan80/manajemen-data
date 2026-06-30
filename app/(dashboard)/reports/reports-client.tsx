@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { safeFetch } from '@/lib/safe-fetch'
 import {
   Calendar, FileSpreadsheet, BarChart3, Map, Award, AlertTriangle,
   Download, Eye, FileText, AlertCircle,
@@ -107,9 +108,8 @@ export default function ReportsClient() {
 
   const fetchSchools = async () => {
     try {
-      const res = await fetch('/api/v2/schools')
-      const json = await res.json()
-      if (json.success) setSchools(json.data || [])
+      const result = await safeFetch<School[]>('/api/v2/schools')
+      setSchools(result || [])
     } catch {}
   }
 
@@ -125,9 +125,8 @@ export default function ReportsClient() {
     setError(null)
     setResult(null)
     try {
-      const res = await fetch('/api/v2/reports/generate', {
+      const result = await safeFetch<GenerateResponse['data']>('/api/v2/reports/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: selectedType,
           format,
@@ -135,25 +134,20 @@ export default function ReportsClient() {
           tahun_pelajaran: tahunPelajaran || undefined,
         }),
       })
-      const json = await res.json()
-      if (json.success) {
-        setResult(json.data)
-        const schoolNama = schoolId ? schools.find(s => s.id === schoolId)?.nama || null : null
-        const entry: ReportHistory = {
-          id: crypto.randomUUID(),
-          type: selectedType,
-          format,
-          school_id: schoolId || null,
-          school_nama: schoolNama,
-          tahun_pelajaran: tahunPelajaran || null,
-          generatedAt: json.data.generatedAt,
-          summary: json.data.summary,
-        }
-        saveToHistory(entry)
-        setHistory(loadHistory())
-      } else {
-        setError(json.error || 'Gagal generate laporan')
+      setResult(result)
+      const schoolNama = schoolId ? schools.find(s => s.id === schoolId)?.nama || null : null
+      const entry: ReportHistory = {
+        id: crypto.randomUUID(),
+        type: selectedType,
+        format,
+        school_id: schoolId || null,
+        school_nama: schoolNama,
+        tahun_pelajaran: tahunPelajaran || null,
+        generatedAt: result.generatedAt,
+        summary: result.summary,
       }
+      saveToHistory(entry)
+      setHistory(loadHistory())
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {

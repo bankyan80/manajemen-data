@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
 import { employees, schools } from '@/db/schema-v2'
@@ -6,7 +7,7 @@ import { count, eq, sql, desc } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest) {
+export const GET = (req: NextRequest) => safeApi(async () => {
   const { session, error } = await guardApi()
   if (error) return error
   const dbErr = guardDb(db)
@@ -78,4 +79,4 @@ export async function GET(req: NextRequest) {
     data: rows,
     pagination: { total, page, limit, total_pages: Math.ceil(total / limit) },
   })
-}
+})

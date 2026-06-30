@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
 import { schools, employees, students } from '@/db/schema'
@@ -6,7 +7,7 @@ import { eq, count, and, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(req: NextRequest) {
+export const POST = (req: NextRequest) => safeApi(async () => {
   const { session, error: authErr } = await guardApi('admin_kecamatan')
   if (authErr) return authErr
   const dbErr = guardDb(db)
@@ -116,4 +117,4 @@ export async function POST(req: NextRequest) {
       recommendations,
     },
   })
-}
+})

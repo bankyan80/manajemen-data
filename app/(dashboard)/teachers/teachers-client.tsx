@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { safeFetch } from '@/lib/safe-fetch'
 import {
   Users, Award, Clock, AlertCircle, Search, ChevronLeft, ChevronRight,
   SlidersHorizontal, FileText,
@@ -91,14 +92,9 @@ export default function TeachersClient() {
       if (search) params.set('q', search)
       if (statusFilter) params.set('status_pegawai', statusFilter)
 
-      const res = await fetch(`/api/v2/teachers?${params}`)
-      const json = await res.json()
-      if (json.success) {
-        setTeachers(json.data || [])
-        setPagination(json.pagination)
-      } else {
-        setError(json.error || 'Gagal memuat data guru')
-      }
+      const result = await safeFetch<{ data: TeacherRow[]; pagination: Pagination }>(`/api/v2/teachers?${params}`)
+      setTeachers(result.data || [])
+      setPagination(result.pagination)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {

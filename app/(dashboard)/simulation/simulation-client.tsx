@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { safeFetch } from '@/lib/safe-fetch'
 import {
   UserMinus, UserPlus, Shuffle, TrendingUp, Play,
   AlertCircle, ChevronUp, ChevronDown, Clock, Trash2,
@@ -176,19 +177,13 @@ export default function SimulationClient() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/v2/simulation', {
+      const result = await safeFetch<SimulationResult>('/api/v2/simulation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario: selectedScenario, params }),
       })
-      const json = await res.json()
-      if (json.success) {
-        setResult(json.data)
-        saveToHistory(json.data)
-        refreshHistory()
-      } else {
-        setError(json.error || 'Simulasi gagal')
-      }
+      setResult(result)
+      saveToHistory(result)
+      refreshHistory()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {

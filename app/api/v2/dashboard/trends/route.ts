@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
 import { studentRecaps, activityLogs, employees, schools } from '@/db/schema-v2'
@@ -24,7 +25,7 @@ function getLast12Months(): { year: number; month: number; label: string }[] {
   return result
 }
 
-export async function GET() {
+export const GET = () => safeApi(async () => {
   const { error } = await guardApi()
   if (error) return error
   const dbErr = guardDb(db)
@@ -99,4 +100,4 @@ export async function GET() {
       schoolTrend,
     },
   })
-}
+})
