@@ -53,3 +53,6 @@ lint-output.txt
 
 # legacy code archive (keep local only)
 _legacy/
+
+_check-users.ts
+scripts/
