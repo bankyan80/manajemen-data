@@ -51,8 +51,8 @@ export const GET = (req: NextRequest) => safeApi(async () => {
       is_active: schools.is_active,
       created_at: schools.created_at,
       updated_at: schools.updated_at,
-      teacherCount: sql<number>`(SELECT COUNT(*) FROM ${employees} WHERE ${employees.sekolah_id} = ${schools.id} AND ${employees.is_active} = 1)`,
-      studentCount: sql<number>`(SELECT COUNT(*) FROM ${students} WHERE ${students.school_id} = ${schools.id} AND ${students.status_siswa} = 'aktif')`,
+      teacherCount: sql<number>`(SELECT COUNT(*) FROM employees WHERE sekolah_id = ${schools.id} AND is_active = 1)`,
+      studentCount: sql<number>`(SELECT COUNT(*) FROM students WHERE school_id = ${schools.id} AND status_siswa = 'aktif')`,
     })
     .from(schools)
     .where(whereConditions)

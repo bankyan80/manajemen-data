@@ -22,7 +22,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
         id: schools.id,
         nama: schools.nama,
         desa: schools.desa,
-        teacherCount: sql<number>`(SELECT COUNT(*) FROM ${employees} WHERE ${employees.sekolah_id} = ${schools.id} AND ${employees.is_active} = 1)`,
+        teacherCount: sql<number>`(SELECT COUNT(*) FROM employees WHERE sekolah_id = ${schools.id} AND is_active = 1)`,
       })
       .from(schools)
       .where(eq(schools.is_active, 1))
