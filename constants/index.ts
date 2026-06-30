@@ -4,8 +4,11 @@ export const APP_DOMAIN = 'https://timker-bidik.online'
 
 export const ROLES = {
   ADMIN: 'admin_kecamatan' as const,
+  OPERATOR: 'operator_sekolah' as const,
   GURU: 'guru_tendik' as const,
 }
+
+export type MenuItemDef = { id: string; label: string; icon: string; href: string }
 
 export const KELAS_OPTIONS_SD = ['Kelas I', 'Kelas II', 'Kelas III', 'Kelas IV', 'Kelas V', 'Kelas VI']
 export const KELAS_OPTIONS_TK = ['A (Usia 4-5)', 'B (Usia 5-6)']
@@ -17,7 +20,7 @@ export const JENJANG_OPTIONS = [
   { value: 'kb', label: 'KB' },
 ]
 
-export const MENU_ITEMS: Record<string, { id: string; label: string; icon: string; href: string }[]> = {
+export const MENU_ITEMS: Record<string, MenuItemDef[]> = {
   admin_kecamatan: [
     { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard', href: '/dashboard' },
     { id: 'gis', label: 'GIS Education Map', icon: 'Map', href: '/gis' },
@@ -29,6 +32,15 @@ export const MENU_ITEMS: Record<string, { id: string; label: string; icon: strin
     { id: 'analytics', label: 'Analytics', icon: 'BarChart4', href: '/analytics' },
     { id: 'ai', label: 'AI Intelligence', icon: 'Brain', href: '/ai' },
     { id: 'simulation', label: 'Simulasi', icon: 'GitCompare', href: '/simulation' },
+    { id: 'reports', label: 'Laporan', icon: 'FileText', href: '/reports' },
+  ],
+  operator_sekolah: [
+    { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard', href: '/dashboard' },
+    { id: 'schools', label: 'Sekolah Saya', icon: 'School', href: '/schools' },
+    { id: 'teachers', label: 'Guru & Tendik', icon: 'Users', href: '/teachers' },
+    { id: 'certification', label: 'Sertifikasi', icon: 'Award', href: '/certification' },
+    { id: 'infrastructure', label: 'Infrastruktur', icon: 'Building2', href: '/infrastructure' },
+    { id: 'archives', label: 'Arsip', icon: 'Archive', href: '/archives' },
     { id: 'reports', label: 'Laporan', icon: 'FileText', href: '/reports' },
   ],
   guru_tendik: [

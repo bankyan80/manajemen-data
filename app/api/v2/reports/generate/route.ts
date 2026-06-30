@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
 import { schools, employees, students } from '@/db/schema'
-import { eq, count } from 'drizzle-orm'
+import { eq, and, count, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,17 +16,30 @@ export async function POST(req: NextRequest) {
   const { type, format, school_id, tahun_pelajaran } = body
 
   const _db = db!
+  const role = (session?.user as any)?.role as string
+  const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
 
-  const allSchools = await _db.select().from(schools).where(eq(schools.is_active, 1))
-  const [totalStudentsResult] = await _db.select({ value: count() }).from(students).where(eq(students.status_siswa, 'aktif'))
-  const [totalTeachersResult] = await _db.select({ value: count() }).from(employees).where(eq(employees.is_active, 1))
+  const effectiveSchoolId = role !== 'admin_kecamatan' && userSekolahId ? userSekolahId : school_id
+
+  const schoolFilter = effectiveSchoolId ? eq(schools.id, effectiveSchoolId) : eq(schools.is_active, 1)
+  const allSchools = await _db.select().from(schools).where(schoolFilter)
+
+  const studentFilter = effectiveSchoolId
+    ? and(eq(students.status_siswa, 'aktif'), eq(students.school_id, effectiveSchoolId))
+    : eq(students.status_siswa, 'aktif')
+  const employeeFilter = effectiveSchoolId
+    ? and(eq(employees.is_active, 1), eq(employees.sekolah_id, effectiveSchoolId))
+    : eq(employees.is_active, 1)
+
+  const [totalStudentsResult] = await _db.select({ value: count() }).from(students).where(studentFilter)
+  const [totalTeachersResult] = await _db.select({ value: count() }).from(employees).where(employeeFilter)
 
   return NextResponse.json({
     success: true,
     data: {
       type,
       format,
-      school_id: school_id || null,
+      school_id: effectiveSchoolId || null,
       tahun_pelajaran: tahun_pelajaran || null,
       generatedAt: new Date().toISOString(),
       summary: {

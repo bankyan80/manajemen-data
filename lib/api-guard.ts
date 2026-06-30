@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from './auth-v2'
 import type { LibSQLDatabase } from 'drizzle-orm/libsql'
 
-export type Role = 'admin_kecamatan' | 'guru_tendik'
+export type Role = 'admin_kecamatan' | 'operator_sekolah' | 'guru_tendik'
 
 export async function guardApi(requiredRole?: Role) {
   const session = await getServerSession(authOptions)

@@ -1,6 +1,7 @@
 // Role system — ONLY 2 roles
 export enum Role {
   ADMIN_KECAMATAN = 'admin_kecamatan',
+  OPERATOR_SEKOLAH = 'operator_sekolah',
   GURU_TENDIK = 'guru_tendik',
 }
 

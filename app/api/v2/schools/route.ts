@@ -7,12 +7,15 @@ import { count, eq, sql, desc } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  const { error } = await guardApi()
+  const { session, error } = await guardApi()
   if (error) return error
   const dbErr = guardDb(db)
   if (dbErr.error) return dbErr.error
 
   const _db = db!
+  const role = (session?.user as any)?.role as string
+  const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
+
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q')
   const jenjang = searchParams.get('jenjang')
@@ -21,6 +24,9 @@ export async function GET(req: NextRequest) {
   const offset = (page - 1) * limit
 
   let whereConditions = sql`1=1`
+  if (role !== 'admin_kecamatan' && userSekolahId) {
+    whereConditions = sql`${whereConditions} AND ${schools.id} = ${userSekolahId}`
+  }
   if (jenjang) whereConditions = sql`${whereConditions} AND ${schools.jenjang} = ${jenjang}`
   if (q) whereConditions = sql`${whereConditions} AND (${schools.nama} LIKE ${'%' + q + '%'} OR ${schools.npsn} LIKE ${'%' + q + '%'})`
 

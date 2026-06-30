@@ -94,8 +94,9 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
 }
 
-function mapRole(role: string | undefined): 'admin_kecamatan' | 'guru_tendik' {
+function mapRole(role: string | undefined): string {
   if (role === 'admin_kecamatan') return 'admin_kecamatan'
+  if (role === 'operator_sekolah') return 'operator_sekolah'
   return 'guru_tendik'
 }
 
