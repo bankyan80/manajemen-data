@@ -86,8 +86,8 @@ export default function SchoolsClient() {
       if (search) params.set('q', search)
       if (jenjang) params.set('jenjang', jenjang)
 
-      const result = await safeFetch<{ data: SchoolRow[]; pagination: Pagination }>(`/api/v2/schools?${params}`)
-      setSchools(result.data || [])
+      const result = await safeFetch<{ schools: SchoolRow[]; pagination: Pagination }>(`/api/v2/schools?${params}`)
+      setSchools(result.schools || [])
       setPagination(result.pagination)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')

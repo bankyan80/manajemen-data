@@ -127,7 +127,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
       setTeachersLoading(true)
       safeFetch<any>(`/api/v2/teachers?sekolah_id=${school.id}&page=${teacherPage}&limit=10`)
         .then(result => {
-          setTeachers(result.data || [])
+          setTeachers(result.teachers || [])
           setTeacherTotalPages(result.pagination?.total_pages || 1)
         })
         .catch(console.error)
@@ -141,7 +141,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
       setStudentsLoading(true)
       safeFetch<any>(`/api/v2/students?school_id=${school.id}&page=${studentPage}&limit=10`)
         .then(result => {
-          setStudents(result.data || [])
+          setStudents(result.students || [])
           setStudentTotalPages(result.pagination?.total_pages || 1)
         })
         .catch(console.error)

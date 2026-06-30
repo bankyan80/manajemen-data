@@ -92,8 +92,8 @@ export default function TeachersClient() {
       if (search) params.set('q', search)
       if (statusFilter) params.set('status_pegawai', statusFilter)
 
-      const result = await safeFetch<{ data: TeacherRow[]; pagination: Pagination }>(`/api/v2/teachers?${params}`)
-      setTeachers(result.data || [])
+      const result = await safeFetch<{ teachers: TeacherRow[]; pagination: Pagination }>(`/api/v2/teachers?${params}`)
+      setTeachers(result.teachers || [])
       setPagination(result.pagination)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')

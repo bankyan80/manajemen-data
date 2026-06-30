@@ -139,8 +139,9 @@ export default function InfrastructureClient() {
       if (jenisFilter) params.set('jenis', jenisFilter)
       if (kondisiFilter) params.set('kondisi', kondisiFilter)
 
-      const result = await safeFetch<{ data: InfraItem[]; pagination: Pagination; summary: Summary }>(`/api/v2/infrastructure?${params}`)
-      setItems(result.data || [])
+      const result = await safeFetch<{ items: InfraItem[]; pagination: Pagination; summary: Summary }>(`/api/v2/infrastructure?${params}`)
+      setItems(result.items || [])
+      setSummary(result.summary)
       setPagination(result.pagination)
       if (result.summary) setSummary(result.summary)
     } catch (err: unknown) {

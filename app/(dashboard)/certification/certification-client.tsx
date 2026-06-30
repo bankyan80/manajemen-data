@@ -97,8 +97,8 @@ export default function CertificationClient() {
       if (search) params.set('q', search)
       if (statusFilter) params.set('status', statusFilter)
 
-      const result = await safeFetch<{ data: CertificationRow[]; pagination: Pagination }>(`/api/v2/certification?${params}`)
-      setCertifications(result.data || [])
+      const result = await safeFetch<{ certifications: CertificationRow[]; pagination: Pagination }>(`/api/v2/certification?${params}`)
+      setCertifications(result.certifications || [])
       setPagination(result.pagination)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')

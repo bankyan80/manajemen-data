@@ -31,8 +31,8 @@ export default function TeacherDetailModal({
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    safeFetch<TeacherDetail[]>(`/api/v2/teachers?id=${teacherId}`)
-      .then(data => { if (data?.[0]) setTeacher(data[0]) })
+    safeFetch<{ teachers: TeacherDetail[] }>(`/api/v2/teachers?id=${teacherId}`)
+      .then(data => { if (data.teachers?.[0]) setTeacher(data.teachers[0]) })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [teacherId])

@@ -65,7 +65,9 @@ export const GET = (req: NextRequest) => safeApi(async () => {
 
   return NextResponse.json({
     success: true,
-    data: rows,
-    pagination: { total, page, limit, total_pages: Math.ceil(total / limit) },
+    data: {
+      archives: rows,
+      pagination: { total, page, limit, total_pages: Math.ceil(total / limit) },
+    },
   })
 })

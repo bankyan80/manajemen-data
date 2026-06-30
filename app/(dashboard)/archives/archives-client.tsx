@@ -81,8 +81,8 @@ export default function ArchivesClient() {
       if (search) params.set('q', search)
       if (categoryFilter) params.set('category', categoryFilter)
 
-      const result = await safeFetch<{ data: ArchiveRow[]; pagination: Pagination }>(`/api/v2/archives?${params}`)
-      setArchives(result.data || [])
+      const result = await safeFetch<{ archives: ArchiveRow[]; pagination: Pagination }>(`/api/v2/archives?${params}`)
+      setArchives(result.archives || [])
       setPagination(result.pagination)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')

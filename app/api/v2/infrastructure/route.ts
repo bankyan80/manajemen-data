@@ -120,8 +120,10 @@ export const GET = (req: NextRequest) => safeApi(async () => {
 
   return NextResponse.json({
     success: true,
-    data: rows,
-    summary,
-    pagination: { total, page, limit, total_pages: Math.ceil(total / limit) },
+    data: {
+      items: rows,
+      summary,
+      pagination: { total, page, limit, total_pages: Math.ceil(total / limit) },
+    },
   })
 })
