@@ -7,6 +7,9 @@ const protectedPaths = [
   "/kurikulum", "/sarpras", "/kelembagaan", "/spmb",
   "/transisi-sd-smp", "/kegiatan-prestasi", "/monitoring",
   "/rekap-kecamatan", "/cetak-export", "/pengaturan",
+  "/schools", "/teachers", "/certification", "/infrastructure",
+  "/archives", "/ai", "/simulation", "/reports", "/gis",
+  "/profile",
 ];
 
 const securityHeaders = {
@@ -73,6 +76,15 @@ export async function proxy(req: NextRequest) {
         return addSecurityHeaders(res);
       }
     }
+
+    if (role === "guru_tendik") {
+      const allowedPaths = ["/dashboard", "/certification", "/archives", "/profile"];
+      const isAllowed = allowedPaths.some((p) => path.startsWith(p));
+      if (!isAllowed && path !== "/") {
+        const res = NextResponse.redirect(new URL("/dashboard", req.url));
+        return addSecurityHeaders(res);
+      }
+    }
   }
 
   const res = NextResponse.next();
@@ -97,5 +109,15 @@ export const config = {
     "/cetak-export/:path*",
     "/pengaturan/:path*",
     "/login",
+    "/schools/:path*",
+    "/teachers/:path*",
+    "/certification/:path*",
+    "/infrastructure/:path*",
+    "/archives/:path*",
+    "/ai/:path*",
+    "/simulation/:path*",
+    "/reports/:path*",
+    "/gis/:path*",
+    "/profile/:path*",
   ],
 };
