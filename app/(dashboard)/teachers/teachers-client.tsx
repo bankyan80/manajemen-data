@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
-import { useSort } from '@/lib/use-sort'
 import {
   Users, Award, Clock, AlertCircle, Search, ChevronLeft, ChevronRight,
   SlidersHorizontal, FileText, ArrowUp, ArrowDown,
@@ -99,7 +98,13 @@ export default function TeachersClient() {
     sertifikasiDistribution: Record<string, number>
     retiringSoon: number
   }>({ totalActive: 0, statusDistribution: {}, sertifikasiDistribution: {}, retiringSoon: 0 })
-  const { sorted: sortedTeachers, sort, toggle } = useSort(teachers, 'nama')
+  const [sortKey, setSortKey] = useState('nama')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+
+  const toggleSort = (key: string) => {
+    setSortKey(key)
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+  }
 
   const fetchTeachers = useCallback(async (page: number = 1) => {
     setLoading(true)
@@ -110,6 +115,8 @@ export default function TeachersClient() {
       params.set('limit', '20')
       if (search) params.set('q', search)
       if (statusFilter) params.set('status_pegawai', statusFilter)
+      params.set('sort_by', sortKey)
+      params.set('sort_order', sortOrder)
 
       const result = await safeFetch<{ teachers: TeacherRow[]; pagination: Pagination; summary: { totalActive: number; statusDistribution: Record<string, number>; sertifikasiDistribution: Record<string, number>; retiringSoon: number } }>(`/api/v2/teachers?${params}`)
       setTeachers(result.teachers || [])
@@ -120,12 +127,12 @@ export default function TeachersClient() {
     } finally {
       setLoading(false)
     }
-  }, [search, statusFilter])
+  }, [search, statusFilter, sortKey, sortOrder])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTeachers(1)
-  }, [statusFilter, fetchTeachers])
+  }, [statusFilter, sortKey, sortOrder, fetchTeachers])
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -340,11 +347,11 @@ export default function TeachersClient() {
                         { key: 'tanggal_bup', label: 'Pensiun' },
                         { key: 'school_nama', label: 'Sekolah' },
                       ].map(col => (
-                        <th key={col.key} className="cursor-pointer select-none" onClick={() => toggle(col.key)}>
+                        <th key={col.key} className="cursor-pointer select-none" onClick={() => toggleSort(col.key)}>
                           <div className="flex items-center gap-1">
                             {col.label}
-                            {sort.key === col.key ? (
-                              sort.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                            {sortKey === col.key ? (
+                              sortOrder === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
                             ) : (
                               <ArrowUp className="w-3 h-3 opacity-0" />
                             )}
@@ -354,7 +361,7 @@ export default function TeachersClient() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedTeachers.map(t => (
+                    {teachers.map(t => (
                       <tr
                         key={t.id}
                         className="cursor-pointer"

@@ -3,7 +3,7 @@ import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
 import { employees, schools } from '@/db/schema-v2'
-import { count, eq, sql, desc } from 'drizzle-orm'
+import { count, eq, sql, asc, desc } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +26,25 @@ export const GET = (req: NextRequest) => safeApi(async () => {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
   const offset = (page - 1) * limit
+
+  const sortBy = searchParams.get('sort_by') || ''
+  const sortOrder = searchParams.get('sort_order') || 'asc'
+
+  const sortableColumns: Record<string, any> = {
+    nama: employees.nama,
+    nik: employees.nik,
+    nip: employees.nip,
+    status_pegawai: employees.status_pegawai,
+    sertifikasi: employees.sertifikasi,
+    jabatan: employees.jabatan,
+    tmt_kerja: employees.tmt_kerja,
+    tanggal_bup: employees.tanggal_bup,
+    school_nama: schools.nama,
+    created_at: employees.created_at,
+  }
+
+  const orderByColumn = sortableColumns[sortBy] || employees.created_at
+  const orderBy = sortOrder === 'asc' ? asc(orderByColumn) : desc(orderByColumn)
 
   // Base condition (role/school filter only)
   let baseCondition = sql`${employees.is_active} = 1 AND ${employees.sekolah_id} IN (SELECT id FROM schools WHERE status = 'negeri')`
@@ -80,7 +99,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     .from(employees)
     .leftJoin(schools, eq(employees.sekolah_id, schools.id))
     .where(whereConditions)
-    .orderBy(desc(employees.created_at))
+    .orderBy(orderBy)
     .limit(limit)
     .offset(offset)
 
