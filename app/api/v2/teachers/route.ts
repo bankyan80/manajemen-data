@@ -18,6 +18,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
   const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
 
   const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
   const sekolah_id = searchParams.get('sekolah_id')
   const status_pegawai = searchParams.get('status_pegawai')
   const sertifikasi = searchParams.get('sertifikasi')
@@ -27,6 +28,9 @@ export const GET = (req: NextRequest) => safeApi(async () => {
   const offset = (page - 1) * limit
 
   let whereConditions = sql`1=1`
+  if (id) {
+    whereConditions = sql`${whereConditions} AND ${employees.id} = ${id}`
+  }
   if (role !== 'admin_kecamatan' && userSekolahId) {
     whereConditions = sql`${whereConditions} AND ${employees.sekolah_id} = ${userSekolahId}`
   } else if (sekolah_id) {
@@ -78,7 +82,74 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     success: true,
     data: {
       teachers: rows,
-      pagination: { total, page, limit, total_pages: Math.ceil(total / limit) },
+      pagination: id ? undefined : { total, page, limit, total_pages: Math.ceil(total / limit) },
     },
   })
+})
+
+export const PUT = (req: NextRequest) => safeApi(async () => {
+  const { session, error } = await guardApi()
+  if (error) return error
+  const dbErr = guardDb(db)
+  if (dbErr.error) return dbErr.error
+
+  const _db = db!
+  const role = (session?.user as any)?.role as string
+  const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
+
+  const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ success: false, error: 'ID diperlukan' }, { status: 400 })
+
+  const body = await req.json()
+  const allowedFields = [
+    'nama', 'nik', 'nip', 'nuptk', 'email', 'no_hp',
+    'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
+    'jabatan', 'status_pegawai', 'pangkat_golongan',
+    'pendidikan_terakhir', 'jurusan', 'tmt_kerja',
+    'tanggal_bup', 'foto_url',
+  ]
+
+  const updateData: Record<string, any> = {}
+  for (const field of allowedFields) {
+    if (body[field] !== undefined) updateData[field] = body[field]
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ success: false, error: 'Tidak ada data yang diupdate' }, { status: 400 })
+  }
+
+  const existing = await _db.select({ id: employees.id, sekolah_id: employees.sekolah_id }).from(employees).where(eq(employees.id, id)).limit(1)
+  if (existing.length === 0) {
+    return NextResponse.json({ success: false, error: 'Guru tidak ditemukan' }, { status: 404 })
+  }
+
+  if (role !== 'admin_kecamatan' && userSekolahId && existing[0].sekolah_id !== userSekolahId) {
+    return NextResponse.json({ success: false, error: 'Tidak memiliki akses ke guru ini' }, { status: 403 })
+  }
+
+  await _db.update(employees).set(updateData).where(eq(employees.id, id))
+
+  return NextResponse.json({ success: true, data: { message: 'Data guru berhasil diupdate' } })
+})
+
+export const DELETE = (req: NextRequest) => safeApi(async () => {
+  const { session, error } = await guardApi('admin_kecamatan')
+  if (error) return error
+  const dbErr = guardDb(db)
+  if (dbErr.error) return dbErr.error
+
+  const _db = db!
+  const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ success: false, error: 'ID diperlukan' }, { status: 400 })
+
+  const existing = await _db.select({ id: employees.id }).from(employees).where(eq(employees.id, id)).limit(1)
+  if (existing.length === 0) {
+    return NextResponse.json({ success: false, error: 'Guru tidak ditemukan' }, { status: 404 })
+  }
+
+  await _db.delete(employees).where(eq(employees.id, id))
+
+  return NextResponse.json({ success: true, data: { message: 'Guru berhasil dihapus' } })
 })

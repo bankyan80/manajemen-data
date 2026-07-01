@@ -428,6 +428,7 @@ export default function TeachersClient() {
         <TeacherDetailModal
           teacherId={selectedTeacherId}
           onClose={() => setSelectedTeacherId(null)}
+          onUpdated={() => fetchTeachers(pagination.page)}
         />
       )}
     </div>
