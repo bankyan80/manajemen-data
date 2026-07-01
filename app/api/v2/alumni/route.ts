@@ -77,3 +77,43 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 });
   }
   }
+
+export async function POST(req: NextRequest) {
+  try {
+  if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const role = (session?.user as any)?.role
+  const userSekolahId = (session?.user as any)?.sekolah_id
+
+  const body = await req.json()
+  const schoolId = role === 'operator_sekolah' ? userSekolahId : body.school_id
+  if (!schoolId) return NextResponse.json({ error: 'School ID wajib' }, { status: 400 })
+  if (!body.tahun_lulus || !body.nama || !body.kelas) {
+    return NextResponse.json({ error: 'Tahun lulus, nama, dan kelas wajib' }, { status: 400 })
+  }
+
+  const id = crypto.randomUUID()
+  const now = Date.now()
+  await db.insert(alumni).values({
+    id,
+    school_id: schoolId,
+    tahun_lulus: body.tahun_lulus,
+    nama: body.nama,
+    nisn: body.nisn || null,
+    nik: body.nik || null,
+    jenis_kelamin: body.jenis_kelamin || null,
+    tempat_lahir: body.tempat_lahir || null,
+    tanggal_lahir: body.tanggal_lahir || null,
+    kelas: body.kelas,
+    tujuan: body.tujuan || null,
+    created_at: now,
+    updated_at: now,
+  })
+
+  return NextResponse.json({ success: true, id }, { status: 201 })
+  } catch (e) {
+    console.error('[API Error]', e)
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 })
+  }
+}

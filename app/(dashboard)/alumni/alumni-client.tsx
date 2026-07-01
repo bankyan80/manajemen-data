@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
-import { GraduationCap, Save, X, Loader2 } from 'lucide-react'
+import { GraduationCap, Save, X, Loader2, Plus } from 'lucide-react'
 
 export default function AlumniClient() {
   const [items, setItems] = useState<any[]>([])
@@ -11,6 +11,9 @@ export default function AlumniClient() {
   const [tahunList, setTahunList] = useState<string[]>([])
   const [saving, setSaving] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Record<string, Record<string, number>>>({})
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addForm, setAddForm] = useState({ tahun_lulus: '', nama: '', nisn: '', nik: '', jenis_kelamin: 'laki-laki', kelas: '', tujuan: '' })
+  const [addSaving, setAddSaving] = useState(false)
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
@@ -65,6 +68,19 @@ export default function AlumniClient() {
     finally { setSaving(null) }
   }
 
+  const handleAddAlumni = async () => {
+    if (!addForm.tahun_lulus || !addForm.nama || !addForm.kelas) { alert('Tahun lulus, nama, dan kelas wajib'); return }
+    setAddSaving(true)
+    try {
+      await safeFetch('/api/v2/alumni', { method: 'POST', body: JSON.stringify(addForm) })
+      setShowAddForm(false)
+      setAddForm({ tahun_lulus: '', nama: '', nisn: '', nik: '', jenis_kelamin: 'laki-laki', kelas: '', tujuan: '' })
+      setTahunFilter(addForm.tahun_lulus)
+      fetchItems()
+    } catch (err: unknown) { alert(err instanceof Error ? err.message : 'Gagal menambah') }
+    finally { setAddSaving(false) }
+  }
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -74,8 +90,27 @@ export default function AlumniClient() {
         </div>
         <div className="flex items-center gap-2">
           <span className="badge bg-primary/10 text-primary">{items.length} Lulusan</span>
+          <button onClick={() => setShowAddForm(true)} className="btn btn-primary btn-sm flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Tambah Alumni</button>
         </div>
       </div>
+
+      {showAddForm && (
+        <div className="card p-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div><label className="block text-xs text-slate-500 mb-1">Tahun Lulus</label><input type="text" value={addForm.tahun_lulus} onChange={e => setAddForm(f => ({ ...f, tahun_lulus: e.target.value }))} className="input text-sm" placeholder="2025/2026" /></div>
+            <div><label className="block text-xs text-slate-500 mb-1">Nama</label><input value={addForm.nama} onChange={e => setAddForm(f => ({ ...f, nama: e.target.value }))} className="input text-sm" placeholder="Nama siswa" /></div>
+            <div><label className="block text-xs text-slate-500 mb-1">NISN</label><input value={addForm.nisn} onChange={e => setAddForm(f => ({ ...f, nisn: e.target.value }))} className="input text-sm" /></div>
+            <div><label className="block text-xs text-slate-500 mb-1">NIK</label><input value={addForm.nik} onChange={e => setAddForm(f => ({ ...f, nik: e.target.value }))} className="input text-sm" /></div>
+            <div><label className="block text-xs text-slate-500 mb-1">JK</label><select value={addForm.jenis_kelamin} onChange={e => setAddForm(f => ({ ...f, jenis_kelamin: e.target.value }))} className="input select text-sm"><option value="laki-laki">Laki-laki</option><option value="perempuan">Perempuan</option></select></div>
+            <div><label className="block text-xs text-slate-500 mb-1">Kelas</label><input value={addForm.kelas} onChange={e => setAddForm(f => ({ ...f, kelas: e.target.value }))} className="input text-sm" placeholder="Kelas VI" /></div>
+            <div><label className="block text-xs text-slate-500 mb-1">Tujuan</label><select value={addForm.tujuan} onChange={e => setAddForm(f => ({ ...f, tujuan: e.target.value }))} className="input select text-sm"><option value="">-</option><option value="smp_negeri">SMP Negeri</option><option value="smp_swasta">SMP Swasta</option><option value="pondok">Pondok Pesantren</option><option value="tidak_melanjutkan">Tidak Melanjutkan</option></select></div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button onClick={handleAddAlumni} disabled={addSaving} className="btn btn-primary btn-sm flex items-center gap-1">{addSaving ? 'Menyimpan...' : 'Simpan'}</button>
+            <button onClick={() => setShowAddForm(false)} className="btn btn-ghost btn-sm">Batal</button>
+          </div>
+        </div>
+      )}
 
       <div className="card mb-6">
         <div className="p-4">
