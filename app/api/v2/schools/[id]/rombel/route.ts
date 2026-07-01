@@ -20,8 +20,8 @@ export const GET = (req: NextRequest, { params }: { params: Promise<{ id: string
     .select({
       kelas_kelompok: students.kelas_kelompok,
       total: count(),
-      laki: sql<number>`SUM(CASE WHEN ${students.jenis_kelamin} = 'laki-laki' THEN 1 ELSE 0 END)`,
-      perempuan: sql<number>`SUM(CASE WHEN ${students.jenis_kelamin} = 'perempuan' THEN 1 ELSE 0 END)`,
+      laki: sql<number>`SUM(CASE WHEN ${students.jenis_kelamin} IN ('laki-laki', 'L', 'Laki-laki') THEN 1 ELSE 0 END)`,
+      perempuan: sql<number>`SUM(CASE WHEN ${students.jenis_kelamin} IN ('perempuan', 'P', 'Perempuan') THEN 1 ELSE 0 END)`,
     })
     .from(students)
     .where(and(eq(students.school_id, id), eq(students.status_siswa, 'aktif')))
