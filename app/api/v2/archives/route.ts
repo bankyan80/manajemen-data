@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
-import { arsipDigital, schools } from '@/db/schema-v2'
+import { arsipDigital, schools, employees } from '@/db/schema-v2'
 import { count, eq, sql, desc } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
@@ -76,9 +76,11 @@ export const GET = (req: NextRequest) => safeApi(async () => {
       uploaded_by: arsipDigital.uploaded_by,
       uploaded_at: arsipDigital.uploaded_at,
       school_nama: schools.nama,
+      employee_nama: employees.nama,
     })
     .from(arsipDigital)
     .leftJoin(schools, eq(arsipDigital.school_id, schools.id))
+    .leftJoin(employees, eq(arsipDigital.employee_id, employees.id))
     .where(whereConditions)
     .orderBy(desc(arsipDigital.uploaded_at))
     .limit(limit)

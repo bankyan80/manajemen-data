@@ -24,6 +24,7 @@ interface ArchiveRow {
   uploaded_by?: string
   uploaded_at: number
   school_nama?: string
+  employee_nama?: string
 }
 
 interface Pagination {
@@ -228,6 +229,8 @@ export default function ArchivesClient() {
                         { key: 'category', label: 'Kategori' },
                         { key: 'file_type', label: 'Tipe' },
                         { key: 'file_size', label: 'Ukuran' },
+                        { key: 'employee_nama', label: 'Nama Pegawai' },
+                        { key: 'school_nama', label: 'Sekolah' },
                         { key: 'uploaded_at', label: 'Tanggal Upload' },
                         { key: '', label: 'Aksi' },
                       ].map(col => (
@@ -269,6 +272,8 @@ export default function ArchivesClient() {
                           </td>
                           <td className="text-sm text-slate-500 font-mono">{doc.file_type?.split('/')[1] || doc.file_type}</td>
                           <td className="text-sm text-slate-500">{formatBytes(doc.file_size)}</td>
+                          <td className="text-sm text-slate-700">{doc.employee_nama || '-'}</td>
+                          <td className="text-sm text-slate-500">{doc.school_nama || '-'}</td>
                           <td className="text-sm text-slate-500">{formatDate(doc.uploaded_at)}</td>
                           <td>
                             <div className="flex items-center gap-1">
