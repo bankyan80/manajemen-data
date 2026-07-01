@@ -139,14 +139,6 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
 
   const [infraData, setInfraData] = useState<any[]>([])
   const [infraLoading, setInfraLoading] = useState(false)
-  const [showAddInfra, setShowAddInfra] = useState(false)
-  const [infraForm, setInfraForm] = useState<Record<string, string>>({ jenis_ruang: '', nama_ruang: '', kapasitas_siswa: '', kondisi_non_struktur: 'baik' })
-  const [editingInfra, setEditingInfra] = useState<string | null>(null)
-  const [infraEditForm, setInfraEditForm] = useState<Record<string, string>>({})
-  const [savingInfra, setSavingInfra] = useState(false)
-
-  const JENIS_RUANG = ['ruang_kelas', 'laboratorium', 'perpustakaan', 'wc', 'guru', 'kepala_sekolah', 'tata_usaha', 'ibadah', 'UKS', 'gudang', 'lainnya']
-  const KONDISI_RUANG = ['baik', 'sedang', 'rusak_ringan', 'rusak_berat']
 
   const loadInfra = () => {
     setInfraLoading(true)
@@ -213,47 +205,6 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   useEffect(() => {
     if (activeTab === 'infrastruktur') loadInfra()
   }, [activeTab, school.id])
-
-  const handleAddInfra = async () => {
-    const { jenis_ruang, nama_ruang, kapasitas_siswa, kondisi_non_struktur } = infraForm
-    if (!jenis_ruang || !nama_ruang) { alert('Jenis dan nama ruang wajib diisi'); return }
-    setSavingInfra(true)
-    try {
-      await safeFetch('/api/sarpras/ruang/', {
-        method: 'POST',
-        body: JSON.stringify({ school_id: school.id, jenis_ruang, nama_ruang, kapasitas_siswa: parseInt(kapasitas_siswa) || 0, kondisi_non_struktur }),
-      })
-      setShowAddInfra(false)
-      setInfraForm({ jenis_ruang: '', nama_ruang: '', kapasitas_siswa: '', kondisi_non_struktur: 'baik' })
-      loadInfra()
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Gagal menambahkan')
-    } finally { setSavingInfra(false) }
-  }
-
-  const handleEditInfra = async (id: string) => {
-    setSavingInfra(true)
-    try {
-      await safeFetch(`/api/v2/infrastructure/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(infraEditForm),
-      })
-      setEditingInfra(null)
-      loadInfra()
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Gagal menyimpan')
-    } finally { setSavingInfra(false) }
-  }
-
-  const handleDeleteInfra = async (id: string, nama: string) => {
-    if (!confirm(`Yakin ingin menghapus "${nama}"?`)) return
-    try {
-      await safeFetch(`/api/sarpras/ruang/${id}`, { method: 'DELETE' })
-      loadInfra()
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Gagal menghapus')
-    }
-  }
 
   const handleAddRombel = async () => {
     const rombel = newRombelName.trim()
@@ -802,46 +753,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
 
           {activeTab === 'infrastruktur' && (
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-700">Data Infrastruktur</h3>
-                <button onClick={() => { setShowAddInfra(true); setInfraForm({ jenis_ruang: '', nama_ruang: '', kapasitas_siswa: '', kondisi_non_struktur: 'baik' }) }} className="btn btn-primary btn-sm flex items-center gap-1">
-                  <Plus className="w-3.5 h-3.5" /> Tambah
-                </button>
-              </div>
-
-              {showAddInfra && (
-                <div className="p-4 mb-4 rounded-xl bg-slate-50 border border-border">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">Jenis Ruang</label>
-                      <select className="input" value={infraForm.jenis_ruang} onChange={e => setInfraForm(p => ({ ...p, jenis_ruang: e.target.value }))}>
-                        <option value="">Pilih</option>
-                        {JENIS_RUANG.map(j => <option key={j} value={j}>{j.replace(/_/g, ' ')}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">Nama Ruang</label>
-                      <input className="input" value={infraForm.nama_ruang} onChange={e => setInfraForm(p => ({ ...p, nama_ruang: e.target.value }))} placeholder="Ruang Kelas 1" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">Kapasitas</label>
-                      <input className="input" type="number" min="0" value={infraForm.kapasitas_siswa} onChange={e => setInfraForm(p => ({ ...p, kapasitas_siswa: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">Kondisi</label>
-                      <select className="input" value={infraForm.kondisi_non_struktur} onChange={e => setInfraForm(p => ({ ...p, kondisi_non_struktur: e.target.value }))}>
-                        {KONDISI_RUANG.map(k => <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={handleAddInfra} disabled={savingInfra} className="btn btn-primary btn-sm flex items-center gap-1">
-                      {savingInfra ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />} Simpan
-                    </button>
-                    <button onClick={() => setShowAddInfra(false)} className="btn btn-ghost btn-sm">Batal</button>
-                  </div>
-                </div>
-              )}
+              <h3 className="text-sm font-semibold text-slate-700 mb-4">Data Infrastruktur</h3>
 
               {infraLoading ? (
                 <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-12 skeleton w-full" />)}</div>
@@ -859,62 +771,18 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                         <th>Nama Ruang</th>
                         <th>Kapasitas</th>
                         <th>Kondisi</th>
-                        <th className="w-20">Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
                       {infraData.map((r: any) => (
                         <tr key={r.id}>
+                          <td><span className="badge bg-slate-100 text-slate-600 text-[11px]">{r.jenis?.replace(/_/g, ' ') || '-'}</span></td>
+                          <td className="font-medium text-slate-800 text-sm">{r.nama || '-'}</td>
+                          <td className="text-slate-600 text-sm">{r.jumlah || 0}</td>
                           <td>
-                            {editingInfra === r.id ? (
-                              <select className="input text-xs py-1 px-2" value={infraEditForm.jenis_ruang || ''} onChange={e => setInfraEditForm(p => ({ ...p, jenis_ruang: e.target.value }))}>
-                                {JENIS_RUANG.map(j => <option key={j} value={j}>{j.replace(/_/g, ' ')}</option>)}
-                              </select>
-                            ) : <span className="badge bg-slate-100 text-slate-600 text-[11px]">{r.jenis?.replace(/_/g, ' ') || '-'}</span>}
-                          </td>
-                          <td className="font-medium text-slate-800 text-sm">
-                            {editingInfra === r.id ? (
-                              <input className="input text-xs py-1 px-2" value={infraEditForm.nama_ruang || ''} onChange={e => setInfraEditForm(p => ({ ...p, nama_ruang: e.target.value }))} />
-                            ) : r.nama || '-'}
-                          </td>
-                          <td className="text-slate-600 text-sm">
-                            {editingInfra === r.id ? (
-                              <input className="input text-xs py-1 px-2 w-16 text-center" type="number" min="0" value={infraEditForm.kapasitas_siswa || ''} onChange={e => setInfraEditForm(p => ({ ...p, kapasitas_siswa: e.target.value }))} />
-                            ) : r.jumlah || 0}
-                          </td>
-                          <td>
-                            {editingInfra === r.id ? (
-                              <select className="input text-xs py-1 px-2" value={infraEditForm.kondisi_non_struktur || ''} onChange={e => setInfraEditForm(p => ({ ...p, kondisi_non_struktur: e.target.value }))}>
-                                {KONDISI_RUANG.map(k => <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>)}
-                              </select>
-                            ) : (
-                              <span className={cn("badge text-[11px]", r.kondisi === 'baik' ? "bg-green-50 text-green-700" : r.kondisi === 'sedang' ? "bg-blue-50 text-blue-700" : "bg-red-50 text-red-700")}>
-                                {r.kondisi?.replace(/_/g, ' ') || '-'}
-                              </span>
-                            )}
-                          </td>
-                          <td>
-                            <div className="flex items-center gap-1">
-                              {editingInfra === r.id ? (
-                                <>
-                                  <button onClick={() => handleEditInfra(r.id)} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600" title="Simpan">
-                                    <Save className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button onClick={() => setEditingInfra(null)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400" title="Batal">
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <button onClick={() => { setEditingInfra(r.id); setInfraEditForm({ nama_ruang: r.nama || '', jenis_ruang: r.jenis || '', kapasitas_siswa: String(r.jumlah || 0), kondisi_non_struktur: r.kondisi || '' }) }} className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-500" title="Edit">
-                                    <Pencil className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button onClick={() => handleDeleteInfra(r.id, r.nama || '')} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500" title="Hapus">
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
+                            <span className={cn("badge text-[11px]", r.kondisi === 'baik' ? "bg-green-50 text-green-700" : r.kondisi === 'sedang' ? "bg-blue-50 text-blue-700" : "bg-red-50 text-red-700")}>
+                              {r.kondisi?.replace(/_/g, ' ') || '-'}
+                            </span>
                           </td>
                         </tr>
                       ))}
