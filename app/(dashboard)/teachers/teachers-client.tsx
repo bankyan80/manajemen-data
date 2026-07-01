@@ -25,6 +25,17 @@ interface TeacherRow {
   sekolah_id: string
 }
 
+function getPensiunInfo(tanggalBup?: string): { label: string; color: string; date: string } {
+  if (!tanggalBup) return { label: 'Aman', color: 'bg-slate-100 text-slate-500', date: '-' }
+  const bup = new Date(tanggalBup)
+  const now = new Date()
+  const diffMonths = (bup.getFullYear() - now.getFullYear()) * 12 + (bup.getMonth() - now.getMonth())
+  const dateStr = bup.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+  if (diffMonths < 0) return { label: 'Melebihi BUP', color: 'bg-red-100 text-red-700', date: dateStr }
+  if (diffMonths <= 12) return { label: 'Akan Pensiun', color: 'bg-orange-100 text-orange-700', date: dateStr }
+  return { label: 'Aman', color: 'bg-slate-100 text-slate-500', date: dateStr }
+}
+
 interface Pagination {
   total: number
   page: number
@@ -336,6 +347,7 @@ export default function TeachersClient() {
                       <th>Jabatan</th>
                       <th>Status Pegawai</th>
                       <th>Sertifikasi</th>
+                      <th>Pensiun</th>
                       <th>Sekolah</th>
                     </tr>
                   </thead>
@@ -371,6 +383,17 @@ export default function TeachersClient() {
                               Belum
                             </span>
                           )}
+                        </td>
+                        <td>
+                          {(() => {
+                            const p = getPensiunInfo(t.tanggal_bup)
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <span className={cn('badge text-[10px]', p.color)}>{p.label}</span>
+                                {p.date !== '-' && <span className="text-[10px] text-slate-400">{p.date}</span>}
+                              </div>
+                            )
+                          })()}
                         </td>
                         <td className="text-sm text-slate-500 max-w-[200px] truncate">
                           {t.school_nama || '-'}
