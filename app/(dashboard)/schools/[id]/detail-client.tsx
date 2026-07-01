@@ -131,6 +131,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [rombel, setRombel] = useState<any[]>([])
   const [rombelLoading, setRombelLoading] = useState(false)
   const [rombelSummary, setRombelSummary] = useState({ totalSiswa: 0, totalRombel: 0 })
+  const [rombelTeachers, setRombelTeachers] = useState<any[]>([])
 
   const [editingProfil, setEditingProfil] = useState(false)
   const [profilForm, setProfilForm] = useState({ alamat: school.alamat, desa: school.desa, kepala_id: school.kepala_id || '' })
@@ -139,6 +140,8 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
   const [editingSiswa, setEditingSiswa] = useState<string | null>(null)
   const [siswaForm, setSiswaForm] = useState<Record<string, string>>({})
+  const [editingRombel, setEditingRombel] = useState<string | null>(null)
+  const [savingRombel, setSavingRombel] = useState(false)
 
   const health = getHealthGrade(school.health_score)
 
@@ -182,17 +185,20 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
     }
   }, [activeTab, studentPage, school.id])
 
+  const loadRombel = () => {
+    setRombelLoading(true)
+    safeFetch<any>(`/api/v2/schools/${school.id}/rombel`)
+      .then(result => {
+        setRombel(result.rombel || [])
+        setRombelSummary({ totalSiswa: result.totalSiswa || 0, totalRombel: result.totalRombel || 0 })
+        setRombelTeachers(result.teachers || [])
+      })
+      .catch(console.error)
+      .finally(() => setRombelLoading(false))
+  }
+
   useEffect(() => {
-    if (activeTab === 'rombel') {
-      setRombelLoading(true)
-      safeFetch<any>(`/api/v2/schools/${school.id}/rombel`)
-        .then(result => {
-          setRombel(result.rombel || [])
-          setRombelSummary({ totalSiswa: result.totalSiswa || 0, totalRombel: result.totalRombel || 0 })
-        })
-        .catch(console.error)
-        .finally(() => setRombelLoading(false))
-    }
+    if (activeTab === 'rombel') loadRombel()
   }, [activeTab, school.id])
 
   return (
@@ -538,7 +544,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                                 <button
                                   onClick={async () => {
                                     try {
-                                      await safeFetch(`/api/v2/students/${editingSiswa}`, { method: 'PUT', body: JSON.stringify(siswaForm) })
+                                      await safeFetch(`/api/v2/students?id=${editingSiswa}`, { method: 'PUT', body: JSON.stringify(siswaForm) })
                                       setEditingSiswa(null)
                                     } catch {}
                                   }}
@@ -593,7 +599,46 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                           <td className="text-slate-600">{r.laki}</td>
                           <td className="text-slate-600">{r.perempuan}</td>
                           <td className="font-semibold text-slate-700">{r.total}</td>
-                          <td className="text-slate-600 text-sm">{r.wali_kelas || '-'}</td>
+                          <td className="text-slate-600 text-sm">
+                            {editingRombel === r.kelas_kelompok ? (
+                              <div className="flex gap-1 items-center">
+                                <select
+                                  className="input text-xs py-1 px-2 w-44"
+                                  defaultValue={r.wali_kelas_id || ''}
+                                  ref={el => { if (el && !el.dataset.set) { el.dataset.set = '1'; } }}
+                                  onChange={async e => {
+                                    const waliId = e.target.value
+                                    setSavingRombel(true)
+                                    try {
+                                      await safeFetch(`/api/v2/schools/${school.id}/rombel`, {
+                                        method: 'PUT',
+                                        body: JSON.stringify({ kelas_kelompok: r.kelas_kelompok, wali_kelas_id: waliId || null }),
+                                      })
+                                      setEditingRombel(null)
+                                      loadRombel()
+                                    } catch {} finally { setSavingRombel(false) }
+                                  }}
+                                >
+                                  <option value="">— Tanpa Wali —</option>
+                                  {(rombelTeachers || []).map((t: any) => (
+                                    <option key={t.id} value={t.id}>{t.nama}</option>
+                                  ))}
+                                </select>
+                                <button onClick={() => setEditingRombel(null)} className="text-slate-400 hover:text-slate-600">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                                {savingRombel && <span className="text-xs text-primary animate-pulse">Menyimpan...</span>}
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setEditingRombel(r.kelas_kelompok)}
+                                className="hover:text-primary text-left flex items-center gap-1 group"
+                              >
+                                {r.wali_kelas || <span className="text-slate-300 italic">Klik atur</span>}
+                                <Pencil className="w-3 h-3 text-slate-300 group-hover:text-primary hidden sm:inline" />
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
