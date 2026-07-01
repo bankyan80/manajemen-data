@@ -5,7 +5,7 @@ import { safeFetch } from '@/lib/safe-fetch'
 import { useSort } from '@/lib/use-sort'
 import {
   Archive, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
-  AlertCircle, FileText, Download, Eye, Upload,
+  AlertCircle, FileText, Download, Eye, Upload, Pencil,
   File, Image, FileSpreadsheet, ArrowUp, ArrowDown,
   Briefcase, UserCheck, GraduationCap, TrendingUp,
 } from 'lucide-react'
@@ -76,6 +76,9 @@ export default function ArchivesClient() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [categoryStats, setCategoryStats] = useState<Record<string, number>>({})
   const { sorted: sortedArchives, sort, toggle } = useSort(archives, 'uploaded_at')
+  const [editDoc, setEditDoc] = useState<ArchiveRow | null>(null)
+  const [editForm, setEditForm] = useState({ category: '', document_type: '', deskripsi: '' })
+  const [editSaving, setEditSaving] = useState(false)
 
   const fetchArchives = useCallback(async (page: number = 1) => {
     setLoading(true)
@@ -277,6 +280,9 @@ export default function ArchivesClient() {
                           <td className="text-sm text-slate-500">{formatDate(doc.uploaded_at)}</td>
                           <td>
                             <div className="flex items-center gap-1">
+                              <button onClick={() => { setEditDoc(doc); setEditForm({ category: doc.category, document_type: doc.document_type, deskripsi: doc.deskripsi || '' }) }} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-blue-500" title="Edit">
+                                <Pencil className="w-4 h-4" />
+                              </button>
                               {(doc.file_url || doc.drive_url) && (
                                 <a
                                   href={doc.file_url || doc.drive_url}
@@ -308,6 +314,47 @@ export default function ArchivesClient() {
             </div>
           )}
         </>
+      )}
+
+      {editDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditDoc(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-sm text-slate-800 mb-4">Edit Arsip</h3>
+            <div className="space-y-3 text-sm">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Kategori</label>
+                <select value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} className="input select text-sm w-full">
+                  {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Tipe Dokumen</label>
+                <input type="text" value={editForm.document_type} onChange={e => setEditForm(f => ({ ...f, document_type: e.target.value }))} className="input text-sm w-full" />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Deskripsi</label>
+                <textarea value={editForm.deskripsi} onChange={e => setEditForm(f => ({ ...f, deskripsi: e.target.value }))} className="input text-sm w-full" rows={3} />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={async () => {
+                  setEditSaving(true)
+                  try {
+                    await safeFetch(`/api/v2/archives/${editDoc.id}`, {
+                      method: 'PUT',
+                      body: JSON.stringify(editForm),
+                    })
+                    setEditDoc(null)
+                    fetchArchives()
+                  } catch (err: unknown) { alert(err instanceof Error ? err.message : 'Gagal menyimpan') }
+                  finally { setEditSaving(false) }
+                }} disabled={editSaving} className="btn btn-primary btn-sm">
+                  {editSaving ? 'Menyimpan...' : 'Simpan'}
+                </button>
+                <button onClick={() => setEditDoc(null)} className="btn btn-ghost btn-sm">Batal</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
