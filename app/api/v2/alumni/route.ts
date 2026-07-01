@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { alumni, schools } from '@/db/schema-v2'
-import { eq, sql, desc, isNotNull } from 'drizzle-orm'
+import { eq, sql, desc } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,17 +116,14 @@ export async function POST(req: NextRequest) {
       await db.update(alumni).set({ tujuan: JSON.stringify(summary), updated_at: now }).where(eq(alumni.id, existing[0].id))
     } else {
       await db.insert(alumni).values({
-        id: crypto.randomUUID(),
         school_id: schoolId,
         tahun_lulus: body.tahun_lulus,
         nama: 'REKAP',
-        nisn: null,
-        nik: null,
-        kelas: null,
+        nisn: '',
+        nik: '',
+        kelas: '',
         tujuan: JSON.stringify(summary),
-        created_at: now,
-        updated_at: now,
-      })
+      } as any)
     }
 
     return NextResponse.json({ success: true, summary }, { status: 200 })
