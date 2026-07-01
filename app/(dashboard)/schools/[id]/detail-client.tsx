@@ -697,8 +697,8 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                           <td className="text-xs text-slate-500 uppercase">{a.file_type?.split('/').pop()}</td>
                           <td className="text-xs text-slate-500">{formatBytes(a.file_size)}</td>
                           <td>
-                            {a.file_url ? (
-                              <a href={a.file_url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-xs flex items-center gap-1">
+                            {(a.file_url || a.drive_url) ? (
+                              <a href={a.file_url || a.drive_url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-xs flex items-center gap-1">
                                 <Eye className="w-3 h-3" /> Lihat
                               </a>
                             ) : <span className="text-xs text-slate-300">-</span>}

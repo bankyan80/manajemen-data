@@ -71,6 +71,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
       file_type: arsipDigital.file_type,
       file_size: arsipDigital.file_size,
       file_url: arsipDigital.file_url,
+      drive_url: arsipDigital.drive_url,
       deskripsi: arsipDigital.deskripsi,
       uploaded_by: arsipDigital.uploaded_by,
       uploaded_at: arsipDigital.uploaded_at,

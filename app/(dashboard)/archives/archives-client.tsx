@@ -19,6 +19,7 @@ interface ArchiveRow {
   file_type: string
   file_size: number
   file_url?: string
+  drive_url?: string
   deskripsi?: string
   uploaded_by?: string
   uploaded_at: number
@@ -271,9 +272,9 @@ export default function ArchivesClient() {
                           <td className="text-sm text-slate-500">{formatDate(doc.uploaded_at)}</td>
                           <td>
                             <div className="flex items-center gap-1">
-                              {doc.file_url && (
+                              {(doc.file_url || doc.drive_url) && (
                                 <a
-                                  href={doc.file_url}
+                                  href={doc.file_url || doc.drive_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-primary"
@@ -281,9 +282,9 @@ export default function ArchivesClient() {
                                   <Eye className="w-4 h-4" />
                                 </a>
                               )}
-                              {doc.file_url && (
+                              {(doc.file_url || doc.drive_url) && (
                                 <a
-                                  href={doc.file_url}
+                                  href={doc.file_url || doc.drive_url}
                                   download
                                   className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-primary"
                                 >
@@ -307,51 +308,4 @@ export default function ArchivesClient() {
   )
 }
 
-function Award(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="6" />
-      <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
-    </svg>
-  )
-}
 
-function DollarSign(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="1" x2="12" y2="23" />
-      <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-    </svg>
-  )
-}
-
-function Users(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-      <circle cx="8.5" cy="7" r="4" />
-      <path d="M20 8v6" />
-      <path d="M23 11h-6" />
-    </svg>
-  )
-}
-
-function School(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-      <path d="M6 12v5a3 3 0 003 3h6a3 3 0 003-3v-5" />
-    </svg>
-  )
-}
-
-function Building2(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18" />
-      <path d="M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2" />
-      <path d="M18 12h2a2 2 0 012 2v6a2 2 0 01-2 2h-2" />
-      <path d="M8 7h.01M12 7h.01M16 7h.01M10 18h4" />
-    </svg>
-  )
-}
