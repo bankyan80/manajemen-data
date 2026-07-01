@@ -19,9 +19,9 @@ export const GET = () => safeApi(async () => {
 
   const [totalStudents] = await _db.select({ value: count() }).from(students).where(eq(students.status_siswa, 'aktif'))
 
-  const [totalTeachers] = await _db.select({ value: count() }).from(employees).where(eq(employees.is_active, 1))
+  const [totalTeachers] = await _db.select({ value: count() }).from(employees).innerJoin(schools, eq(employees.sekolah_id, schools.id)).where(sql`${employees.is_active} = 1 AND ${schools.status} = 'negeri'`)
 
-  const [certificationPending] = await _db.select({ value: count() }).from(employees).where(eq(employees.sertifikasi, 'belum'))
+  const [certificationPending] = await _db.select({ value: count() }).from(employees).innerJoin(schools, eq(employees.sekolah_id, schools.id)).where(sql`${employees.sertifikasi} = 'belum' AND ${schools.status} = 'negeri'`)
 
   const teacherCounts = await _db
     .select({
