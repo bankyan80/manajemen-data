@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
   const tahunList = await db
     .select({ tahun: alumni.tahun_lulus })
     .from(alumni)
+    .where(whereConditions)
     .groupBy(alumni.tahun_lulus)
     .orderBy(desc(alumni.tahun_lulus))
 

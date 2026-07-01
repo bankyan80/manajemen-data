@@ -1,20 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
   LayoutDashboard, Map, School, Users, Award, Building2, 
-  Archive, BarChart4, Brain, FileText, 
+  Archive, BarChart4, Brain, FileText, UserPlus, UserMinus, GraduationCap,
   Menu, Bell, ChevronDown, LogOut, User, PanelLeftClose, PanelLeft,
 } from 'lucide-react'
 import { MENU_ITEMS } from '@/constants'
 import { cn } from '@/lib/utils'
+import { safeFetch } from '@/lib/safe-fetch'
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Map, School, Users, Award, Building2,
-  Archive, BarChart4, Brain, FileText, User,
+  Archive, BarChart4, Brain, FileText, User, UserPlus, UserMinus, GraduationCap,
 }
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -23,9 +24,28 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false)
   const [sidebarDesktopOpen, setSidebarDesktopOpen] = useState(true)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [schoolJenjang, setSchoolJenjang] = useState<string | null>(null)
 
   const role = ((session?.user as unknown as Record<string, unknown>)?.role as string) || 'guru_tendik'
-  const menuItems = MENU_ITEMS[role as keyof typeof MENU_ITEMS] || MENU_ITEMS.guru_tendik
+  const sekolahId = ((session?.user as unknown as Record<string, unknown>)?.sekolah_id as string) || ''
+
+  useEffect(() => {
+    if (role === 'operator_sekolah' && sekolahId) {
+      safeFetch<any>(`/api/v2/schools?id=${sekolahId}`)
+        .then(r => {
+          const sekolah = r.schools?.[0] || r.school
+          if (sekolah) setSchoolJenjang(sekolah.jenjang)
+        })
+        .catch(() => {})
+    }
+  }, [role, sekolahId])
+
+  const menuItems = (MENU_ITEMS[role as keyof typeof MENU_ITEMS] || MENU_ITEMS.guru_tendik).filter(item => {
+    if (role === 'operator_sekolah' && schoolJenjang && (schoolJenjang === 'tk' || schoolJenjang === 'kb')) {
+      if (item.id === 'mutasi-masuk' || item.id === 'mutasi-keluar' || item.id === 'alumni') return false
+    }
+    return true
+  })
 
   return (
     <div className="min-h-screen flex">
