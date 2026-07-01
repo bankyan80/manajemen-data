@@ -30,7 +30,6 @@ export const MENU_ITEMS: Record<string, MenuItemDef[]> = {
     { id: 'infrastructure', label: 'Infrastruktur', icon: 'Building2', href: '/infrastructure' },
     { id: 'archives', label: 'Arsip Digital', icon: 'Archive', href: '/archives' },
     { id: 'ai', label: 'AI Intelligence', icon: 'Brain', href: '/ai' },
-    { id: 'simulation', label: 'Simulasi', icon: 'GitCompare', href: '/simulation' },
     { id: 'reports', label: 'Laporan', icon: 'FileText', href: '/reports' },
   ],
   operator_sekolah: [

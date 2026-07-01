@@ -8,7 +8,7 @@ const protectedPaths = [
   "/transisi-sd-smp", "/kegiatan-prestasi", "/monitoring",
   "/rekap-kecamatan", "/cetak-export", "/pengaturan",
   "/schools", "/teachers", "/certification", "/infrastructure",
-  "/archives", "/ai", "/simulation", "/reports", "/gis",
+  "/archives", "/ai", "/reports", "/gis",
   "/profile",
 ];
 
@@ -115,7 +115,6 @@ export const config = {
     "/infrastructure/:path*",
     "/archives/:path*",
     "/ai/:path*",
-    "/simulation/:path*",
     "/reports/:path*",
     "/gis/:path*",
     "/profile/:path*",
