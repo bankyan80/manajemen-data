@@ -80,3 +80,38 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     },
   })
 })
+
+export const PUT = (req: NextRequest) => safeApi(async () => {
+  const { session, error } = await guardApi()
+  if (error) return error
+  const dbErr = guardDb(db)
+  if (dbErr.error) return dbErr.error
+
+  const _db = db!
+  const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ success: false, error: 'ID siswa diperlukan' }, { status: 400 })
+
+  const role = (session?.user as any)?.role as string
+  const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
+
+  const existing = await _db.select({ id: students.id, school_id: students.school_id }).from(students).where(eq(students.id, id)).limit(1)
+  if (existing.length === 0) return NextResponse.json({ success: false, error: 'Siswa tidak ditemukan' }, { status: 404 })
+  if (role !== 'admin_kecamatan' && userSekolahId && existing[0].school_id !== userSekolahId) {
+    return NextResponse.json({ success: false, error: 'Tidak memiliki akses' }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const allowed = ['nama', 'nik', 'nisn', 'kelas_kelompok', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'alamat', 'nama_orang_tua', 'no_hp', 'status_siswa']
+  const updateData: Record<string, any> = {}
+  for (const field of allowed) {
+    if (body[field] !== undefined) updateData[field] = body[field]
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ success: false, error: 'Tidak ada data yang diubah' }, { status: 400 })
+  }
+
+  await _db.update(students).set(updateData).where(eq(students.id, id))
+  return NextResponse.json({ success: true, data: { message: 'Siswa berhasil diupdate' } })
+})

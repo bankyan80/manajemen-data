@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { HEALTH_GRADE } from '@/constants'
 import { cn } from '@/lib/utils'
+import TeacherDetailModal from '../../teachers/teacher-detail-modal'
 
 export interface SchoolProfile {
   id: string
@@ -134,6 +135,10 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [editingProfil, setEditingProfil] = useState(false)
   const [profilForm, setProfilForm] = useState({ alamat: school.alamat, desa: school.desa, kepala_id: school.kepala_id || '' })
   const [savingProfil, setSavingProfil] = useState(false)
+
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
+  const [editingSiswa, setEditingSiswa] = useState<string | null>(null)
+  const [siswaForm, setSiswaForm] = useState<Record<string, string>>({})
 
   const health = getHealthGrade(school.health_score)
 
@@ -387,7 +392,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                     </thead>
                     <tbody>
                       {teachers.map(t => (
-                        <tr key={t.id}>
+                        <tr key={t.id} className="cursor-pointer" onClick={() => setSelectedTeacherId(t.id)}>
                           <td className="font-medium text-slate-800">{t.nama}</td>
                           <td className="font-mono text-sm text-slate-500">{t.nik}</td>
                           <td className="text-slate-600 text-sm">{t.jabatan || '-'}</td>
@@ -437,7 +442,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                     </thead>
                     <tbody>
                       {tendik.map(t => (
-                        <tr key={t.id}>
+                        <tr key={t.id} className="cursor-pointer" onClick={() => setSelectedTeacherId(t.id)}>
                           <td className="font-medium text-slate-800">{t.nama}</td>
                           <td className="font-mono text-sm text-slate-500">{t.nik}</td>
                           <td className="text-slate-600 text-sm">{t.jabatan || '-'}</td>
@@ -482,7 +487,11 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                     <tbody>
                       {students.map(s => (
                         <tr key={s.id}>
-                          <td className="font-medium text-slate-800">{s.nama}</td>
+                          <td className="font-medium text-slate-800">
+                            <button onClick={() => { setEditingSiswa(editingSiswa === s.id ? null : s.id); setSiswaForm({ nama: s.nama, nisn: s.nisn || '', nik: s.nik || '', kelas_kelompok: s.kelas_kelompok, jenis_kelamin: s.jenis_kelamin || '' }) }} className="hover:text-primary text-left">
+                              {s.nama}
+                            </button>
+                          </td>
                           <td className="font-mono text-sm text-slate-500">{s.nisn || '-'}</td>
                           <td className="font-mono text-sm text-slate-500">{s.nik || '-'}</td>
                           <td className="text-sm text-slate-600">{s.kelas_kelompok}</td>
@@ -497,6 +506,50 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                           </td>
                         </tr>
                       ))}
+                      {editingSiswa && (
+                        <tr>
+                          <td colSpan={6} className="p-4 bg-slate-50">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                              <div>
+                                <label className="block text-xs text-slate-400 mb-1">Nama</label>
+                                <input className="input" value={siswaForm.nama} onChange={e => setSiswaForm(p => ({ ...p, nama: e.target.value }))} />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-slate-400 mb-1">NISN</label>
+                                <input className="input" value={siswaForm.nisn} onChange={e => setSiswaForm(p => ({ ...p, nisn: e.target.value }))} />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-slate-400 mb-1">NIK</label>
+                                <input className="input" value={siswaForm.nik} onChange={e => setSiswaForm(p => ({ ...p, nik: e.target.value }))} />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-slate-400 mb-1">Kelas</label>
+                                <input className="input" value={siswaForm.kelas_kelompok} onChange={e => setSiswaForm(p => ({ ...p, kelas_kelompok: e.target.value }))} />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-slate-400 mb-1">Jenis Kelamin</label>
+                                <select className="input" value={siswaForm.jenis_kelamin} onChange={e => setSiswaForm(p => ({ ...p, jenis_kelamin: e.target.value }))}>
+                                  <option value="">Pilih</option>
+                                  <option value="laki-laki">Laki-laki</option>
+                                  <option value="perempuan">Perempuan</option>
+                                </select>
+                              </div>
+                              <div className="flex items-end gap-2">
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await safeFetch(`/api/v2/students/${editingSiswa}`, { method: 'PUT', body: JSON.stringify(siswaForm) })
+                                      setEditingSiswa(null)
+                                    } catch {}
+                                  }}
+                                  className="btn btn-primary btn-sm flex items-center gap-1"
+                                ><Save className="w-3.5 h-3.5" /> Simpan</button>
+                                <button onClick={() => setEditingSiswa(null)} className="btn btn-ghost btn-sm">Batal</button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
