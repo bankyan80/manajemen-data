@@ -196,9 +196,23 @@ export const PUT = async (req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const body = await req.json()
-  const { kelas_kelompok, wali_kelas_id } = body
+  const { kelas_kelompok, wali_kelas_id, nama_baru } = body
   if (!kelas_kelompok) {
     return NextResponse.json({ success: false, error: 'kelas_kelompok wajib diisi' }, { status: 400 })
+  }
+
+  if (nama_baru && nama_baru !== kelas_kelompok) {
+    const existingNew = await _db
+      .select({ id: classes.id })
+      .from(classes)
+      .where(and(eq(classes.school_id, id), eq(classes.nama_kelas, nama_baru)))
+      .limit(1)
+    if (existingNew.length > 0) {
+      return NextResponse.json({ success: false, error: 'Nama rombel sudah ada' }, { status: 409 })
+    }
+    await _db.update(classes).set({ nama_kelas: nama_baru, tingkat: nama_baru, wali_kelas_id: wali_kelas_id || null }).where(and(eq(classes.school_id, id), eq(classes.nama_kelas, kelas_kelompok)))
+    await _db.update(students).set({ kelas_kelompok: nama_baru }).where(and(eq(students.school_id, id), eq(students.kelas_kelompok, kelas_kelompok)))
+    return NextResponse.json({ success: true, data: { message: 'Nama rombel berhasil diubah' } })
   }
 
   const existing = await _db

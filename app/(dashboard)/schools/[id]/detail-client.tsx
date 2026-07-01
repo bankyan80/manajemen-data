@@ -123,6 +123,8 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
   const [editingRombel, setEditingRombel] = useState<string | null>(null)
   const [savingRombel, setSavingRombel] = useState(false)
+  const [editingRombelName, setEditingRombelName] = useState<string | null>(null)
+  const [editRombelNameValue, setEditRombelNameValue] = useState('')
   const [showAddRombel, setShowAddRombel] = useState(false)
   const [newRombelName, setNewRombelName] = useState('')
   const [addRombelError, setAddRombelError] = useState('')
@@ -202,6 +204,20 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
       setAddRombelError(err instanceof Error ? err.message : 'Gagal menambahkan rombel')
     } finally {
       setAddRombelLoading(false)
+    }
+  }
+
+  const handleRenameRombel = async (oldName: string, newName: string) => {
+    if (!newName.trim() || newName === oldName) { setEditingRombelName(null); return }
+    try {
+      await safeFetch(`/api/v2/schools/${school.id}/rombel`, {
+        method: 'PUT',
+        body: JSON.stringify({ kelas_kelompok: oldName, nama_baru: newName.trim() }),
+      })
+      setEditingRombelName(null)
+      loadRombel()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal mengubah nama rombel')
     }
   }
 
@@ -543,7 +559,25 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                       {rombel.map((r: any, i: number) => (
                         <tr key={i}>
                           <td className="font-medium text-slate-800">{school.jenjang === 'sd' ? r.kelas_kelompok.replace('Kelas ', '') : r.kelas_kelompok.replace(/\s*\(.*\)/, '').replace(' Tahun', '')}</td>
-                          <td className="text-slate-600 text-sm">{r.kelas_kelompok}</td>
+                          <td className="text-slate-600 text-sm">
+                            {editingRombelName === r.kelas_kelompok ? (
+                              <div className="flex gap-1 items-center">
+                                <input
+                                  className="input text-xs py-1 px-2 w-36"
+                                  value={editRombelNameValue}
+                                  onChange={e => setEditRombelNameValue(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') handleRenameRombel(r.kelas_kelompok, editRombelNameValue); if (e.key === 'Escape') setEditingRombelName(null) }}
+                                  autoFocus
+                                />
+                                <button onClick={() => handleRenameRombel(r.kelas_kelompok, editRombelNameValue)} className="text-green-600 hover:text-green-700">
+                                  <Save className="w-3.5 h-3.5" />
+                                </button>
+                                <button onClick={() => setEditingRombelName(null)} className="text-slate-400 hover:text-slate-600">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : r.kelas_kelompok}
+                          </td>
                           <td className="text-slate-600">{r.laki}</td>
                           <td className="text-slate-600">{r.perempuan}</td>
                           <td className="font-semibold text-slate-700">{r.total}</td>
@@ -588,13 +622,22 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                             )}
                           </td>
                           <td>
-                            <button
-                              onClick={() => handleDeleteRombel(r.kelas_kelompok)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
-                              title="Hapus rombel"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => { setEditingRombelName(r.kelas_kelompok); setEditRombelNameValue(r.kelas_kelompok) }}
+                                className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-500 transition-colors"
+                                title="Edit nama rombel"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteRombel(r.kelas_kelompok)}
+                                className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+                                title="Hapus rombel"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
