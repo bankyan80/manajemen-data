@@ -593,6 +593,8 @@ export const classes = sqliteTable('classes', {
   tahun_pelajaran: text('tahun_pelajaran'),
   kapasitas: integer('kapasitas').default(0),
   jumlah_siswa: integer('jumlah_siswa').default(0),
+  jumlah_laki: integer('jumlah_laki'),
+  jumlah_perempuan: integer('jumlah_perempuan'),
   ...timestamps,
 }, (table) => ({
   classesSchoolIdx: index('idx_classes_school_id').on(table.school_id),

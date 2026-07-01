@@ -32,13 +32,15 @@ export const GET = (req: NextRequest, { params }: { params: Promise<{ id: string
     .select({
       nama_kelas: classes.nama_kelas,
       wali_kelas_id: classes.wali_kelas_id,
+      jumlah_laki: classes.jumlah_laki,
+      jumlah_perempuan: classes.jumlah_perempuan,
     })
     .from(classes)
     .where(eq(classes.school_id, id))
 
-  const classMap: Record<string, string | null> = {}
+  const classMap: Record<string, { wali_kelas_id: string | null; jumlah_laki: number | null; jumlah_perempuan: number | null }> = {}
   for (const c of classRows) {
-    classMap[c.nama_kelas] = c.wali_kelas_id
+    classMap[c.nama_kelas] = { wali_kelas_id: c.wali_kelas_id, jumlah_laki: c.jumlah_laki, jumlah_perempuan: c.jumlah_perempuan }
   }
 
   const waliIds = classRows.filter(c => c.wali_kelas_id).map(c => c.wali_kelas_id) as string[]
@@ -55,22 +57,33 @@ export const GET = (req: NextRequest, { params }: { params: Promise<{ id: string
 
   const existingKelompok = new Set(rombelRows.map(r => r.kelas_kelompok))
 
-  const rombel = rombelRows.map(r => ({
-    kelas_kelompok: r.kelas_kelompok,
-    total: r.total,
-    laki: r.laki,
-    perempuan: r.perempuan,
-    wali_kelas_id: classMap[r.kelas_kelompok] || null,
-    wali_kelas: (classMap[r.kelas_kelompok] && waliNames[classMap[r.kelas_kelompok]!]) || null,
-  }))
+  const rombel = rombelRows.map(r => {
+    const manual = classMap[r.kelas_kelompok]
+    const laki = manual?.jumlah_laki ?? r.laki
+    const perempuan = manual?.jumlah_perempuan ?? r.perempuan
+    return {
+      kelas_kelompok: r.kelas_kelompok,
+      total: laki + perempuan,
+      laki,
+      perempuan,
+      manual_laki: manual?.jumlah_laki ?? null,
+      manual_perempuan: manual?.jumlah_perempuan ?? null,
+      wali_kelas_id: classMap[r.kelas_kelompok]?.wali_kelas_id || null,
+      wali_kelas: (classMap[r.kelas_kelompok]?.wali_kelas_id && waliNames[classMap[r.kelas_kelompok]!.wali_kelas_id!]) || null,
+    }
+  })
 
   for (const c of classRows) {
     if (!existingKelompok.has(c.nama_kelas)) {
+      const laki = c.jumlah_laki ?? 0
+      const perempuan = c.jumlah_perempuan ?? 0
       rombel.push({
         kelas_kelompok: c.nama_kelas,
-        total: 0,
-        laki: 0,
-        perempuan: 0,
+        total: laki + perempuan,
+        laki,
+        perempuan,
+        manual_laki: c.jumlah_laki ?? null,
+        manual_perempuan: c.jumlah_perempuan ?? null,
         wali_kelas_id: c.wali_kelas_id || null,
         wali_kelas: (c.wali_kelas_id && waliNames[c.wali_kelas_id]) || null,
       })
@@ -196,7 +209,7 @@ export const PUT = async (req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const body = await req.json()
-  const { kelas_kelompok, wali_kelas_id, nama_baru } = body
+  const { kelas_kelompok, wali_kelas_id, nama_baru, jumlah_laki, jumlah_perempuan } = body
   if (!kelas_kelompok) {
     return NextResponse.json({ success: false, error: 'kelas_kelompok wajib diisi' }, { status: 400 })
   }
@@ -213,6 +226,26 @@ export const PUT = async (req: NextRequest, { params }: { params: Promise<{ id: 
     await _db.update(classes).set({ nama_kelas: nama_baru, tingkat: nama_baru, wali_kelas_id: wali_kelas_id || null }).where(and(eq(classes.school_id, id), eq(classes.nama_kelas, kelas_kelompok)))
     await _db.update(students).set({ kelas_kelompok: nama_baru }).where(and(eq(students.school_id, id), eq(students.kelas_kelompok, kelas_kelompok)))
     return NextResponse.json({ success: true, data: { message: 'Nama rombel berhasil diubah' } })
+  }
+
+  if (jumlah_laki !== undefined || jumlah_perempuan !== undefined) {
+    const patchData: Record<string, any> = {}
+    if (jumlah_laki !== undefined) patchData.jumlah_laki = jumlah_laki
+    if (jumlah_perempuan !== undefined) patchData.jumlah_perempuan = jumlah_perempuan
+
+    const existing = await _db
+      .select({ id: classes.id })
+      .from(classes)
+      .where(and(eq(classes.school_id, id), eq(classes.nama_kelas, kelas_kelompok)))
+      .limit(1)
+
+    if (existing.length > 0) {
+      await _db.update(classes).set(patchData).where(eq(classes.id, existing[0].id))
+    } else {
+      await _db.insert(classes).values({ school_id: id, nama_kelas: kelas_kelompok, tingkat: kelas_kelompok, ...patchData })
+    }
+
+    return NextResponse.json({ success: true, data: { message: 'Jumlah siswa berhasil diupdate' } })
   }
 
   const existing = await _db

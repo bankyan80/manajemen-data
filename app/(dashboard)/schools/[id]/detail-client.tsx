@@ -125,6 +125,9 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [savingRombel, setSavingRombel] = useState(false)
   const [editingRombelName, setEditingRombelName] = useState<string | null>(null)
   const [editRombelNameValue, setEditRombelNameValue] = useState('')
+  const [editingRombelCount, setEditingRombelCount] = useState<string | null>(null)
+  const [editRombelLaki, setEditRombelLaki] = useState('')
+  const [editRombelPerempuan, setEditRombelPerempuan] = useState('')
   const [showAddRombel, setShowAddRombel] = useState(false)
   const [newRombelKelas, setNewRombelKelas] = useState('')
   const [newRombelName, setNewRombelName] = useState('')
@@ -212,6 +215,22 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
       setAddRombelError(err instanceof Error ? err.message : 'Gagal menambahkan rombel')
     } finally {
       setAddRombelLoading(false)
+    }
+  }
+
+  const handleSaveRombelCounts = async (kelas_kelompok: string) => {
+    const laki = parseInt(editRombelLaki)
+    const perempuan = parseInt(editRombelPerempuan)
+    if (isNaN(laki) || isNaN(perempuan) || laki < 0 || perempuan < 0) return
+    try {
+      await safeFetch(`/api/v2/schools/${school.id}/rombel`, {
+        method: 'PUT',
+        body: JSON.stringify({ kelas_kelompok, jumlah_laki: laki, jumlah_perempuan: perempuan }),
+      })
+      setEditingRombelCount(null)
+      loadRombel()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menyimpan jumlah siswa')
     }
   }
 
@@ -610,8 +629,45 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                               </div>
                             ) : r.kelas_kelompok}
                           </td>
-                          <td className="text-slate-600">{r.laki}</td>
-                          <td className="text-slate-600">{r.perempuan}</td>
+                          <td className="text-slate-600">
+                            {editingRombelCount === r.kelas_kelompok ? (
+                              <input
+                                className="input text-xs py-1 px-2 w-16 text-center"
+                                type="number"
+                                min="0"
+                                value={editRombelLaki}
+                                onChange={e => setEditRombelLaki(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleSaveRombelCounts(r.kelas_kelompok); if (e.key === 'Escape') setEditingRombelCount(null) }}
+                                autoFocus
+                              />
+                            ) : (
+                              <button
+                                onClick={() => { setEditingRombelCount(r.kelas_kelompok); setEditRombelLaki(String(r.laki)); setEditRombelPerempuan(String(r.perempuan)) }}
+                                className="hover:text-primary text-right w-full"
+                              >
+                                {r.laki}
+                              </button>
+                            )}
+                          </td>
+                          <td className="text-slate-600">
+                            {editingRombelCount === r.kelas_kelompok ? (
+                              <input
+                                className="input text-xs py-1 px-2 w-16 text-center"
+                                type="number"
+                                min="0"
+                                value={editRombelPerempuan}
+                                onChange={e => setEditRombelPerempuan(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleSaveRombelCounts(r.kelas_kelompok); if (e.key === 'Escape') setEditingRombelCount(null) }}
+                              />
+                            ) : (
+                              <button
+                                onClick={() => { setEditingRombelCount(r.kelas_kelompok); setEditRombelLaki(String(r.laki)); setEditRombelPerempuan(String(r.perempuan)) }}
+                                className="hover:text-primary text-right w-full"
+                              >
+                                {r.perempuan}
+                              </button>
+                            )}
+                          </td>
                           <td className="font-semibold text-slate-700">{r.total}</td>
                           <td className="text-slate-600 text-sm">
                             {editingRombel === r.kelas_kelompok ? (
