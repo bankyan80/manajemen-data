@@ -517,7 +517,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                         className="input"
                         value={newRombelName}
                         onChange={e => setNewRombelName(e.target.value)}
-                        placeholder={school.jenjang === 'sd' ? 'Contoh: Kelas I' : school.jenjang === 'tk' ? 'Contoh: A (Usia 4-5)' : 'Contoh: 2-3 Tahun'}
+                        placeholder={school.jenjang === 'sd' ? 'Contoh: IA, IB, IIA' : 'Contoh: A, A1, B, B1'}
                         onKeyDown={e => { if (e.key === 'Enter') { handleAddRombel() } }}
                       />
                     </div>
@@ -546,7 +546,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                   <table className="table-base">
                     <thead>
                       <tr>
-                        <th>Kelas</th>
+                        {school.jenjang === 'sd' && <th>Kelas</th>}
                         <th>Rombel</th>
                         <th>Laki-laki</th>
                         <th>Perempuan</th>
@@ -558,7 +558,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                     <tbody>
                       {rombel.map((r: any, i: number) => (
                         <tr key={i}>
-                          <td className="font-medium text-slate-800">{school.jenjang === 'sd' ? r.kelas_kelompok.replace('Kelas ', '') : r.kelas_kelompok.replace(/\s*\(.*\)/, '').replace(' Tahun', '')}</td>
+                          {school.jenjang === 'sd' && <td className="font-medium text-slate-800">{r.kelas_kelompok.match(/^[IVXLCDM]+/)?.[0] || r.kelas_kelompok}</td>}
                           <td className="text-slate-600 text-sm">
                             {editingRombelName === r.kelas_kelompok ? (
                               <div className="flex gap-1 items-center">
