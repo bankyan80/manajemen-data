@@ -378,10 +378,12 @@ export const alumni = sqliteTable('alumni', {
   tempat_lahir: text('tempat_lahir'),
   tanggal_lahir: text('tanggal_lahir'),
   kelas: text('kelas').notNull(),
+  tujuan: text('tujuan'),
   ...timestamps,
 }, (table) => ({
   alumniSchoolIdx: index('idx_alumni_school_id').on(table.school_id),
   alumniTahunLulusIdx: index('idx_alumni_tahun_lulus').on(table.tahun_lulus),
+  alumniTujuanIdx: index('idx_alumni_tujuan').on(table.tujuan),
 }))
 
 // ============================================================

@@ -2,61 +2,86 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
-import { Search, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react'
+import { GraduationCap, Save, X, Loader2 } from 'lucide-react'
 
 export default function AlumniClient() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
   const [tahunFilter, setTahunFilter] = useState('')
   const [tahunList, setTahunList] = useState<string[]>([])
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const [saving, setSaving] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<Record<string, Record<string, number>>>({})
 
-  const fetchItems = useCallback(async (p: number = 1) => {
+  const fetchItems = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      params.set('page', String(p))
-      params.set('limit', '20')
-      if (search) params.set('q', search)
+      params.set('limit', '5000')
       if (tahunFilter) params.set('tahun_lulus', tahunFilter)
       const result = await safeFetch<any>(`/api/v2/alumni?${params}`)
       setItems(result.data || [])
-      setTotalPages(result.total_pages || 1)
       if (result.tahun_list) setTahunList(result.tahun_list)
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
-  }, [search, tahunFilter])
+  }, [tahunFilter])
 
-  useEffect(() => { fetchItems(page) }, [page, fetchItems])
+  useEffect(() => { fetchItems() }, [fetchItems])
 
-  useEffect(() => {
-    const t = setTimeout(() => { setPage(1); fetchItems(1) }, 400)
-    return () => clearTimeout(t)
-  }, [search, tahunFilter, fetchItems])
+  const schools = new Map<string, { nama: string; total: number; smp_negeri: number; smp_swasta: number; pondok: number; tidak_melanjutkan: number }>()
+  for (const r of items) {
+    const key = r.school_id
+    if (!schools.has(key)) {
+      schools.set(key, { nama: r.school_nama || key, total: 0, smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 })
+    }
+    const s = schools.get(key)!
+    s.total++
+    if (r.tujuan === 'smp_negeri') s.smp_negeri++
+    else if (r.tujuan === 'smp_swasta') s.smp_swasta++
+    else if (r.tujuan === 'pondok') s.pondok++
+    else if (r.tujuan === 'tidak_melanjutkan') s.tidak_melanjutkan++
+  }
+  const sekolahList = Array.from(schools.entries()).map(([id, s]) => ({ id, ...s }))
+
+  const openEdit = (schoolId: string) => {
+    const s = schools.get(schoolId)
+    if (!s) return
+    setEditForm(prev => ({ ...prev, [schoolId]: { smp_negeri: s.smp_negeri, smp_swasta: s.smp_swasta, pondok: s.pondok, tidak_melanjutkan: s.tidak_melanjutkan } }))
+  }
+
+  const handleSave = async (schoolId: string) => {
+    const form = editForm[schoolId]
+    if (!form || !tahunFilter) return
+    const sum = form.smp_negeri + form.smp_swasta + form.pondok + form.tidak_melanjutkan
+    const s = schools.get(schoolId)
+    if (sum > (s?.total || 0)) { alert(`Jumlah distribusi (${sum}) melebihi total lulusan (${s?.total || 0})`); return }
+    setSaving(schoolId)
+    try {
+      await safeFetch('/api/v2/alumni/tujuan', {
+        method: 'PUT',
+        body: JSON.stringify({ school_id: schoolId, tahun_lulus: tahunFilter, distribusi: form }),
+      })
+      fetchItems()
+    } catch (err: unknown) { alert(err instanceof Error ? err.message : 'Gagal menyimpan') }
+    finally { setSaving(null) }
+  }
 
   return (
     <div className="page-container">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Alumni</h1>
-          <p className="page-subtitle">Data lulusan peserta didik</p>
+          <h1 className="page-title">Rekap Kelanjutan Lulusan</h1>
+          <p className="page-subtitle">Data lulusan peserta didik per sekolah</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="badge bg-primary/10 text-primary">{items.length} Item</span>
+          <span className="badge bg-primary/10 text-primary">{items.length} Lulusan</span>
         </div>
       </div>
 
       <div className="card mb-6">
-        <div className="p-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input type="text" placeholder="Cari nama, NISN, atau NIK..." value={search} onChange={e => setSearch(e.target.value)} className="input pl-9" />
-          </div>
-          <div className="relative w-full sm:w-44">
+        <div className="p-4">
+          <div className="relative w-full sm:w-64">
             <select value={tahunFilter} onChange={e => setTahunFilter(e.target.value)} className="input select text-sm">
-              <option value="">Semua Tahun</option>
+              <option value="">Pilih Tahun Lulus</option>
               {tahunList.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
@@ -65,10 +90,15 @@ export default function AlumniClient() {
 
       {loading ? (
         <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-12 skeleton w-full" />)}</div>
-      ) : items.length === 0 ? (
+      ) : !tahunFilter ? (
         <div className="card p-12 text-center text-slate-400 text-sm">
           <GraduationCap className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          Belum ada data alumni
+          Pilih tahun lulus untuk melihat rekap
+        </div>
+      ) : sekolahList.length === 0 ? (
+        <div className="card p-12 text-center text-slate-400 text-sm">
+          <GraduationCap className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          Belum ada data alumni untuk tahun {tahunFilter}
         </div>
       ) : (
         <div className="card overflow-hidden">
@@ -76,41 +106,75 @@ export default function AlumniClient() {
             <table className="table-base">
               <thead>
                 <tr>
-                  <th>Tahun Lulus</th>
-                  <th>Nama</th>
-                  <th>NISN</th>
-                  <th>NIK</th>
-                  <th>JK</th>
-                  <th>Kelas</th>
-                  <th>Tempat Lahir</th>
-                  <th>Tanggal Lahir</th>
+                  <th className="w-10">No</th>
+                  <th>Nama Sekolah</th>
+                  <th className="text-center">Jumlah Lulusan</th>
+                  <th className="text-center">SMP Negeri</th>
+                  <th className="text-center">SMP Swasta</th>
+                  <th className="text-center">Pondok Pesantren</th>
+                  <th className="text-center">Tidak Melanjutkan</th>
+                  <th className="w-20">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((r: any) => (
-                  <tr key={r.id}>
-                    <td><span className="badge bg-slate-100 text-slate-600 text-[11px]">{r.tahun_lulus}</span></td>
-                    <td className="font-medium text-slate-800 text-sm">{r.nama}</td>
-                    <td className="text-sm text-slate-600">{r.nisn || '-'}</td>
-                    <td className="text-sm text-slate-600">{r.nik || '-'}</td>
-                    <td className="text-sm text-slate-600">{r.jenis_kelamin === 'laki-laki' ? 'L' : 'P'}</td>
-                    <td className="text-sm text-slate-600">{r.kelas}</td>
-                    <td className="text-sm text-slate-600">{r.tempat_lahir || '-'}</td>
-                    <td className="text-sm text-slate-600">{r.tanggal_lahir || '-'}</td>
-                  </tr>
-                ))}
+                {sekolahList.map((s, i) => {
+                  const editing = editForm[s.id]
+                  const form = editing || { smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 }
+                  return (
+                    <tr key={s.id}>
+                      <td className="text-center text-sm text-slate-500">{i + 1}</td>
+                      <td className="font-medium text-slate-800 text-sm">{s.nama}</td>
+                      <td className="text-center font-semibold text-slate-800">{s.total}</td>
+                      <td className="text-center">
+                        {editing ? (
+                          <input type="number" min="0" className="input text-xs py-1 px-2 w-16 text-center" value={form.smp_negeri} onChange={e => setEditForm(prev => ({ ...prev, [s.id]: { ...prev[s.id], smp_negeri: Number(e.target.value) } }))} />
+                        ) : (
+                          <span className="text-sm text-slate-600">{s.smp_negeri || 0}</span>
+                        )}
+                      </td>
+                      <td className="text-center">
+                        {editing ? (
+                          <input type="number" min="0" className="input text-xs py-1 px-2 w-16 text-center" value={form.smp_swasta} onChange={e => setEditForm(prev => ({ ...prev, [s.id]: { ...prev[s.id], smp_swasta: Number(e.target.value) } }))} />
+                        ) : (
+                          <span className="text-sm text-slate-600">{s.smp_swasta || 0}</span>
+                        )}
+                      </td>
+                      <td className="text-center">
+                        {editing ? (
+                          <input type="number" min="0" className="input text-xs py-1 px-2 w-16 text-center" value={form.pondok} onChange={e => setEditForm(prev => ({ ...prev, [s.id]: { ...prev[s.id], pondok: Number(e.target.value) } }))} />
+                        ) : (
+                          <span className="text-sm text-slate-600">{s.pondok || 0}</span>
+                        )}
+                      </td>
+                      <td className="text-center">
+                        {editing ? (
+                          <input type="number" min="0" className="input text-xs py-1 px-2 w-16 text-center" value={form.tidak_melanjutkan} onChange={e => setEditForm(prev => ({ ...prev, [s.id]: { ...prev[s.id], tidak_melanjutkan: Number(e.target.value) } }))} />
+                        ) : (
+                          <span className="text-sm text-slate-600">{s.tidak_melanjutkan || 0}</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-1">
+                          {editing ? (
+                            <>
+                              <button onClick={() => handleSave(s.id)} disabled={saving === s.id} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600" title="Simpan">
+                                {saving === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                              </button>
+                              <button onClick={() => setEditForm(prev => { const n = { ...prev }; delete n[s.id]; return n })} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400" title="Batal">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <button onClick={() => openEdit(s.id)} className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-500 text-xs">Isi</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-              <span className="text-sm text-slate-500">Halaman {page} dari {totalPages}</span>
-              <div className="flex gap-1">
-                <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
-                <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
