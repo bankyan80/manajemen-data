@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { safeFetch } from '@/lib/safe-fetch'
 import {
   ArrowLeft, MapPin, School, Users, GraduationCap,
-  Building2, Archive, ChevronLeft, ChevronRight,
+  Building2, Archive, ChevronLeft, ChevronRight, BookOpen,
 } from 'lucide-react'
 import { HEALTH_GRADE } from '@/constants'
 import { cn } from '@/lib/utils'
@@ -75,6 +75,7 @@ const TABS = [
   { id: 'profil', label: 'Profil', icon: School },
   { id: 'guru', label: 'Guru', icon: Users },
   { id: 'siswa', label: 'Siswa', icon: GraduationCap },
+  { id: 'rombel', label: 'Rombel', icon: BookOpen },
   { id: 'infrastruktur', label: 'Infrastruktur', icon: Building2 },
   { id: 'arsip', label: 'Arsip', icon: Archive },
 ]
@@ -119,6 +120,10 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [studentPage, setStudentPage] = useState(1)
   const [studentTotalPages, setStudentTotalPages] = useState(1)
 
+  const [rombel, setRombel] = useState<any[]>([])
+  const [rombelLoading, setRombelLoading] = useState(false)
+  const [rombelSummary, setRombelSummary] = useState({ totalSiswa: 0, totalRombel: 0 })
+
   const health = getHealthGrade(school.health_score)
 
   useEffect(() => {
@@ -148,6 +153,19 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
         .finally(() => setStudentsLoading(false))
     }
   }, [activeTab, studentPage, school.id])
+
+  useEffect(() => {
+    if (activeTab === 'rombel') {
+      setRombelLoading(true)
+      safeFetch<any>(`/api/v2/schools/${school.id}/rombel`)
+        .then(result => {
+          setRombel(result.rombel || [])
+          setRombelSummary({ totalSiswa: result.totalSiswa || 0, totalRombel: result.totalRombel || 0 })
+        })
+        .catch(console.error)
+        .finally(() => setRombelLoading(false))
+    }
+  }, [activeTab, school.id])
 
   return (
     <div className="page-container">
@@ -367,6 +385,51 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                 </div>
               )}
               <Pagination page={studentPage} totalPages={studentTotalPages} onChange={setStudentPage} />
+            </div>
+          )}
+
+          {activeTab === 'rombel' && (
+            <div>
+              <div className="flex items-center gap-4 mb-4">
+                <h3 className="text-sm font-semibold text-slate-700">Rombongan Belajar</h3>
+                <div className="flex gap-3 text-xs">
+                  <span className="text-slate-500">Total Rombel: <strong>{rombelSummary.totalRombel}</strong></span>
+                  <span className="text-slate-500">Total Siswa: <strong>{rombelSummary.totalSiswa}</strong></span>
+                </div>
+              </div>
+              {rombelLoading ? (
+                <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-12 skeleton w-full" />)}</div>
+              ) : rombel.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm">
+                  <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  Tidak ada data rombel
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="table-base">
+                    <thead>
+                      <tr>
+                        <th>Kelas</th>
+                        <th>Laki-laki</th>
+                        <th>Perempuan</th>
+                        <th>Total</th>
+                        <th>Wali Kelas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rombel.map((r: any, i: number) => (
+                        <tr key={i}>
+                          <td className="font-medium text-slate-800">{r.kelas_kelompok}</td>
+                          <td className="text-slate-600">{r.laki}</td>
+                          <td className="text-slate-600">{r.perempuan}</td>
+                          <td className="font-semibold text-slate-700">{r.total}</td>
+                          <td className="text-slate-600 text-sm">{r.wali_kelas || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
