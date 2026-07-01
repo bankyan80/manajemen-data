@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { 
   LayoutDashboard, Map, School, Users, Award, Building2, 
   Archive, BarChart4, Brain, FileText, 
-  Menu, Bell, ChevronDown, LogOut, User,
+  Menu, Bell, ChevronDown, LogOut, User, PanelLeftClose, PanelLeft,
 } from 'lucide-react'
 import { MENU_ITEMS } from '@/constants'
 import { cn } from '@/lib/utils'
@@ -20,7 +20,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
   const pathname = usePathname()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false)
+  const [sidebarDesktopOpen, setSidebarDesktopOpen] = useState(true)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   const role = ((session?.user as unknown as Record<string, unknown>)?.role as string) || 'guru_tendik'
@@ -30,10 +31,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     <div className="min-h-screen flex">
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border transform transition-transform duration-200 lg:translate-x-0 lg:static",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border flex flex-col transition-transform duration-200",
+        "lg:translate-x-0",
+        sidebarMobileOpen ? "translate-x-0" : "-translate-x-full",
+        !sidebarDesktopOpen && "lg:-translate-x-full"
       )}>
-        <div className="flex items-center gap-3 h-16 px-6 border-b border-border">
+        <div className="flex items-center gap-3 h-16 px-6 border-b border-border flex-shrink-0">
           <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-white font-bold text-sm">
             TB
           </div>
@@ -41,9 +44,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             <div className="text-sm font-semibold text-slate-900">TIMKER BIDIK</div>
             <div className="text-[10px] text-slate-400 font-medium">Command Center</div>
           </div>
+          <button
+            onClick={() => setSidebarDesktopOpen(false)}
+            className="ml-auto p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hidden lg:flex"
+            title="Sembunyikan sidebar"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
         </div>
 
-        <nav className="p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = iconMap[item.icon] || LayoutDashboard
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -51,7 +61,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <Link
                 key={item.id}
                 href={item.href}
-                onClick={() => setSidebarOpen(false)}
+                onClick={() => setSidebarMobileOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
                   isActive
@@ -66,7 +76,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
+        <div className="flex-shrink-0 border-t border-border p-4">
           <div className="flex items-center gap-3 px-3 py-2">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
               {(session?.user?.name || 'U').charAt(0)}
@@ -79,19 +89,32 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
       </aside>
 
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      {/* Overlay mobile */}
+      {sidebarMobileOpen && (
+        <div className="fixed inset-0 z-40 bg-black/20 lg:hidden" onClick={() => setSidebarMobileOpen(false)} />
       )}
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0 transition-all duration-200",
+        sidebarDesktopOpen ? "lg:ml-64" : "lg:ml-0"
+      )}>
         {/* Topbar */}
         <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-border">
           <div className="flex items-center justify-between h-full px-4 lg:px-6">
             <div className="flex items-center gap-3">
-              <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100">
+              <button
+                onClick={() => setSidebarMobileOpen(true)}
+                className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
+              >
                 <Menu className="w-5 h-5 text-slate-600" />
+              </button>
+              <button
+                onClick={() => setSidebarDesktopOpen(prev => !prev)}
+                className="hidden lg:flex p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+                title={sidebarDesktopOpen ? 'Sembunyikan sidebar' : 'Tampilkan sidebar'}
+              >
+                {sidebarDesktopOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
               </button>
               <div className="hidden sm:flex items-center gap-2 text-sm text-slate-400">
                 <span className="font-medium text-slate-600">Kecamatan Lemahabang</span>
