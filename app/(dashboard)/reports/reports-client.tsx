@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
+import { exportPdf, exportExcel, exportCsv } from '@/lib/export-report'
 import {
   Calendar, FileSpreadsheet, BarChart3, Map, Award, AlertTriangle,
   Download, Eye, FileText, AlertCircle, Users, GraduationCap,
   Building2, BookOpen, TrendingUp, Globe, CheckCircle2, XCircle,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -409,6 +411,7 @@ export default function ReportsClient() {
   const [history, setHistory] = useState<ReportHistory[]>([])
   const [schools, setSchools] = useState<School[]>([])
   const [previewReport, setPreviewReport] = useState<ReportHistory | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const fetchSchools = async () => {
     try {
@@ -456,6 +459,29 @@ export default function ReportsClient() {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleDownloadFromHistory = async (entry: ReportHistory) => {
+    setDownloadingId(entry.id)
+    try {
+      const result = await safeFetch<GenerateResponse['data']>('/api/v2/reports/generate', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: entry.type,
+          format: entry.format,
+          school_id: entry.school_id || undefined,
+          tahun_pelajaran: entry.tahun_pelajaran || undefined,
+        }),
+      })
+      const label = REPORT_TYPES.find(r => r.key === entry.type)?.label || entry.type
+      if (entry.format === 'pdf') exportPdf(entry.type, label, result.summary, (result.details || {}) as Record<string, unknown>)
+      else if (entry.format === 'excel') exportExcel(entry.type, label, result.summary, (result.details || {}) as Record<string, unknown>)
+      else exportCsv(entry.type, label, result.summary, (result.details || {}) as Record<string, unknown>)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Gagal mendownload laporan')
+    } finally {
+      setDownloadingId(null)
     }
   }
 
@@ -607,6 +633,20 @@ export default function ReportsClient() {
             <span>Dibuat: {formatDate(result.generatedAt)}</span>
             {result.tahun_pelajaran && <span>TP: {result.tahun_pelajaran}</span>}
           </div>
+          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
+            <button
+              onClick={() => {
+                const label = REPORT_TYPES.find(r => r.key === result.type)?.label || result.type
+                if (result.format === 'pdf') exportPdf(result.type, label, result.summary, (result.details || {}) as Record<string, unknown>)
+                else if (result.format === 'excel') exportExcel(result.type, label, result.summary, (result.details || {}) as Record<string, unknown>)
+                else exportCsv(result.type, label, result.summary, (result.details || {}) as Record<string, unknown>)
+              }}
+              className="btn btn-primary text-sm flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download {result.format.toUpperCase()}
+            </button>
+          </div>
         </div>
       )}
 
@@ -663,10 +703,12 @@ export default function ReportsClient() {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                            onClick={() => handleDownloadFromHistory(entry)}
+                            disabled={downloadingId === entry.id}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 disabled:opacity-40"
                             title="Download"
                           >
-                            <Download className="w-4 h-4" />
+                            {downloadingId === entry.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                           </button>
                         </div>
                       </td>
@@ -730,8 +772,12 @@ export default function ReportsClient() {
             </div>
             <div className="p-4 border-t border-border flex justify-end gap-2">
               <button onClick={() => setPreviewReport(null)} className="btn btn-ghost text-sm">Tutup</button>
-              <button className="btn btn-primary text-sm flex items-center gap-1.5">
-                <Download className="w-3.5 h-3.5" />
+              <button
+                onClick={() => previewReport && handleDownloadFromHistory(previewReport)}
+                disabled={downloadingId === previewReport?.id}
+                className="btn btn-primary text-sm flex items-center gap-1.5"
+              >
+                {downloadingId === previewReport?.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                 Download
               </button>
             </div>
