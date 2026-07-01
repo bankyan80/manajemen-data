@@ -17,6 +17,7 @@ export default function AlumniClient() {
   const [schools, setSchools] = useState<{ id: string; nama: string }[]>([])
   const [userRole, setUserRole] = useState('')
   const [userSekolahId, setUserSekolahId] = useState('')
+  const [operatorSchool, setOperatorSchool] = useState<{ id: string; nama: string } | null>(null)
 
   useEffect(() => {
     safeFetch<any>('/api/v2/schools').then(r => setSchools(r.schools || [])).catch(() => {})
@@ -26,6 +27,21 @@ export default function AlumniClient() {
       setUserSekolahId(u?.sekolah_id || '')
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (userRole === 'operator_sekolah' && userSekolahId) {
+      safeFetch<any>(`/api/v2/schools?id=${userSekolahId}`).then(r => {
+        const sc = r.school || r.schools?.[0]
+        if (sc) setOperatorSchool(sc)
+      }).catch(() => {})
+    }
+  }, [userRole, userSekolahId])
+
+  useEffect(() => {
+    if (userRole === 'operator_sekolah' && tahunList.length === 0 && !tahunFilter) {
+      setTahunFilter('2025/2026')
+    }
+  }, [userRole, tahunList, tahunFilter])
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
@@ -56,10 +72,12 @@ export default function AlumniClient() {
     else if (r.tujuan === 'tidak_melanjutkan') s.tidak_melanjutkan++
   }
   const sekolahList = Array.from(alumniBySchool.entries()).map(([id, s]) => ({ id, ...s }))
+  if (sekolahList.length === 0 && userRole === 'operator_sekolah' && operatorSchool) {
+    sekolahList.push({ id: operatorSchool.id, nama: operatorSchool.nama, total: 0, smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 })
+  }
 
   const openEdit = (schoolId: string) => {
-    const s = alumniBySchool.get(schoolId)
-    if (!s) return
+    const s = alumniBySchool.get(schoolId) || { smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 }
     setEditForm(prev => ({ ...prev, [schoolId]: { smp_negeri: s.smp_negeri, smp_swasta: s.smp_swasta, pondok: s.pondok, tidak_melanjutkan: s.tidak_melanjutkan } }))
   }
 
@@ -68,7 +86,7 @@ export default function AlumniClient() {
     if (!form || !tahunFilter) return
     const sum = form.smp_negeri + form.smp_swasta + form.pondok + form.tidak_melanjutkan
     const s = alumniBySchool.get(schoolId)
-    if (sum > (s?.total || 0)) { alert(`Jumlah distribusi (${sum}) melebihi total lulusan (${s?.total || 0})`); return }
+    if (sum > (s?.total || 0) && (s?.total || 0) > 0) { alert(`Jumlah distribusi (${sum}) melebihi total lulusan (${s?.total || 0})`); return }
     setSaving(schoolId)
     try {
       await safeFetch('/api/v2/alumni/tujuan', {
@@ -104,7 +122,9 @@ export default function AlumniClient() {
         </div>
         <div className="flex items-center gap-2">
           <span className="badge bg-primary/10 text-primary">{items.length} Lulusan</span>
-          <button onClick={() => setShowAddForm(true)} className="btn btn-primary btn-sm flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Tambah Alumni</button>
+          {userRole !== 'operator_sekolah' ? (
+            <button onClick={() => setShowAddForm(true)} className="btn btn-primary btn-sm flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Tambah Alumni</button>
+          ) : null}
         </div>
       </div>
 
@@ -132,10 +152,14 @@ export default function AlumniClient() {
       <div className="card mb-6">
         <div className="p-4">
           <div className="relative w-full sm:w-64">
-            <select value={tahunFilter} onChange={e => setTahunFilter(e.target.value)} className="input select text-sm">
-              <option value="">Pilih Tahun Lulus</option>
-              {tahunList.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+            {tahunList.length > 0 ? (
+              <select value={tahunFilter} onChange={e => setTahunFilter(e.target.value)} className="input select text-sm">
+                <option value="">Pilih Tahun Lulus</option>
+                {tahunList.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            ) : (
+              <input type="text" value={tahunFilter} onChange={e => setTahunFilter(e.target.value)} className="input text-sm" placeholder="Masukkan tahun lulus (cth: 2025/2026)" />
+            )}
           </div>
         </div>
       </div>

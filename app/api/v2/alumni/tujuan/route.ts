@@ -25,17 +25,48 @@ export async function PUT(req: NextRequest) {
   }
 
   const { smp_negeri, smp_swasta, pondok, tidak_melanjutkan } = distribusi
+  const sum = (smp_negeri || 0) + (smp_swasta || 0) + (pondok || 0) + (tidak_melanjutkan || 0)
 
-  const semuaAlumni = await db
+  let semuaAlumni = await db
     .select({ id: alumni.id })
     .from(alumni)
     .where(and(eq(alumni.school_id, school_id), eq(alumni.tahun_lulus, tahun_lulus)))
 
-  const total = semuaAlumni.length
-  const sum = (smp_negeri || 0) + (smp_swasta || 0) + (pondok || 0) + (tidak_melanjutkan || 0)
-  if (sum > total) {
-    return NextResponse.json({ error: `Jumlah distribusi (${sum}) melebihi total lulusan (${total})` }, { status: 400 })
+  if (semuaAlumni.length === 0 && sum > 0) {
+    const now = Date.now()
+    const newRecords = []
+    const cats = [
+      { key: 'smp_negeri', count: smp_negeri || 0 },
+      { key: 'smp_swasta', count: smp_swasta || 0 },
+      { key: 'pondok', count: pondok || 0 },
+      { key: 'tidak_melanjutkan', count: tidak_melanjutkan || 0 },
+    ]
+    for (const cat of cats) {
+      for (let i = 0; i < cat.count; i++) {
+        newRecords.push({
+          id: crypto.randomUUID(),
+          school_id,
+          tahun_lulus,
+          nama: '(Rekap)',
+          nisn: null,
+          nik: null,
+          kelas: null,
+          tujuan: cat.key,
+          created_at: now,
+          updated_at: now,
+        })
+      }
+    }
+    if (newRecords.length > 0) {
+      await db.insert(alumni).values(newRecords)
+    }
+    semuaAlumni = await db
+      .select({ id: alumni.id })
+      .from(alumni)
+      .where(and(eq(alumni.school_id, school_id), eq(alumni.tahun_lulus, tahun_lulus)))
   }
+
+  const total = semuaAlumni.length
 
   const tujuanList: (string | null)[] = []
   for (let i = 0; i < (smp_negeri || 0); i++) tujuanList.push('smp_negeri')
