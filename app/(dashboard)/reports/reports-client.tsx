@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
 import {
   Calendar, FileSpreadsheet, BarChart3, Map, Award, AlertTriangle,
-  Download, Eye, FileText, AlertCircle,
+  Download, Eye, FileText, AlertCircle, Users, GraduationCap,
+  Building2, BookOpen, TrendingUp, Globe, CheckCircle2, XCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +35,7 @@ interface GenerateResponse {
       kbSchools: number
     }
     schools: School[]
+    details?: Record<string, unknown>
     downloadUrl: string
   }
 }
@@ -94,6 +96,306 @@ function getTypeLabel(type: string) {
   return t?.label || type
 }
 
+function DetailMonthly({ data }: { data: any }) {
+  const d = data || {}
+  const kelas = d.siswaPerKelas || []
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-center">
+          <div className="text-xs text-slate-500">Mutasi Masuk</div>
+          <div className="text-lg font-bold text-blue-700">+{d.mutasiMasuk || 0}</div>
+        </div>
+        <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-center">
+          <div className="text-xs text-slate-500">Mutasi Keluar</div>
+          <div className="text-lg font-bold text-orange-700">-{d.mutasiKeluar || 0}</div>
+        </div>
+      </div>
+      <div className="text-xs text-slate-400 text-center">{d.periode || '-'}</div>
+      {kelas.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="table-base text-xs">
+            <thead>
+              <tr><th>Jenjang</th><th>Kelas</th><th>L</th><th>P</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+              {kelas.map((k: any, i: number) => (
+                <tr key={i}>
+                  <td className="uppercase font-medium">{k.jenjang}</td>
+                  <td>{k.kelas_kelompok}</td>
+                  <td>{k.laki}</td>
+                  <td>{k.perempuan}</td>
+                  <td className="font-semibold">{k.total}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DetailSemester({ data }: { data: any }) {
+  const d = data || {}
+  const recaps = d.recaps || []
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-3 rounded-xl bg-green-50 border border-green-200">
+          <div className="text-xs text-slate-500">Ganjil</div>
+          <div className="text-lg font-bold text-green-700">{d.ringkasanGanjil?.total || 0}</div>
+          <div className="text-[11px] text-green-600">Masuk: +{d.ringkasanGanjil?.masuk || 0} / Keluar: -{d.ringkasanGanjil?.keluar || 0}</div>
+        </div>
+        <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
+          <div className="text-xs text-slate-500">Genap</div>
+          <div className="text-lg font-bold text-blue-700">{d.ringkasanGenap?.total || 0}</div>
+          <div className="text-[11px] text-blue-600">Masuk: +{d.ringkasanGenap?.masuk || 0} / Keluar: -{d.ringkasanGenap?.keluar || 0}</div>
+        </div>
+      </div>
+      {recaps.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="table-base text-xs">
+            <thead>
+              <tr><th>TP</th><th>Semester</th><th>L</th><th>P</th><th>Total</th><th>Masuk</th><th>Keluar</th></tr>
+            </thead>
+            <tbody>
+              {recaps.map((r: any, i: number) => (
+                <tr key={i}>
+                  <td>{r.tahun_pelajaran}</td>
+                  <td className="capitalize">{r.semester}</td>
+                  <td>{r.totalLaki}</td>
+                  <td>{r.totalPerempuan}</td>
+                  <td className="font-semibold">{r.total}</td>
+                  <td className="text-green-600">+{r.siswaMasuk}</td>
+                  <td className="text-red-600">-{r.siswaKeluar}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DetailAnnual({ data }: { data: any }) {
+  const d = data || {}
+  const trendSd = d.trendSd || []
+  const trendTk = d.trendTk || []
+  const trendKb = d.trendKb || []
+  const alumni = d.alumni || []
+  return (
+    <div className="space-y-4">
+      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
+        <div className="text-xs text-slate-500">Pertumbuhan Siswa SD</div>
+        <div className={cn('text-lg font-bold', (d.pertumbuhanSd || '').startsWith('+') ? 'text-green-600' : 'text-red-600')}>
+          {d.pertumbuhanSd || '0%'}
+        </div>
+      </div>
+      {trendSd.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-slate-600 mb-1">Trend SD</div>
+          <div className="overflow-x-auto">
+            <table className="table-base text-xs">
+              <thead><tr><th>TP</th><th>Siswa</th></tr></thead>
+              <tbody>
+                {trendSd.map((t: any, i: number) => (
+                  <tr key={i}><td>{t.tahun}</td><td className="font-semibold">{t.total}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {alumni.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-slate-600 mb-1">Alumni</div>
+          <div className="overflow-x-auto">
+            <table className="table-base text-xs">
+              <thead><tr><th>Tahun</th><th>Jumlah</th></tr></thead>
+              <tbody>
+                {alumni.map((a: any, i: number) => (
+                  <tr key={i}><td>{a.tahun_lulus}</td><td className="font-semibold">{a.total}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {(trendTk.length > 0 || trendKb.length > 0) && (
+        <div className="text-xs text-slate-400">Data TK/KB juga tersedia ({trendTk.length} TP TK, {trendKb.length} TP KB)</div>
+      )}
+    </div>
+  )
+}
+
+function DetailGis({ data }: { data: any }) {
+  const d = data || {}
+  const sebaran = d.sebaranDesa || []
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-center">
+          <div className="text-xs text-slate-500">Berkoordinat</div>
+          <div className="text-lg font-bold text-green-700">{d.sekolahBerkoordinat || 0}</div>
+        </div>
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-center">
+          <div className="text-xs text-slate-500">Tanpa Koordinat</div>
+          <div className="text-lg font-bold text-red-700">{d.sekolahTanpaKoordinat || 0}</div>
+        </div>
+      </div>
+      {sebaran.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="table-base text-xs">
+            <thead>
+              <tr><th>Desa</th><th>SD</th><th>TK</th><th>KB</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+              {sebaran.map((s: any, i: number) => (
+                <tr key={i}>
+                  <td className="font-medium">{s.desa}</td>
+                  <td>{s.sd}</td>
+                  <td>{s.tk}</td>
+                  <td>{s.kb}</td>
+                  <td className="font-semibold">{s.total}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DetailCertification({ data }: { data: any }) {
+  const d = data || {}
+  const ss = d.statusSertifikasi || {}
+  const perSekolah = d.perSekolah || []
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-center">
+          <div className="text-xs text-slate-500">Tersertifikasi</div>
+          <div className="text-lg font-bold text-green-700">{ss.sudah || 0}</div>
+        </div>
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-center">
+          <div className="text-xs text-slate-500">Belum</div>
+          <div className="text-lg font-bold text-red-700">{ss.belum || 0}</div>
+        </div>
+        <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-center">
+          <div className="text-xs text-slate-500">% Sertifikasi</div>
+          <div className="text-lg font-bold text-blue-700">{ss.persenSudah || 0}%</div>
+        </div>
+      </div>
+      {perSekolah.length > 0 && (
+        <div className="overflow-x-auto max-h-48 overflow-y-auto">
+          <table className="table-base text-xs">
+            <thead>
+              <tr><th>Sekolah</th><th>Jenjang</th><th>Total</th><th>Sudah</th><th>Belum</th></tr>
+            </thead>
+            <tbody>
+              {perSekolah.map((s: any, i: number) => (
+                <tr key={i}>
+                  <td className="max-w-[150px] truncate">{s.sekolahNama}</td>
+                  <td className="uppercase">{s.jenjang}</td>
+                  <td>{s.totalGuru}</td>
+                  <td className="text-green-600">{s.tersertifikasi}</td>
+                  <td className="text-red-600">{s.belumSertifikasi}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DetailShortage({ data }: { data: any }) {
+  const d = data || {}
+  const analisis = d.analisis || []
+  const rekap = d.rekapitulasi || {}
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-center">
+          <div className="text-xs text-slate-500">Sekolah Kurang Guru</div>
+          <div className="text-lg font-bold text-red-700">{rekap.kekurangan || 0}</div>
+        </div>
+        <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-center">
+          <div className="text-xs text-slate-500">Sekolah Ideal</div>
+          <div className="text-lg font-bold text-green-700">{rekap.ideal || 0}</div>
+        </div>
+        <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-center">
+          <div className="text-xs text-slate-500">Kelebihan Siswa</div>
+          <div className="text-lg font-bold text-orange-700">{rekap.kelebihanSiswa || 0}</div>
+        </div>
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
+          <div className="text-xs text-slate-500">Rata-rata Rasio</div>
+          <div className="text-lg font-bold text-slate-700">1:{rekap.rataRataRasio || 0}</div>
+        </div>
+      </div>
+      <div className="text-xs text-slate-500">Total kekurangan guru: <span className="font-bold text-red-600">{rekap.totalKekuranganGuru || 0}</span> orang</div>
+      {analisis.length > 0 && (
+        <div className="overflow-x-auto max-h-48 overflow-y-auto">
+          <table className="table-base text-xs">
+            <thead>
+              <tr><th>Sekolah</th><th>Jenjang</th><th>Siswa</th><th>Guru</th><th>Target</th><th>Kurang</th><th>Rasio</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {analisis.map((a: any, i: number) => (
+                <tr key={i}>
+                  <td className="max-w-[130px] truncate">{a.sekolahNama}</td>
+                  <td className="uppercase">{a.jenjang}</td>
+                  <td>{a.jumlahSiswa}</td>
+                  <td>{a.jumlahGuru}</td>
+                  <td>{a.targetGuru}</td>
+                  <td className={a.kekuranganGuru > 0 ? 'text-red-600 font-bold' : 'text-slate-400'}>{a.kekuranganGuru}</td>
+                  <td>1:{a.rasioSiswaGuru}</td>
+                  <td>
+                    <span className={cn(
+                      'badge text-[10px]',
+                      a.statusKetenagaan === 'kekurangan' ? 'bg-red-100 text-red-700' :
+                      a.statusKetenagaan === 'ideal' ? 'bg-green-100 text-green-700' :
+                      'bg-orange-100 text-orange-700'
+                    )}>
+                      {a.statusKetenagaan === 'kekurangan' ? 'Kurang' :
+                       a.statusKetenagaan === 'ideal' ? 'Ideal' : 'Kelebihan Siswa'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const DETAIL_COMPONENTS: Record<string, React.FC<{ data: any }>> = {
+  monthly: DetailMonthly,
+  semester: DetailSemester,
+  annual: DetailAnnual,
+  gis: DetailGis,
+  certification: DetailCertification,
+  shortage: DetailShortage,
+}
+
+function getDetailIcon(type: string) {
+  switch (type) {
+    case 'monthly': return Calendar
+    case 'semester': return BookOpen
+    case 'annual': return TrendingUp
+    case 'gis': return Globe
+    case 'certification': return CheckCircle2
+    case 'shortage': return XCircle
+    default: return FileText
+  }
+}
+
 export default function ReportsClient() {
   const [selectedType, setSelectedType] = useState<string | null>(null)
   const [format, setFormat] = useState('pdf')
@@ -144,7 +446,7 @@ export default function ReportsClient() {
         school_nama: schoolNama,
         tahun_pelajaran: tahunPelajaran || null,
         generatedAt: result.generatedAt,
-        summary: result.summary,
+        summary: result.summary as unknown as Record<string, unknown>,
       }
       saveToHistory(entry)
       setHistory(loadHistory())
@@ -278,7 +580,28 @@ export default function ReportsClient() {
               <div className="text-[11px] text-slate-400 mt-0.5 uppercase">{result.format}</div>
             </div>
           </div>
-          <div className="flex items-center gap-3 text-xs text-slate-500">
+
+          {result.details && selectedType && DETAIL_COMPONENTS[selectedType] && (
+            <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex items-center gap-2 mb-3">
+                {(() => { const Icon = getDetailIcon(selectedType); return <Icon className="w-4 h-4 text-slate-500" /> })()}
+                <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  {selectedType === 'monthly' ? 'Detail Bulanan' :
+                   selectedType === 'semester' ? 'Detail Semester' :
+                   selectedType === 'annual' ? 'Trend Tahunan' :
+                   selectedType === 'gis' ? 'Sebaran Desa' :
+                   selectedType === 'certification' ? 'Status Sertifikasi' :
+                   'Analisis Ketenagaan'}
+                </h4>
+              </div>
+              {(() => {
+                const Comp = DETAIL_COMPONENTS[selectedType]
+                return <Comp data={result.details} />
+              })()}
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 text-xs text-slate-500 mt-4">
             <span>Dibuat: {formatDate(result.generatedAt)}</span>
             {result.tahun_pelajaran && <span>TP: {result.tahun_pelajaran}</span>}
           </div>
