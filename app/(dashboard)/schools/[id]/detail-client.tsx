@@ -6,10 +6,10 @@ import { safeFetch } from '@/lib/safe-fetch'
 import {
   ArrowLeft, MapPin, School, Users, GraduationCap,
   Building2, Archive, ChevronLeft, ChevronRight, BookOpen,
-  Pencil, Save, X,
+  Pencil, Save, X, Eye,
 } from 'lucide-react'
 import { HEALTH_GRADE } from '@/constants'
-import { cn } from '@/lib/utils'
+import { cn, formatBytes } from '@/lib/utils'
 import TeacherDetailModal from '../../teachers/teacher-detail-modal'
 
 export interface SchoolProfile {
@@ -143,6 +143,9 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [editingRombel, setEditingRombel] = useState<string | null>(null)
   const [savingRombel, setSavingRombel] = useState(false)
 
+  const [archivesData, setArchivesData] = useState<any[]>([])
+  const [archivesLoading, setArchivesLoading] = useState(false)
+
   const health = getHealthGrade(school.health_score)
 
   useEffect(() => {
@@ -199,6 +202,16 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
 
   useEffect(() => {
     if (activeTab === 'rombel') loadRombel()
+  }, [activeTab, school.id])
+
+  useEffect(() => {
+    if (activeTab === 'arsip') {
+      setArchivesLoading(true)
+      safeFetch<any>(`/api/v2/archives?school_id=${school.id}&limit=100`)
+        .then(result => setArchivesData(result.archives || []))
+        .catch(console.error)
+        .finally(() => setArchivesLoading(false))
+    }
   }, [activeTab, school.id])
 
   return (
@@ -659,12 +672,43 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
           )}
 
           {activeTab === 'arsip' && (
-            <div className="text-center py-12">
-              <Archive className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-sm font-semibold text-slate-500 mb-2">Dokumen Arsip</h3>
-              <p className="text-sm text-slate-400">
-                Module arsip digital sedang dalam pengembangan
-              </p>
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-700">Dokumen Arsip</h3>
+              </div>
+              {archivesLoading ? (
+                <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-12 skeleton w-full" />)}</div>
+              ) : archivesData.length === 0 ? (
+                <div className="text-center py-12">
+                  <Archive className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <p className="text-sm text-slate-400">Belum ada dokumen arsip</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="table-base">
+                    <thead>
+                      <tr><th>Nama Dokumen</th><th>Kategori</th><th>Tipe</th><th>Ukuran</th><th>Aksi</th></tr>
+                    </thead>
+                    <tbody>
+                      {archivesData.map((a: any) => (
+                        <tr key={a.id}>
+                          <td className="font-medium text-slate-800 text-sm">{a.file_name}</td>
+                          <td><span className="badge bg-slate-100 text-slate-600 text-[11px]">{a.category}</span></td>
+                          <td className="text-xs text-slate-500 uppercase">{a.file_type?.split('/').pop()}</td>
+                          <td className="text-xs text-slate-500">{formatBytes(a.file_size)}</td>
+                          <td>
+                            {a.file_url ? (
+                              <a href={a.file_url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-xs flex items-center gap-1">
+                                <Eye className="w-3 h-3" /> Lihat
+                              </a>
+                            ) : <span className="text-xs text-slate-300">-</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>

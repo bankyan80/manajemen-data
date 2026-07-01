@@ -42,6 +42,26 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     .where(whereConditions)
   const total = totalResult.value
 
+  let catWhere = sql`1=1`
+  if (role !== 'admin_kecamatan' && userSekolahId) {
+    catWhere = sql`(${arsipDigital.school_id} = ${userSekolahId} OR ${arsipDigital.school_id} IS NULL)`
+  }
+
+  const catStats = await _db
+    .select({
+      category: arsipDigital.category,
+      total: count(),
+    })
+    .from(arsipDigital)
+    .where(catWhere)
+    .groupBy(arsipDigital.category)
+    .orderBy(desc(count()))
+
+  const catStatsMap: Record<string, number> = {}
+  for (const s of catStats) {
+    catStatsMap[s.category] = s.total
+  }
+
   const rows = await _db
     .select({
       id: arsipDigital.id,
@@ -68,6 +88,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     data: {
       archives: rows,
       pagination: { total, page, limit, total_pages: Math.ceil(total / limit) },
+      categoryStats: catStatsMap,
     },
   })
 })

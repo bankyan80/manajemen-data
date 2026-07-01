@@ -7,6 +7,7 @@ import {
   Archive, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
   AlertCircle, FileText, Download, Eye, Upload,
   File, Image, FileSpreadsheet, ArrowUp, ArrowDown,
+  Briefcase, UserCheck, GraduationCap, TrendingUp,
 } from 'lucide-react'
 import { cn, formatDate, formatBytes } from '@/lib/utils'
 
@@ -32,11 +33,11 @@ interface Pagination {
 }
 
 const CATEGORIES = [
-  { key: 'akreditasi', label: 'Akreditasi', icon: Award },
-  { key: 'bos', label: 'BOS', icon: DollarSign },
-  { key: 'dokumen_guru', label: 'Dokumen Guru', icon: Users },
-  { key: 'profil_sekolah', label: 'Profil Sekolah', icon: School },
-  { key: 'laporan_infrastruktur', label: 'Laporan Infrastruktur', icon: Building2 },
+  { key: 'riwayat_karier', label: 'Riwayat Karier', icon: Briefcase },
+  { key: 'data_pribadi', label: 'Data Pribadi', icon: UserCheck },
+  { key: 'SKP', label: 'SKP', icon: TrendingUp },
+  { key: 'pendidikan', label: 'Pendidikan', icon: GraduationCap },
+  { key: 'kinerja', label: 'Kinerja', icon: TrendingUp },
 ]
 
 function getFileIcon(mimeType: string) {
@@ -71,6 +72,7 @@ export default function ArchivesClient() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [categoryStats, setCategoryStats] = useState<Record<string, number>>({})
   const { sorted: sortedArchives, sort, toggle } = useSort(archives, 'uploaded_at')
 
   const fetchArchives = useCallback(async (page: number = 1) => {
@@ -83,9 +85,10 @@ export default function ArchivesClient() {
       if (search) params.set('q', search)
       if (categoryFilter) params.set('category', categoryFilter)
 
-      const result = await safeFetch<{ archives: ArchiveRow[]; pagination: Pagination }>(`/api/v2/archives?${params}`)
+      const result = await safeFetch<{ archives: ArchiveRow[]; pagination: Pagination; categoryStats: Record<string, number> }>(`/api/v2/archives?${params}`)
       setArchives(result.archives || [])
       setPagination(result.pagination)
+      setCategoryStats(result.categoryStats || {})
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {
@@ -117,12 +120,6 @@ export default function ArchivesClient() {
     input.click()
   }
 
-  const categoryCounts: Record<string, number> = {}
-  archives.forEach(a => {
-    const c = a.category || 'lainnya'
-    categoryCounts[c] = (categoryCounts[c] || 0) + 1
-  })
-
   return (
     <div className="page-container">
       <div className="page-header">
@@ -152,7 +149,7 @@ export default function ArchivesClient() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
             {CATEGORIES.map(cat => {
               const Icon = cat.icon
-              const count = categoryCounts[cat.key] || 0
+              const count = (categoryStats[cat.key] || 0)
               return (
                 <button
                   key={cat.key}
