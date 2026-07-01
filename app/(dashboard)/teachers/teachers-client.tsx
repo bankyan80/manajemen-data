@@ -93,6 +93,12 @@ export default function TeachersClient() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
+  const [summary, setSummary] = useState<{
+    totalActive: number
+    statusDistribution: Record<string, number>
+    sertifikasiDistribution: Record<string, number>
+    retiringSoon: number
+  }>({ totalActive: 0, statusDistribution: {}, sertifikasiDistribution: {}, retiringSoon: 0 })
   const { sorted: sortedTeachers, sort, toggle } = useSort(teachers, 'nama')
 
   const fetchTeachers = useCallback(async (page: number = 1) => {
@@ -105,9 +111,10 @@ export default function TeachersClient() {
       if (search) params.set('q', search)
       if (statusFilter) params.set('status_pegawai', statusFilter)
 
-      const result = await safeFetch<{ teachers: TeacherRow[]; pagination: Pagination }>(`/api/v2/teachers?${params}`)
+      const result = await safeFetch<{ teachers: TeacherRow[]; pagination: Pagination; summary: { totalActive: number; statusDistribution: Record<string, number>; sertifikasiDistribution: Record<string, number>; retiringSoon: number } }>(`/api/v2/teachers?${params}`)
       setTeachers(result.teachers || [])
       setPagination(result.pagination)
+      if (result.summary) setSummary(result.summary)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {
@@ -127,25 +134,15 @@ export default function TeachersClient() {
     return () => clearTimeout(timeout)
   }, [search, fetchTeachers])
 
-  const totalTeachers = pagination.total
-  const certified = teachers.filter(t => t.sertifikasi === 'sudah' || t.sertifikasi === 'ada').length
-  const pendingCert = teachers.filter(t => t.sertifikasi === 'proses' || t.sertifikasi === 'belum').length
-  const retiringSoon = teachers.filter(t => {
-    if (!t.tanggal_bup) return false
-    const bup = new Date(t.tanggal_bup)
-    const now = new Date()
-    const diffMonths = (bup.getFullYear() - now.getFullYear()) * 12 + (bup.getMonth() - now.getMonth())
-    return diffMonths >= 0 && diffMonths <= 12
-  }).length
+  const totalTeachers = summary.totalActive
+  const sd = summary.sertifikasiDistribution || {}
+  const certified = sd.sudah || 0
+  const pendingCert = 0
+  const certCount = certified
+  const noCertCount = summary.totalActive - certCount
+  const retiringSoon = summary.retiringSoon
 
-  const statusCounts: Record<string, number> = {}
-  teachers.forEach(t => {
-    const s = t.status_pegawai || 'unknown'
-    statusCounts[s] = (statusCounts[s] || 0) + 1
-  })
-
-  const certCount = teachers.filter(t => t.sertifikasi === 'sudah' || t.sertifikasi === 'ada').length
-  const noCertCount = teachers.filter(t => !t.sertifikasi || t.sertifikasi === 'belum' || t.sertifikasi === 'tidak').length
+  const statusCounts = summary.statusDistribution
 
   return (
     <div className="page-container">
@@ -197,17 +194,6 @@ export default function TeachersClient() {
           <div className="card p-5">
             <div className="flex items-start justify-between">
               <div>
-                <div className="kpi-value text-warning">{loading ? '-' : pendingCert}</div>
-                <div className="kpi-label mt-1">Sertifikasi Tertunda</div>
-              </div>
-              <div className="p-3 rounded-xl bg-yellow-50">
-                <FileText className="w-5 h-5 text-warning" />
-              </div>
-            </div>
-          </div>
-          <div className="card p-5">
-            <div className="flex items-start justify-between">
-              <div>
                 <div className="kpi-value text-danger">{loading ? '-' : retiringSoon}</div>
                 <div className="kpi-label mt-1">Akan Pensiun (&le;12 bln)</div>
               </div>
@@ -234,7 +220,7 @@ export default function TeachersClient() {
                     key={status}
                     label={status.replace(/_/g, ' ')}
                     value={count}
-                    total={teachers.length}
+                    total={summary.totalActive}
                     color={
                       status === 'pns' ? 'bg-blue-500' :
                       status === 'pppk' ? 'bg-green-500' :
@@ -254,8 +240,8 @@ export default function TeachersClient() {
               </div>
             ) : (
               <div className="space-y-3">
-                <DistributionBar label="Tersertifikasi" value={certCount} total={teachers.length} color="bg-green-500" />
-                <DistributionBar label="Belum Sertifikasi" value={noCertCount} total={teachers.length} color="bg-slate-400" />
+                <DistributionBar label="Tersertifikasi" value={certCount} total={summary.totalActive} color="bg-green-500" />
+                <DistributionBar label="Belum Sertifikasi" value={noCertCount} total={summary.totalActive} color="bg-slate-400" />
               </div>
             )}
           </div>
@@ -278,7 +264,7 @@ export default function TeachersClient() {
                 <div className="flex justify-between">
                   <span className="text-slate-500">Sertifikasi rate</span>
                   <span className="font-semibold">
-                    {teachers.length > 0 ? ((certCount / teachers.length) * 100).toFixed(0) : 0}%
+                    {summary.totalActive > 0 ? ((certCount / summary.totalActive) * 100).toFixed(0) : 0}%
                   </span>
                 </div>
                 <div className="flex justify-between">

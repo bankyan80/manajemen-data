@@ -27,14 +27,18 @@ export const GET = (req: NextRequest) => safeApi(async () => {
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
   const offset = (page - 1) * limit
 
-  let whereConditions = sql`${employees.is_active} = 1`
+  // Base condition (role/school filter only)
+  let baseCondition = sql`${employees.is_active} = 1 AND ${employees.sekolah_id} IN (SELECT id FROM schools WHERE status = 'negeri')`
+  if (role !== 'admin_kecamatan' && userSekolahId) {
+    baseCondition = sql`${baseCondition} AND ${employees.sekolah_id} = ${userSekolahId}`
+  } else if (sekolah_id) {
+    baseCondition = sql`${baseCondition} AND ${employees.sekolah_id} = ${sekolah_id}`
+  }
+
+  // Full condition (with search/filter)
+  let whereConditions = baseCondition
   if (id) {
     whereConditions = sql`${whereConditions} AND ${employees.id} = ${id}`
-  }
-  if (role !== 'admin_kecamatan' && userSekolahId) {
-    whereConditions = sql`${whereConditions} AND ${employees.sekolah_id} = ${userSekolahId}`
-  } else if (sekolah_id) {
-    whereConditions = sql`${whereConditions} AND ${employees.sekolah_id} = ${sekolah_id}`
   }
   if (status_pegawai) whereConditions = sql`${whereConditions} AND ${employees.status_pegawai} = ${status_pegawai}`
   if (sertifikasi) whereConditions = sql`${whereConditions} AND ${employees.sertifikasi} = ${sertifikasi}`
@@ -42,9 +46,11 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     whereConditions = sql`${whereConditions} AND (${employees.nama} LIKE ${'%' + q + '%'} OR ${employees.nik} LIKE ${'%' + q + '%'} OR ${employees.nip} LIKE ${'%' + q + '%'})`
   }
 
+  // Total (with filters)
   const [totalResult] = await _db.select({ value: count() }).from(employees).where(whereConditions)
   const total = totalResult.value
 
+  // Rows (paginated)
   const rows = await _db
     .select({
       id: employees.id,
@@ -78,11 +84,54 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     .limit(limit)
     .offset(offset)
 
+  // Aggregates (from base condition without search/filter)
+  const statusAgg = await _db
+    .select({ value: employees.status_pegawai, count: count() })
+    .from(employees)
+    .where(baseCondition)
+    .groupBy(employees.status_pegawai)
+  const statusDistribution: Record<string, number> = {}
+  for (const r of statusAgg) {
+    if (r.value) statusDistribution[r.value] = r.count
+  }
+
+  const sertifikasiAgg = await _db
+    .select({ value: employees.sertifikasi, count: count() })
+    .from(employees)
+    .where(baseCondition)
+    .groupBy(employees.sertifikasi)
+  const sertifikasiDistribution: Record<string, number> = {}
+  for (const r of sertifikasiAgg) {
+    if (r.value) sertifikasiDistribution[r.value] = r.count
+  }
+
+  const [totalActive] = await _db
+    .select({ value: count() })
+    .from(employees)
+    .where(baseCondition)
+
+  // Count where tanggal_bup is in the past or within 12 months
+  const nowStr = new Date().toISOString().split('T')[0]
+  const yr = new Date().getFullYear() + 1
+  const mth = new Date().getMonth()
+  const dy = new Date().getDate()
+  const cutoffStr = `${yr}-${String(mth + 1).padStart(2, '0')}-${String(dy).padStart(2, '0')}`
+  const [retiringResult] = await _db
+    .select({ value: count() })
+    .from(employees)
+    .where(sql`${baseCondition} AND ${employees.tanggal_bup} IS NOT NULL AND ${employees.tanggal_bup} <= ${cutoffStr}`)
+
   return NextResponse.json({
     success: true,
     data: {
       teachers: rows,
       pagination: id ? undefined : { total, page, limit, total_pages: Math.ceil(total / limit) },
+      summary: {
+        totalActive: totalActive.value,
+        statusDistribution,
+        sertifikasiDistribution,
+        retiringSoon: retiringResult.value,
+      },
     },
   })
 })
