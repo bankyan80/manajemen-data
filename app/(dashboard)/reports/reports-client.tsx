@@ -410,8 +410,8 @@ export default function ReportsClient() {
 
   const fetchSchools = async () => {
     try {
-      const result = await safeFetch<School[]>('/api/v2/schools')
-      setSchools(result || [])
+      const result = await safeFetch<{ schools: School[] }>('/api/v2/schools')
+      setSchools(result?.schools || [])
     } catch {}
   }
 
