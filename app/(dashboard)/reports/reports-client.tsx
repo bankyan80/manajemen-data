@@ -403,6 +403,7 @@ function getDetailIcon(type: string) {
 export default function ReportsClient() {
   const [selectedType, setSelectedType] = useState<string | null>(null)
   const [format, setFormat] = useState('pdf')
+  const [jenjang, setJenjang] = useState('')
   const [schoolId, setSchoolId] = useState('')
   const [tahunPelajaran, setTahunPelajaran] = useState('2026/2027')
   const [generating, setGenerating] = useState(false)
@@ -412,6 +413,8 @@ export default function ReportsClient() {
   const [schools, setSchools] = useState<School[]>([])
   const [previewReport, setPreviewReport] = useState<ReportHistory | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  const filteredSchools = jenjang ? schools.filter(s => s.jenjang === jenjang) : schools
 
   const fetchSchools = async () => {
     try {
@@ -437,6 +440,7 @@ export default function ReportsClient() {
         body: JSON.stringify({
           type: selectedType,
           format,
+          jenjang: jenjang || undefined,
           school_id: schoolId || undefined,
           tahun_pelajaran: tahunPelajaran || undefined,
         }),
@@ -547,10 +551,19 @@ export default function ReportsClient() {
               </select>
             </div>
             <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">Jenjang</label>
+              <select value={jenjang} onChange={e => { setJenjang(e.target.value); setSchoolId('') }} className="input select">
+                <option value="">Semua Jenjang</option>
+                <option value="sd">SD</option>
+                <option value="tk">TK</option>
+                <option value="kb">KB</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-xs font-medium text-slate-600 mb-1.5">Sekolah</label>
               <select value={schoolId} onChange={e => setSchoolId(e.target.value)} className="input select">
-                <option value="">Semua Sekolah</option>
-                {schools.map(s => (
+                <option value="">{jenjang ? `Semua ${jenjang.toUpperCase()}` : 'Semua Sekolah'}</option>
+                {filteredSchools.map(s => (
                   <option key={s.id} value={s.id}>{s.nama} ({s.jenjang.toUpperCase()})</option>
                 ))}
               </select>

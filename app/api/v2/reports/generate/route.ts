@@ -440,14 +440,17 @@ export const POST = (req: NextRequest) => safeApi(async () => {
   if (dbErr.error) return dbErr.error
 
   const body = await req.json()
-  const { type, format, school_id, tahun_pelajaran } = body
+  const { type, format, school_id, tahun_pelajaran, jenjang } = body
 
   const _db = db!
   const role = (session?.user as any)?.role as string
   const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
 
   const effectiveSchoolId = role !== 'admin_kecamatan' && userSekolahId ? userSekolahId : school_id
-  const schoolFilter = effectiveSchoolId ? eq(schools.id, effectiveSchoolId) : eq(schools.is_active, 1)
+  let schoolFilter: any = effectiveSchoolId ? eq(schools.id, effectiveSchoolId) : eq(schools.is_active, 1)
+  if (jenjang && !effectiveSchoolId) {
+    schoolFilter = and(schoolFilter, eq(schools.jenjang, jenjang))
+  }
 
   const handler = REPORT_HANDLERS[type as string]
   if (!handler) {
