@@ -315,8 +315,9 @@ export default function TeachersClient() {
                   <option value="">Semua Status</option>
                   <option value="pns">PNS</option>
                   <option value="pppk">PPPK</option>
+                  <option value="pppk_paruh_waktu">PPPK Paruh Waktu</option>
+                  <option value="gty">GTY</option>
                   <option value="honorer">Honorer</option>
-                  <option value="non_asn">Non ASN</option>
                 </select>
               </div>
             </div>

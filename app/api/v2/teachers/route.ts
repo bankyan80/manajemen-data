@@ -27,7 +27,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
   const offset = (page - 1) * limit
 
-  let whereConditions = sql`1=1`
+  let whereConditions = sql`${employees.is_active} = 1`
   if (id) {
     whereConditions = sql`${whereConditions} AND ${employees.id} = ${id}`
   }
