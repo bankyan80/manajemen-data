@@ -313,7 +313,16 @@
   }
 
   .table-base tbody tr { transition: background 0.1s; }
+  .table-base tbody tr:nth-child(odd) {
+    background: rgb(from var(--color-primary) r g b / 0.06);
+  }
   .table-base tbody tr:hover { background: var(--color-surface-subtle); }
+
+  @media (prefers-color-scheme: dark) {
+    .table-base tbody tr:nth-child(odd) {
+      background: rgb(from var(--color-primary) r g b / 0.12);
+    }
+  }
 
   .table-wrap {
     overflow-x: auto;
