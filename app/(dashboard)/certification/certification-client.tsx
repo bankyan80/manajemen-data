@@ -4,24 +4,35 @@ import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
 import {
   Award, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
-  AlertCircle, FileText, CheckCircle2, UserCheck, DollarSign,
+  AlertCircle, CheckCircle2, MinusCircle,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
-interface CertificationRow {
+interface EmployeeCert {
   id: string
-  teacher_id: string
-  teacher_nama: string
-  teacher_nik: string
+  nama: string
+  nik: string
+  nip?: string
+  nuptk?: string
+  jabatan: string
+  sertifikasi: string
   school_nama: string
-  jenis_sertifikasi: string
-  nomor_sertifikat?: string
-  tahun_sertifikasi?: number
-  penerbit?: string
-  status: string
-  file_url?: string
-  catatan?: string
-  created_at: number
+  school_npsn: string
+  sekolah_jenjang: string
+}
+
+interface PerSekolah {
+  sekolah_id: string
+  school_nama: string
+  sekolah_jenjang: string
+  total: number
+  sudah: number
+}
+
+interface Summary {
+  total: number
+  totalSudah: number
+  totalTidakAda: number
+  persenSudah: number
 }
 
 interface Pagination {
@@ -31,36 +42,11 @@ interface Pagination {
   total_pages: number
 }
 
-const STAGES = [
-  { key: 'submission', label: 'Pengajuan', icon: FileText, color: 'text-blue-600 bg-blue-100' },
-  { key: 'verification', label: 'Verifikasi', icon: Search, color: 'text-purple-600 bg-purple-100' },
-  { key: 'validation', label: 'Validasi', icon: CheckCircle2, color: 'text-indigo-600 bg-indigo-100' },
-  { key: 'approval', label: 'Persetujuan', icon: UserCheck, color: 'text-orange-600 bg-orange-100' },
-  { key: 'disbursement', label: 'Pencairan', icon: DollarSign, color: 'text-green-600 bg-green-100' },
+const FILTERS = [
+  { value: '', label: 'Semua' },
+  { value: 'sudah', label: 'Sudah Sertifikasi' },
+  { value: 'tidak_ada', label: 'Tidak Ada (Tendik)' },
 ]
-
-const STATUS_LABELS: Record<string, string> = {
-  submission: 'Pengajuan',
-  verification: 'Verifikasi',
-  validation: 'Validasi',
-  approval: 'Persetujuan',
-  disbursement: 'Pencairan',
-  completed: 'Selesai',
-  rejected: 'Ditolak',
-}
-
-function getStatusColor(status: string) {
-  const colors: Record<string, string> = {
-    submission: 'bg-blue-50 text-blue-700',
-    verification: 'bg-purple-50 text-purple-700',
-    validation: 'bg-indigo-50 text-indigo-700',
-    approval: 'bg-orange-50 text-orange-700',
-    disbursement: 'bg-green-50 text-green-700',
-    completed: 'bg-emerald-50 text-emerald-700',
-    rejected: 'bg-red-50 text-red-700',
-  }
-  return colors[status] || 'bg-slate-100 text-slate-600'
-}
 
 function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (p: number) => void }) {
   if (totalPages <= 1) return null
@@ -80,14 +66,16 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
 }
 
 export default function CertificationClient() {
-  const [certifications, setCertifications] = useState<CertificationRow[]>([])
+  const [employees, setEmployees] = useState<EmployeeCert[]>([])
+  const [summary, setSummary] = useState<Summary>({ total: 0, totalSudah: 0, totalTidakAda: 0, persenSudah: 0 })
+  const [perSekolah, setPerSekolah] = useState<PerSekolah[]>([])
   const [pagination, setPagination] = useState<Pagination>({ total: 0, page: 1, limit: 20, total_pages: 1 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [filter, setFilter] = useState('')
 
-  const fetchCertifications = useCallback(async (page: number = 1) => {
+  const fetchData = useCallback(async (page: number = 1) => {
     setLoading(true)
     setError(null)
     try {
@@ -95,50 +83,37 @@ export default function CertificationClient() {
       params.set('page', String(page))
       params.set('limit', '20')
       if (search) params.set('q', search)
-      if (statusFilter) params.set('status', statusFilter)
+      if (filter) params.set('sertifikasi', filter)
 
-      const result = await safeFetch<{ certifications: CertificationRow[]; pagination: Pagination }>(`/api/v2/certification?${params}`)
-      setCertifications(result.certifications || [])
+      const result = await safeFetch<{ employees: EmployeeCert[]; summary: Summary; perSekolah: PerSekolah[]; pagination: Pagination }>(`/api/v2/certification?${params}`)
+      setEmployees(result.employees || [])
+      setSummary(result.summary || { total: 0, totalSudah: 0, totalTidakAda: 0, persenSudah: 0 })
+      setPerSekolah(result.perSekolah || [])
       setPagination(result.pagination)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {
       setLoading(false)
     }
-  }, [search, statusFilter])
+  }, [search, filter])
+
+  useEffect(() => { fetchData(1) }, [fetchData])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchCertifications(1)
-  }, [fetchCertifications])
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchCertifications(1)
-    }, 400)
+    const timeout = setTimeout(() => fetchData(1), 400)
     return () => clearTimeout(timeout)
-  }, [search, fetchCertifications])
-
-  const stageCounts: Record<string, number> = {}
-  certifications.forEach(c => {
-    const s = c.status || 'submission'
-    stageCounts[s] = (stageCounts[s] || 0) + 1
-  })
-
-  const bottleneck = STAGES.reduce((max, stage) =>
-    (stageCounts[stage.key] || 0) > (stageCounts[max.key] || 0) ? stage : max
-  , STAGES[0])
+  }, [search, fetchData])
 
   return (
     <div className="page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">Monitoring Sertifikasi</h1>
-          <p className="page-subtitle">Pipeline sertifikasi guru Kecamatan Lemahabang</p>
+          <p className="page-subtitle">Status sertifikasi guru dan tenaga kependidikan Kecamatan Lemahabang</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="badge bg-primary/10 text-primary">
-            {pagination.total} Sertifikasi
+            {pagination.total} Pegawai
           </span>
         </div>
       </div>
@@ -148,43 +123,77 @@ export default function CertificationClient() {
           <AlertCircle className="w-12 h-12 text-danger mx-auto mb-4" />
           <h2 className="text-lg font-semibold mb-2">Gagal Memuat Data</h2>
           <p className="text-slate-500 text-sm">{error}</p>
-          <button onClick={() => fetchCertifications(1)} className="btn btn-primary mt-4">Coba Lagi</button>
+          <button onClick={() => fetchData(1)} className="btn btn-primary mt-4">Coba Lagi</button>
         </div>
       )}
 
       {!error && (
         <>
-          <div className="card p-5 mb-6">
-            <h3 className="text-sm font-semibold text-slate-700 mb-4">Pipeline Sertifikasi</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {STAGES.map(stage => {
-                const count = stageCounts[stage.key] || 0
-                const Icon = stage.icon
-                const isBottleneck = bottleneck.key === stage.key && count > 0
-                return (
-                  <div
-                    key={stage.key}
-                    className={cn(
-                      "p-4 rounded-xl border-2 text-center transition-all",
-                      isBottleneck
-                        ? "border-danger bg-red-50"
-                        : "border-slate-200 bg-slate-50"
-                    )}
-                  >
-                    <div className={cn("p-2 rounded-lg w-fit mx-auto mb-2", stage.color)}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div className={cn("text-2xl font-bold", isBottleneck && "text-danger")}>
-                      {loading ? '-' : count}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">{stage.label}</div>
-                    {isBottleneck && (
-                      <div className="text-[10px] text-danger font-medium mt-1">Hambatan!</div>
-                    )}
-                  </div>
-                )
-              })}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="card p-5">
+              <div className="text-xs text-slate-500">Total Pegawai</div>
+              <div className="text-2xl font-bold text-slate-800">{summary.total}</div>
             </div>
+            <div className="card p-5 border-l-4 border-l-green-500">
+              <div className="text-xs text-slate-500">Sudah Sertifikasi</div>
+              <div className="text-2xl font-bold text-green-700">{summary.totalSudah}</div>
+            </div>
+            <div className="card p-5 border-l-4 border-l-slate-300">
+              <div className="text-xs text-slate-500">Tidak Ada (Tendik)</div>
+              <div className="text-2xl font-bold text-slate-500">{summary.totalTidakAda}</div>
+            </div>
+            <div className="card p-5">
+              <div className="text-xs text-slate-500">Capaian Sertifikasi</div>
+              <div className="text-2xl font-bold text-primary">{summary.persenSudah}%</div>
+              <div className="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                <div className="h-full bg-primary rounded-full" style={{ width: `${summary.persenSudah}%` }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="card p-5 mb-6">
+            <h3 className="text-sm font-semibold text-slate-700 mb-4">Rekapitulasi per Sekolah</h3>
+            {perSekolah.length === 0 ? (
+              <p className="text-sm text-slate-400">Tidak ada data</p>
+            ) : (
+              <div className="overflow-x-auto max-h-60 overflow-y-auto">
+                <table className="table-base text-xs">
+                  <thead>
+                    <tr>
+                      <th>Sekolah</th>
+                      <th>Jenjang</th>
+                      <th>Total</th>
+                      <th>Sudah</th>
+                      <th>Tidak Ada</th>
+                      <th>Capaian</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {perSekolah.map(s => {
+                      const belumAda = s.total - s.sudah
+                      const persen = s.total > 0 ? Math.round((s.sudah / s.total) * 100) : 0
+                      return (
+                        <tr key={s.sekolah_id}>
+                          <td className="font-medium max-w-[180px] truncate">{s.school_nama}</td>
+                          <td className="uppercase">{s.sekolah_jenjang}</td>
+                          <td>{s.total}</td>
+                          <td className="text-green-600">{s.sudah}</td>
+                          <td className="text-slate-400">{belumAda}</td>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary rounded-full" style={{ width: `${persen}%` }} />
+                              </div>
+                              <span className="text-slate-500">{persen}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           <div className="card mb-6">
@@ -193,7 +202,7 @@ export default function CertificationClient() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Cari nama guru..."
+                  placeholder="Cari nama / NIK / NUPTK..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   className="input pl-9"
@@ -202,18 +211,13 @@ export default function CertificationClient() {
               <div className="relative w-full sm:w-48">
                 <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <select
-                  value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
+                  value={filter}
+                  onChange={e => setFilter(e.target.value)}
                   className="input pl-9 select"
                 >
-                  <option value="">Semua Status</option>
-                  <option value="submission">Pengajuan</option>
-                  <option value="verification">Verifikasi</option>
-                  <option value="validation">Validasi</option>
-                  <option value="approval">Persetujuan</option>
-                  <option value="disbursement">Pencairan</option>
-                  <option value="completed">Selesai</option>
-                  <option value="rejected">Ditolak</option>
+                  {FILTERS.map(f => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -227,12 +231,12 @@ export default function CertificationClient() {
                 ))}
               </div>
             </div>
-          ) : certifications.length === 0 ? (
+          ) : employees.length === 0 ? (
             <div className="card p-12 text-center">
               <Award className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-slate-500 mb-2">Tidak Ada Data Sertifikasi</h2>
+              <h2 className="text-lg font-semibold text-slate-500 mb-2">Tidak Ada Data</h2>
               <p className="text-slate-400 text-sm">
-                {search || statusFilter ? 'Tidak ditemukan sertifikasi dengan filter yang dipilih' : 'Belum ada data sertifikasi yang tersedia'}
+                {search || filter ? 'Tidak ditemukan dengan filter yang dipilih' : 'Belum ada data pegawai'}
               </p>
             </div>
           ) : (
@@ -241,38 +245,44 @@ export default function CertificationClient() {
                 <table className="table-base">
                   <thead>
                     <tr>
-                      <th>Guru</th>
-                      <th>Jenis Sertifikasi</th>
-                      <th>Tahun</th>
-                      <th>Penerbit</th>
-                      <th>Status</th>
+                      <th>Nama</th>
+                      <th>NIK / NUPTK</th>
+                      <th>Jabatan</th>
+                      <th>Sertifikasi</th>
                       <th>Sekolah</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {certifications.map(cert => (
-                      <tr key={cert.id} className="hover:bg-slate-50">
+                    {employees.map(emp => (
+                      <tr key={emp.id} className="hover:bg-slate-50">
                         <td>
-                          <div className="font-medium text-slate-800">{cert.teacher_nama}</div>
-                          <div className="text-xs font-mono text-slate-400">{cert.teacher_nik}</div>
+                          <div className="font-medium text-slate-800">{emp.nama}</div>
                         </td>
-                        <td className="text-sm text-slate-600">{cert.jenis_sertifikasi}</td>
-                        <td className="text-sm text-slate-600">{cert.tahun_sertifikasi || '-'}</td>
-                        <td className="text-sm text-slate-600">{cert.penerbit || '-'}</td>
                         <td>
-                          <span className={cn("badge text-[11px]", getStatusColor(cert.status))}>
-                            {STATUS_LABELS[cert.status] || cert.status}
-                          </span>
+                          <div className="text-xs font-mono text-slate-400">{emp.nik}</div>
+                          {emp.nuptk && <div className="text-xs font-mono text-slate-400">NUPTK: {emp.nuptk}</div>}
+                        </td>
+                        <td className="text-sm text-slate-600">{emp.jabatan}</td>
+                        <td>
+                          {emp.sertifikasi === 'sudah' ? (
+                            <span className="badge bg-green-50 text-green-700 border border-green-200 flex items-center gap-1 w-fit">
+                              <CheckCircle2 className="w-3 h-3" /> Sudah Sertifikasi
+                            </span>
+                          ) : (
+                            <span className="badge bg-slate-50 text-slate-500 border border-slate-200 flex items-center gap-1 w-fit">
+                              <MinusCircle className="w-3 h-3" /> Tidak Ada
+                            </span>
+                          )}
                         </td>
                         <td className="text-sm text-slate-500 max-w-[180px] truncate">
-                          {cert.school_nama || '-'}
+                          {emp.school_nama || '-'}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <Pagination page={pagination.page} totalPages={pagination.total_pages} onChange={fetchCertifications} />
+              <Pagination page={pagination.page} totalPages={pagination.total_pages} onChange={fetchData} />
             </div>
           )}
         </>
