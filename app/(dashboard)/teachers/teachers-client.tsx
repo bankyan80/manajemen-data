@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TeacherDetailModal from './teacher-detail-modal'
+import AddTeacherModal from './add-teacher-modal'
 
 interface TeacherRow {
   id: string
@@ -93,6 +94,7 @@ export default function TeachersClient() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [summary, setSummary] = useState<{
     totalActive: number
     statusDistribution: Record<string, number>
@@ -163,6 +165,9 @@ export default function TeachersClient() {
           <span className="badge bg-primary/10 text-primary">
             {pagination.total} Guru & Tendik
           </span>
+          <button onClick={() => setShowAddModal(true)} className="btn btn-primary text-sm">
+            + Tambah Guru
+          </button>
         </div>
       </div>
 
@@ -424,6 +429,13 @@ export default function TeachersClient() {
           teacherId={selectedTeacherId}
           onClose={() => setSelectedTeacherId(null)}
           onUpdated={() => fetchTeachers(pagination.page)}
+        />
+      )}
+
+      {showAddModal && (
+        <AddTeacherModal
+          onClose={() => setShowAddModal(false)}
+          onAdded={() => fetchTeachers(1)}
         />
       )}
     </div>

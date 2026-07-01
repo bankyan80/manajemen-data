@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { safeFetch } from '@/lib/safe-fetch'
 import {
-  ArrowLeft, MapPin, School, Users, GraduationCap,
+  ArrowLeft, MapPin, School, Users,
   Building2, Archive, ChevronLeft, ChevronRight, BookOpen,
-  Pencil, Save, X, Eye,
+  Pencil, Save, X, Eye, Trash2, Plus, AlertCircle, Loader2,
 } from 'lucide-react'
 import { HEALTH_GRADE } from '@/constants'
 import { cn, formatBytes } from '@/lib/utils'
@@ -44,17 +44,6 @@ interface TeacherRow {
   tanggal_bup?: string
 }
 
-interface StudentRow {
-  id: string
-  nama: string
-  nik?: string
-  nisn?: string
-  jenjang: string
-  kelas_kelompok: string
-  jenis_kelamin?: string
-  status_siswa: string
-}
-
 function getHealthGrade(score: number | null) {
   if (score === null || score === undefined) return { label: 'N/A', color: 'text-slate-400 bg-slate-50' }
   const grades = [HEALTH_GRADE.EXCELLENT, HEALTH_GRADE.GOOD, HEALTH_GRADE.MODERATE, HEALTH_GRADE.WARNING, HEALTH_GRADE.CRITICAL]
@@ -77,7 +66,6 @@ const TABS = [
   { id: 'profil', label: 'Profil', icon: School },
   { id: 'guru', label: 'Guru', icon: Users },
   { id: 'tendik', label: 'Tendik', icon: Users },
-  { id: 'siswa', label: 'Siswa', icon: GraduationCap },
   { id: 'rombel', label: 'Rombel', icon: BookOpen },
   { id: 'infrastruktur', label: 'Infrastruktur', icon: Building2 },
   { id: 'arsip', label: 'Arsip', icon: Archive },
@@ -123,11 +111,6 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [tendikPage, setTendikPage] = useState(1)
   const [tendikTotalPages, setTendikTotalPages] = useState(1)
 
-  const [students, setStudents] = useState<StudentRow[]>([])
-  const [studentsLoading, setStudentsLoading] = useState(false)
-  const [studentPage, setStudentPage] = useState(1)
-  const [studentTotalPages, setStudentTotalPages] = useState(1)
-
   const [rombel, setRombel] = useState<any[]>([])
   const [rombelLoading, setRombelLoading] = useState(false)
   const [rombelSummary, setRombelSummary] = useState({ totalSiswa: 0, totalRombel: 0 })
@@ -138,10 +121,12 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [savingProfil, setSavingProfil] = useState(false)
 
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
-  const [editingSiswa, setEditingSiswa] = useState<string | null>(null)
-  const [siswaForm, setSiswaForm] = useState<Record<string, string>>({})
   const [editingRombel, setEditingRombel] = useState<string | null>(null)
   const [savingRombel, setSavingRombel] = useState(false)
+  const [showAddRombel, setShowAddRombel] = useState(false)
+  const [newRombelName, setNewRombelName] = useState('')
+  const [addRombelError, setAddRombelError] = useState('')
+  const [addRombelLoading, setAddRombelLoading] = useState(false)
 
   const [archivesData, setArchivesData] = useState<any[]>([])
   const [archivesLoading, setArchivesLoading] = useState(false)
@@ -174,20 +159,6 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
     }
   }, [activeTab, tendikPage, school.id])
 
-  useEffect(() => {
-    if (activeTab === 'siswa') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStudentsLoading(true)
-      safeFetch<any>(`/api/v2/students?school_id=${school.id}&page=${studentPage}&limit=10`)
-        .then(result => {
-          setStudents(result.students || [])
-          setStudentTotalPages(result.pagination?.total_pages || 1)
-        })
-        .catch(console.error)
-        .finally(() => setStudentsLoading(false))
-    }
-  }, [activeTab, studentPage, school.id])
-
   const loadRombel = () => {
     setRombelLoading(true)
     safeFetch<any>(`/api/v2/schools/${school.id}/rombel`)
@@ -213,6 +184,36 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
         .finally(() => setArchivesLoading(false))
     }
   }, [activeTab, school.id])
+
+  const handleAddRombel = async () => {
+    const name = newRombelName.trim()
+    if (!name) { setAddRombelError('Nama rombel tidak boleh kosong'); return }
+    setAddRombelLoading(true)
+    setAddRombelError('')
+    try {
+      await safeFetch(`/api/v2/schools/${school.id}/rombel`, {
+        method: 'POST',
+        body: JSON.stringify({ kelas_kelompok: name }),
+      })
+      setShowAddRombel(false)
+      setNewRombelName('')
+      loadRombel()
+    } catch (err: unknown) {
+      setAddRombelError(err instanceof Error ? err.message : 'Gagal menambahkan rombel')
+    } finally {
+      setAddRombelLoading(false)
+    }
+  }
+
+  const handleDeleteRombel = async (kelas_kelompok: string) => {
+    if (!confirm(`Yakin ingin menghapus rombel "${kelas_kelompok}"?`)) return
+    try {
+      await safeFetch(`/api/v2/schools/${school.id}/rombel?kelas_kelompok=${encodeURIComponent(kelas_kelompok)}`, { method: 'DELETE' })
+      loadRombel()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menghapus rombel')
+    }
+  }
 
   return (
     <div className="page-container">
@@ -374,8 +375,8 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                       Data Guru & Tendik tersedia di tab Guru
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-2 rounded-xl">
-                      <GraduationCap className="w-4 h-4 text-slate-400" />
-                      Data Siswa tersedia di tab Siswa
+                      <BookOpen className="w-4 h-4 text-slate-400" />
+                      Data Siswa & Rombel tersedia di tab Rombel
                     </div>
                   </div>
                 </>
@@ -476,107 +477,6 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
             </div>
           )}
 
-          {activeTab === 'siswa' && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-700">Daftar Siswa</h3>
-              </div>
-              {studentsLoading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map(i => <div key={i} className="h-12 skeleton w-full" />)}
-                </div>
-              ) : students.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm">
-                  <GraduationCap className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  Tidak ada data siswa
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="table-base">
-                    <thead>
-                      <tr>
-                        <th>Nama</th>
-                        <th>NISN</th>
-                        <th>NIK</th>
-                        <th>Kelas</th>
-                        <th>Jenis Kelamin</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map(s => (
-                        <tr key={s.id}>
-                          <td className="font-medium text-slate-800">
-                            <button onClick={() => { setEditingSiswa(editingSiswa === s.id ? null : s.id); setSiswaForm({ nama: s.nama, nisn: s.nisn || '', nik: s.nik || '', kelas_kelompok: s.kelas_kelompok, jenis_kelamin: s.jenis_kelamin || '' }) }} className="hover:text-primary text-left">
-                              {s.nama}
-                            </button>
-                          </td>
-                          <td className="font-mono text-sm text-slate-500">{s.nisn || '-'}</td>
-                          <td className="font-mono text-sm text-slate-500">{s.nik || '-'}</td>
-                          <td className="text-sm text-slate-600">{s.kelas_kelompok}</td>
-                          <td className="text-sm text-slate-600 capitalize">{s.jenis_kelamin || '-'}</td>
-                          <td>
-                            <span className={cn(
-                              "badge text-[11px]",
-                              s.status_siswa === 'aktif' ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                            )}>
-                              {s.status_siswa}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                      {editingSiswa && (
-                        <tr>
-                          <td colSpan={6} className="p-4 bg-slate-50">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                              <div>
-                                <label className="block text-xs text-slate-400 mb-1">Nama</label>
-                                <input className="input" value={siswaForm.nama} onChange={e => setSiswaForm(p => ({ ...p, nama: e.target.value }))} />
-                              </div>
-                              <div>
-                                <label className="block text-xs text-slate-400 mb-1">NISN</label>
-                                <input className="input" value={siswaForm.nisn} onChange={e => setSiswaForm(p => ({ ...p, nisn: e.target.value }))} />
-                              </div>
-                              <div>
-                                <label className="block text-xs text-slate-400 mb-1">NIK</label>
-                                <input className="input" value={siswaForm.nik} onChange={e => setSiswaForm(p => ({ ...p, nik: e.target.value }))} />
-                              </div>
-                              <div>
-                                <label className="block text-xs text-slate-400 mb-1">Kelas</label>
-                                <input className="input" value={siswaForm.kelas_kelompok} onChange={e => setSiswaForm(p => ({ ...p, kelas_kelompok: e.target.value }))} />
-                              </div>
-                              <div>
-                                <label className="block text-xs text-slate-400 mb-1">Jenis Kelamin</label>
-                                <select className="input" value={siswaForm.jenis_kelamin} onChange={e => setSiswaForm(p => ({ ...p, jenis_kelamin: e.target.value }))}>
-                                  <option value="">Pilih</option>
-                                  <option value="laki-laki">Laki-laki</option>
-                                  <option value="perempuan">Perempuan</option>
-                                </select>
-                              </div>
-                              <div className="flex items-end gap-2">
-                                <button
-                                  onClick={async () => {
-                                    try {
-                                      await safeFetch(`/api/v2/students?id=${editingSiswa}`, { method: 'PUT', body: JSON.stringify(siswaForm) })
-                                      setEditingSiswa(null)
-                                    } catch {}
-                                  }}
-                                  className="btn btn-primary btn-sm flex items-center gap-1"
-                                ><Save className="w-3.5 h-3.5" /> Simpan</button>
-                                <button onClick={() => setEditingSiswa(null)} className="btn btn-ghost btn-sm">Batal</button>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              <Pagination page={studentPage} totalPages={studentTotalPages} onChange={setStudentPage} />
-            </div>
-          )}
-
           {activeTab === 'rombel' && (
             <div>
               <div className="flex items-center gap-4 mb-4">
@@ -585,7 +485,39 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                   <span className="text-slate-500">Total Rombel: <strong>{rombelSummary.totalRombel}</strong></span>
                   <span className="text-slate-500">Total Siswa: <strong>{rombelSummary.totalSiswa}</strong></span>
                 </div>
+                <div className="ml-auto">
+                  <button onClick={() => { setShowAddRombel(true); setNewRombelName(''); setAddRombelError('') }} className="btn btn-primary btn-sm flex items-center gap-1">
+                    <Plus className="w-3.5 h-3.5" /> Tambah Rombel
+                  </button>
+                </div>
               </div>
+
+              {showAddRombel && (
+                <div className="p-4 mb-4 rounded-xl bg-slate-50 border border-border">
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="block text-xs text-slate-400 mb-1">Nama Rombel Baru</label>
+                      <input
+                        className="input"
+                        value={newRombelName}
+                        onChange={e => setNewRombelName(e.target.value)}
+                        placeholder={school.jenjang === 'sd' ? 'Contoh: Kelas I' : school.jenjang === 'tk' ? 'Contoh: A (Usia 4-5)' : 'Contoh: 2-3 Tahun'}
+                        onKeyDown={e => { if (e.key === 'Enter') { handleAddRombel() } }}
+                      />
+                    </div>
+                    <button onClick={handleAddRombel} disabled={addRombelLoading || !newRombelName.trim()} className="btn btn-primary btn-sm flex items-center gap-1">
+                      {addRombelLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                      Simpan
+                    </button>
+                    <button onClick={() => setShowAddRombel(false)} className="btn btn-ghost btn-sm">Batal</button>
+                  </div>
+                  {addRombelError && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-red-600">
+                      <AlertCircle className="w-3 h-3" /> {addRombelError}
+                    </div>
+                  )}
+                </div>
+              )}
               {rombelLoading ? (
                 <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-12 skeleton w-full" />)}</div>
               ) : rombel.length === 0 ? (
@@ -599,16 +531,19 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                     <thead>
                       <tr>
                         <th>Kelas</th>
+                        <th>Rombel</th>
                         <th>Laki-laki</th>
                         <th>Perempuan</th>
                         <th>Total</th>
                         <th>Wali Kelas</th>
+                        <th className="w-16">Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rombel.map((r: any, i: number) => (
                         <tr key={i}>
-                          <td className="font-medium text-slate-800">{school.jenjang !== 'sd' ? r.kelas_kelompok.replace(/\s*\(.*\)/, '') : r.kelas_kelompok}</td>
+                          <td className="font-medium text-slate-800">{school.jenjang === 'sd' ? r.kelas_kelompok.replace('Kelas ', '') : r.kelas_kelompok.replace(/\s*\(.*\)/, '').replace(' Tahun', '')}</td>
+                          <td className="text-slate-600 text-sm">{r.kelas_kelompok}</td>
                           <td className="text-slate-600">{r.laki}</td>
                           <td className="text-slate-600">{r.perempuan}</td>
                           <td className="font-semibold text-slate-700">{r.total}</td>
@@ -651,6 +586,15 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                                 <Pencil className="w-3 h-3 text-slate-300 group-hover:text-primary hidden sm:inline" />
                               </button>
                             )}
+                          </td>
+                          <td>
+                            <button
+                              onClick={() => handleDeleteRombel(r.kelas_kelompok)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+                              title="Hapus rombel"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </td>
                         </tr>
                       ))}

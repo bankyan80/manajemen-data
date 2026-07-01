@@ -53,6 +53,8 @@ export const GET = (req: NextRequest, { params }: { params: Promise<{ id: string
     }
   }
 
+  const existingKelompok = new Set(rombelRows.map(r => r.kelas_kelompok))
+
   const rombel = rombelRows.map(r => ({
     kelas_kelompok: r.kelas_kelompok,
     total: r.total,
@@ -61,6 +63,19 @@ export const GET = (req: NextRequest, { params }: { params: Promise<{ id: string
     wali_kelas_id: classMap[r.kelas_kelompok] || null,
     wali_kelas: (classMap[r.kelas_kelompok] && waliNames[classMap[r.kelas_kelompok]!]) || null,
   }))
+
+  for (const c of classRows) {
+    if (!existingKelompok.has(c.nama_kelas)) {
+      rombel.push({
+        kelas_kelompok: c.nama_kelas,
+        total: 0,
+        laki: 0,
+        perempuan: 0,
+        wali_kelas_id: c.wali_kelas_id || null,
+        wali_kelas: (c.wali_kelas_id && waliNames[c.wali_kelas_id]) || null,
+      })
+    }
+  }
 
   const teachers = await _db
     .select({ id: employees.id, nama: employees.nama })
@@ -75,6 +90,94 @@ export const GET = (req: NextRequest, { params }: { params: Promise<{ id: string
     success: true,
     data: { rombel, totalSiswa, totalRombel, teachers },
   })
+})
+
+export const POST = async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => safeApi(async () => {
+  const { session, error } = await guardApi()
+  if (error) return error
+  const dbErr = guardDb(db)
+  if (dbErr.error) return dbErr.error
+
+  const _db = db!
+  const { id } = await params
+
+  const role = (session?.user as any)?.role as string
+  const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
+  if (role !== 'admin_kecamatan' && userSekolahId !== id) {
+    return NextResponse.json({ success: false, error: 'Tidak memiliki akses ke sekolah ini' }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const { kelas_kelompok } = body
+  if (!kelas_kelompok) {
+    return NextResponse.json({ success: false, error: 'Nama rombel wajib diisi' }, { status: 400 })
+  }
+
+  const existing = await _db
+    .select({ id: classes.id })
+    .from(classes)
+    .where(and(eq(classes.school_id, id), eq(classes.nama_kelas, kelas_kelompok)))
+    .limit(1)
+
+  if (existing.length > 0) {
+    return NextResponse.json({ success: false, error: 'Rombel dengan nama tersebut sudah ada' }, { status: 409 })
+  }
+
+  const { v4: uuidv4 } = await import('uuid')
+  const tpResult = await _db
+    .select({ tp: students.tahun_pelajaran })
+    .from(students)
+    .where(and(eq(students.school_id, id), eq(students.status_siswa, 'aktif')))
+    .limit(1)
+  const tahunPelajaran = tpResult.length > 0 ? tpResult[0].tp : '2026/2027'
+
+  await _db.insert(classes).values({
+    id: uuidv4(),
+    school_id: id,
+    nama_kelas: kelas_kelompok,
+    tingkat: kelas_kelompok,
+    tahun_pelajaran: tahunPelajaran,
+    wali_kelas_id: null,
+    kapasitas: 0,
+    jumlah_siswa: 0,
+  })
+
+  return NextResponse.json({ success: true, data: { message: 'Rombel berhasil ditambahkan' } })
+})
+
+export const DELETE = async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => safeApi(async () => {
+  const { session, error } = await guardApi()
+  if (error) return error
+  const dbErr = guardDb(db)
+  if (dbErr.error) return dbErr.error
+
+  const _db = db!
+  const { id } = await params
+
+  const role = (session?.user as any)?.role as string
+  const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
+  if (role !== 'admin_kecamatan' && userSekolahId !== id) {
+    return NextResponse.json({ success: false, error: 'Tidak memiliki akses ke sekolah ini' }, { status: 403 })
+  }
+
+  const { searchParams } = new URL(req.url)
+  const kelas_kelompok = searchParams.get('kelas_kelompok')
+  if (!kelas_kelompok) {
+    return NextResponse.json({ success: false, error: 'kelas_kelompok diperlukan' }, { status: 400 })
+  }
+
+  const studentCount = await _db
+    .select({ value: count() })
+    .from(students)
+    .where(and(eq(students.school_id, id), eq(students.kelas_kelompok, kelas_kelompok), eq(students.status_siswa, 'aktif')))
+
+  if (studentCount[0].value > 0) {
+    return NextResponse.json({ success: false, error: `Tidak dapat menghapus rombel yang masih memiliki ${studentCount[0].value} siswa aktif` }, { status: 400 })
+  }
+
+  await _db.delete(classes).where(and(eq(classes.school_id, id), eq(classes.nama_kelas, kelas_kelompok)))
+
+  return NextResponse.json({ success: true, data: { message: 'Rombel berhasil dihapus' } })
 })
 
 export const PUT = async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => safeApi(async () => {
