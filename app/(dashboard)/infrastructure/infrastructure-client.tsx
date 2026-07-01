@@ -6,7 +6,7 @@ import { useSort } from '@/lib/use-sort'
 import {
   Building2, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
   AlertCircle, FlaskConical, BookOpen, DoorOpen, Pencil, Save, X,
-  ArrowUp, ArrowDown,
+  ArrowUp, ArrowDown, Plus, Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -134,6 +134,11 @@ export default function InfrastructureClient() {
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState({ nama: '', jenis: '', jumlah: 0, kondisi: '' })
   const [editError, setEditError] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addForm, setAddForm] = useState({ school_id: '', nama_ruang: '', jenis_ruang: 'ruang_kelas', kapasitas_siswa: 0, kondisi_non_struktur: 'baik' })
+  const [schools, setSchools] = useState<{ id: string; nama: string }[]>([])
+  const [addSaving, setAddSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const { sorted: sortedItems, sort, toggle } = useSort(items, 'school_nama')
 
   const openDetail = (item: InfraItem) => {
@@ -166,6 +171,33 @@ export default function InfrastructureClient() {
       setEditError(err instanceof Error ? err.message : 'Gagal menyimpan')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAdd = async () => {
+    if (!addForm.nama_ruang) { alert('Nama ruang wajib diisi'); return }
+    setAddSaving(true)
+    try {
+      await safeFetch('/api/sarpras/ruang/', {
+        method: 'POST',
+        body: JSON.stringify(addForm),
+      })
+      setShowAddModal(false)
+      setAddForm({ school_id: '', nama_ruang: '', jenis_ruang: 'ruang_kelas', kapasitas_siswa: 0, kondisi_non_struktur: 'baik' })
+      fetchItems(1)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menambahkan')
+    } finally { setAddSaving(false) }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await safeFetch(`/api/sarpras/ruang/${id}`, { method: 'DELETE' })
+      setConfirmDelete(null)
+      setSelectedItem(null)
+      fetchItems(1)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menghapus')
     }
   }
 
@@ -215,6 +247,13 @@ export default function InfrastructureClient() {
           <span className="badge bg-primary/10 text-primary">
             {pagination.total} Item
           </span>
+          <button onClick={() => {
+            setAddForm({ school_id: '', nama_ruang: '', jenis_ruang: 'ruang_kelas', kapasitas_siswa: 0, kondisi_non_struktur: 'baik' })
+            setShowAddModal(true)
+            safeFetch<any>('/api/v2/schools').then(r => setSchools(r.schools || [])).catch(() => {})
+          }} className="btn btn-primary btn-sm flex items-center gap-1">
+            <Plus className="w-3.5 h-3.5" /> Tambah
+          </button>
         </div>
       </div>
 
@@ -358,20 +397,89 @@ export default function InfrastructureClient() {
             </div>
           )}
 
+          {showAddModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowAddModal(false)}>
+              <div className="card max-w-lg w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">Tambah Infrastruktur</h3>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Sekolah</label>
+                    <select value={addForm.school_id} onChange={e => setAddForm(f => ({ ...f, school_id: e.target.value }))} className="input select text-sm">
+                      <option value="">Pilih Sekolah</option>
+                      {schools.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Jenis Ruang</label>
+                    <select value={addForm.jenis_ruang} onChange={e => setAddForm(f => ({ ...f, jenis_ruang: e.target.value }))} className="input select text-sm">
+                      <option value="ruang_kelas">Ruang Kelas</option>
+                      <option value="laboratorium">Laboratorium</option>
+                      <option value="perpustakaan">Perpustakaan</option>
+                      <option value="wc">WC</option>
+                      <option value="guru">Ruang Guru</option>
+                      <option value="kepala_sekolah">Ruang Kepala Sekolah</option>
+                      <option value="tata_usaha">Ruang Tata Usaha</option>
+                      <option value="ibadah">Ruang Ibadah</option>
+                      <option value="UKS">UKS</option>
+                      <option value="gudang">Gudang</option>
+                      <option value="lainnya">Lainnya</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Nama Ruang</label>
+                    <input type="text" value={addForm.nama_ruang} onChange={e => setAddForm(f => ({ ...f, nama_ruang: e.target.value }))} className="input text-sm" placeholder="Ruang Kelas 1" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Kapasitas</label>
+                    <input type="number" value={addForm.kapasitas_siswa} onChange={e => setAddForm(f => ({ ...f, kapasitas_siswa: Number(e.target.value) }))} className="input text-sm" min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Kondisi</label>
+                    <select value={addForm.kondisi_non_struktur} onChange={e => setAddForm(f => ({ ...f, kondisi_non_struktur: e.target.value }))} className="input select text-sm">
+                      <option value="baik">Baik</option>
+                      <option value="sedang">Sedang</option>
+                      <option value="rusak_ringan">Rusak Ringan</option>
+                      <option value="rusak_berat">Rusak Berat</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-6">
+                  <button onClick={() => setShowAddModal(false)} className="btn btn-ghost flex-1">Batal</button>
+                  <button onClick={handleAdd} disabled={addSaving || !addForm.school_id} className="btn btn-primary flex-1 flex items-center justify-center gap-2">
+                    {addSaving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus className="w-4 h-4" />}
+                    {addSaving ? 'Menyimpan...' : 'Simpan'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {selectedItem && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => { setSelectedItem(null); setEditing(false) }}>
               <div className="card max-w-lg w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-slate-800">Detail Infrastruktur</h3>
-                  {!editing ? (
-                    <button onClick={() => setEditing(true)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <button onClick={() => { setEditing(false); setEditForm({ nama: selectedItem.nama, jenis: selectedItem.jenis, jumlah: selectedItem.jumlah, kondisi: selectedItem.kondisi }) }} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {confirmDelete === selectedItem.id ? (
+                      <>
+                        <button onClick={() => handleDelete(selectedItem.id)} className="p-2 rounded-lg hover:bg-red-50 text-red-500 text-xs font-semibold">Yakin?</button>
+                        <button onClick={() => setConfirmDelete(null)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+                      </>
+                    ) : !editing ? (
+                      <>
+                        <button onClick={() => setConfirmDelete(selectedItem.id)} className="p-2 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500" title="Hapus">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setEditing(true)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => { setEditing(false); setEditForm({ nama: selectedItem.nama, jenis: selectedItem.jenis, jumlah: selectedItem.jumlah, kondisi: selectedItem.kondisi }) }} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {editError && (
