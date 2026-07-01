@@ -216,7 +216,7 @@ export function exportPdf(type: string, label: string, summary: any, details: De
         headStyles: { fillColor: [59, 130, 246] },
       })
       y = (doc as any).lastAutoTable.finalY + 8
-      if ((details.alumni || []).length > 0) {
+      if ((details.alumni as any[] || []).length > 0) {
         doc.text('Alumni', 14, y)
         y += 5
         autoTable(doc, {

@@ -56,6 +56,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Import Dapodik**: `scripts/import-dapodik.ts` imported **840** siswa dari 45 file Excel Dapodik; perbandingan Dapodik 7.058 vs DB 7.066 (selisih hanya 8)
 - **Error boundaries**: `app/error.tsx` global + `components/ui/PageError.tsx` reusable
 - **Loading states**: 10 `loading.tsx` files across data-heavy pages + `components/ui/PageLoading.tsx`
+- **Certification rewrite**: API now queries `employees.jabatan` (Guru/Kepsek = `sudah`, Tendik = `tidak_ada`); frontend shows table + per-school recap with badges
+- **PDF/Excel/CSV export**: `lib/export-report.ts` — 6 report types each with tailored columns; download buttons on current result + history items (re-generates via API)
 
 ### In Progress
 - (none)
@@ -74,10 +76,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Middleware (proxy) dipakai untuk auth API routes — Next.js 16 renaming dari middleware.ts ke proxy.ts
 - `nik` ditambah ke `student_mutations` agar mutasi TK/KB bisa dilacak (karena tidak punya NISN)
 - Kesiswaan page default `jenjang='sd'` bukan `''` — operator auto-detect jenjang sekolah masing-masing
+- Certification: sertifikasi ditentukan dari `employees.jabatan` — Guru/Kepsek=`sudah`, Tendik=`tidak_ada`
+- Export report: menggunakan `xlsx` (Excel), `jspdf`+`jspdf-autotable` (PDF), atau CSV text — semua client-side
 
 ## Next Steps
-- Pagination di API endpoint yang belum punya
-- Database transactions untuk multi-step writes
+- Koordinat lat/lng untuk sekolah TK/KB (hanya 22 SD yang punya koordinat)
+- Verifikasi halaman infrastruktur setelah seed data dihapus
 - Import data pegawai KB PERMATA BUNDA jika ada file Excel
 
 ## Critical Context
@@ -91,6 +95,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Audit report lengkap di `AUDIT_REPORT.md` — overall score **38/100**
 - **Operator hanya lihat data sekolah sendiri**: API students, mutasi-masuk, mutasi-keluar auto-filter by `user.sekolah_id` dari session
 - **Kesiswaan page auto-detect operator jenjang**: fetch `/api/schools/:id` saat mount, set `jenjang` default sesuai data sekolah
+- **Sertifikasi pegawai**: 373 Guru/Kepsek = `sudah`, 49 Tendik = `tidak_ada` — via `scripts/update-sertifikasi.ts`
+- **Export reports**: menggunakan `exportPdf()` (jsPDF), `exportExcel()` (SheetJS), `exportCsv()` — semua function di `lib/export-report.ts`
 
 ## Relevant Files
 - `proxy.ts`: Next.js 16 proxy middleware — JWT check + security headers + CORS (active on production)
@@ -109,3 +115,6 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `scripts/check-duplicates.ts`: duplicate detection across all jenjang
 - `scripts/clean-tk-kb-duplicates.ts`: removed 134 TK/KB duplicates
 - `scripts/clean-sd-duplicates.ts`: removed 4,373 SD promotion duplicates (batch-optimized)
+- `app/api/v2/certification/route.ts`: Rewritten — queries `employees.jabatan` for sertifikasi status
+- `app/(dashboard)/certification/certification-client.tsx`: Rewritten — table view with per-school recap
+- `lib/export-report.ts`: Export functions — `exportPdf()`, `exportExcel()`, `exportCsv()` for 6 report types
