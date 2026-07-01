@@ -100,31 +100,32 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         sidebarDesktopOpen ? "lg:ml-64" : "lg:ml-0"
       )}>
         {/* Topbar */}
-        <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-border">
-          <div className="flex items-center justify-between h-full px-4 lg:px-6">
-            <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 h-14 sm:h-16 bg-white/80 backdrop-blur-md border-b border-border">
+          <div className="flex items-center justify-between h-full px-3 sm:px-6">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setSidebarMobileOpen(true)}
-                className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
+                className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100"
+                aria-label="Buka menu"
               >
                 <Menu className="w-5 h-5 text-slate-600" />
               </button>
               <button
                 onClick={() => setSidebarDesktopOpen(prev => !prev)}
-                className="hidden lg:flex p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+                className="hidden lg:flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100 text-slate-500"
                 title={sidebarDesktopOpen ? 'Sembunyikan sidebar' : 'Tampilkan sidebar'}
               >
                 {sidebarDesktopOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
               </button>
-              <div className="hidden sm:flex items-center gap-2 text-sm text-slate-400">
-                <span className="font-medium text-slate-600">Kecamatan Lemahabang</span>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
+                <span className="font-medium text-slate-600">Kec. Lemahabang</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button className="relative p-2 rounded-lg hover:bg-slate-100">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button className="relative flex items-center justify-center w-10 h-10 rounded-lg hover:bg-slate-100">
                 <Bell className="w-5 h-5 text-slate-500" />
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   3
                 </span>
               </button>
@@ -132,7 +133,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100"
+                  className="flex items-center gap-2 p-1.5 sm:p-2 rounded-lg hover:bg-slate-100 min-h-[44px]"
                 >
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
                     {(session?.user?.name || 'U').charAt(0)}
