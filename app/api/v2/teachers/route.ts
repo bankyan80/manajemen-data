@@ -95,6 +95,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
       is_active: employees.is_active,
       created_at: employees.created_at,
       school_nama: schools.nama,
+      school_jenjang: schools.jenjang,
     })
     .from(employees)
     .leftJoin(schools, eq(employees.sekolah_id, schools.id))

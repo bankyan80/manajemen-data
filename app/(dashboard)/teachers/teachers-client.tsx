@@ -22,6 +22,7 @@ interface TeacherRow {
   tmt_kerja?: string
   tanggal_bup?: string
   school_nama?: string
+  school_jenjang?: string
   sekolah_id: string
 }
 
