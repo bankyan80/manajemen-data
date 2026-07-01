@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
       tempat_lahir: alumni.tempat_lahir,
       tanggal_lahir: alumni.tanggal_lahir,
       kelas: alumni.kelas,
+      tujuan: alumni.tujuan,
     })
     .from(alumni)
     .leftJoin(schools, eq(alumni.school_id, schools.id))

@@ -12,8 +12,20 @@ export default function AlumniClient() {
   const [saving, setSaving] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Record<string, Record<string, number>>>({})
   const [showAddForm, setShowAddForm] = useState(false)
-  const [addForm, setAddForm] = useState({ tahun_lulus: '', nama: '', nisn: '', nik: '', jenis_kelamin: 'laki-laki', kelas: '', tujuan: '' })
+  const [addForm, setAddForm] = useState({ tahun_lulus: '', school_id: '', nama: '', nisn: '', nik: '', jenis_kelamin: 'laki-laki', kelas: '', tujuan: '' })
   const [addSaving, setAddSaving] = useState(false)
+  const [schools, setSchools] = useState<{ id: string; nama: string }[]>([])
+  const [userRole, setUserRole] = useState('')
+  const [userSekolahId, setUserSekolahId] = useState('')
+
+  useEffect(() => {
+    safeFetch<any>('/api/v2/schools').then(r => setSchools(r.schools || [])).catch(() => {})
+    fetch('/api/auth/session').then(r => r.json()).then(s => {
+      const u = s?.user as any
+      setUserRole(u?.role || '')
+      setUserSekolahId(u?.sekolah_id || '')
+    }).catch(() => {})
+  }, [])
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
@@ -30,23 +42,23 @@ export default function AlumniClient() {
 
   useEffect(() => { fetchItems() }, [fetchItems])
 
-  const schools = new Map<string, { nama: string; total: number; smp_negeri: number; smp_swasta: number; pondok: number; tidak_melanjutkan: number }>()
+  const alumniBySchool = new Map<string, { nama: string; total: number; smp_negeri: number; smp_swasta: number; pondok: number; tidak_melanjutkan: number }>()
   for (const r of items) {
     const key = r.school_id
-    if (!schools.has(key)) {
-      schools.set(key, { nama: r.school_nama || key, total: 0, smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 })
+    if (!alumniBySchool.has(key)) {
+      alumniBySchool.set(key, { nama: r.school_nama || key, total: 0, smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 })
     }
-    const s = schools.get(key)!
+    const s = alumniBySchool.get(key)!
     s.total++
     if (r.tujuan === 'smp_negeri') s.smp_negeri++
     else if (r.tujuan === 'smp_swasta') s.smp_swasta++
     else if (r.tujuan === 'pondok') s.pondok++
     else if (r.tujuan === 'tidak_melanjutkan') s.tidak_melanjutkan++
   }
-  const sekolahList = Array.from(schools.entries()).map(([id, s]) => ({ id, ...s }))
+  const sekolahList = Array.from(alumniBySchool.entries()).map(([id, s]) => ({ id, ...s }))
 
   const openEdit = (schoolId: string) => {
-    const s = schools.get(schoolId)
+    const s = alumniBySchool.get(schoolId)
     if (!s) return
     setEditForm(prev => ({ ...prev, [schoolId]: { smp_negeri: s.smp_negeri, smp_swasta: s.smp_swasta, pondok: s.pondok, tidak_melanjutkan: s.tidak_melanjutkan } }))
   }
@@ -55,7 +67,7 @@ export default function AlumniClient() {
     const form = editForm[schoolId]
     if (!form || !tahunFilter) return
     const sum = form.smp_negeri + form.smp_swasta + form.pondok + form.tidak_melanjutkan
-    const s = schools.get(schoolId)
+    const s = alumniBySchool.get(schoolId)
     if (sum > (s?.total || 0)) { alert(`Jumlah distribusi (${sum}) melebihi total lulusan (${s?.total || 0})`); return }
     setSaving(schoolId)
     try {
@@ -70,11 +82,13 @@ export default function AlumniClient() {
 
   const handleAddAlumni = async () => {
     if (!addForm.tahun_lulus || !addForm.nama || !addForm.kelas) { alert('Tahun lulus, nama, dan kelas wajib'); return }
+    const payload = { ...addForm, school_id: addForm.school_id || userSekolahId }
+    if (!payload.school_id) { alert('Sekolah belum dipilih'); return }
     setAddSaving(true)
     try {
-      await safeFetch('/api/v2/alumni', { method: 'POST', body: JSON.stringify(addForm) })
+      await safeFetch('/api/v2/alumni', { method: 'POST', body: JSON.stringify(payload) })
       setShowAddForm(false)
-      setAddForm({ tahun_lulus: '', nama: '', nisn: '', nik: '', jenis_kelamin: 'laki-laki', kelas: '', tujuan: '' })
+      setAddForm({ tahun_lulus: '', school_id: '', nama: '', nisn: '', nik: '', jenis_kelamin: 'laki-laki', kelas: '', tujuan: '' })
       setTahunFilter(addForm.tahun_lulus)
       fetchItems()
     } catch (err: unknown) { alert(err instanceof Error ? err.message : 'Gagal menambah') }
@@ -97,6 +111,9 @@ export default function AlumniClient() {
       {showAddForm && (
         <div className="card p-4 mb-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            {userRole !== 'operator_sekolah' ? (
+              <div><label className="block text-xs text-slate-500 mb-1">Sekolah</label><select value={addForm.school_id} onChange={e => setAddForm(f => ({ ...f, school_id: e.target.value }))} className="input select text-sm"><option value="">Pilih</option>{schools.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}</select></div>
+            ) : null}
             <div><label className="block text-xs text-slate-500 mb-1">Tahun Lulus</label><input type="text" value={addForm.tahun_lulus} onChange={e => setAddForm(f => ({ ...f, tahun_lulus: e.target.value }))} className="input text-sm" placeholder="2025/2026" /></div>
             <div><label className="block text-xs text-slate-500 mb-1">Nama</label><input value={addForm.nama} onChange={e => setAddForm(f => ({ ...f, nama: e.target.value }))} className="input text-sm" placeholder="Nama siswa" /></div>
             <div><label className="block text-xs text-slate-500 mb-1">NISN</label><input value={addForm.nisn} onChange={e => setAddForm(f => ({ ...f, nisn: e.target.value }))} className="input text-sm" /></div>
