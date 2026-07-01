@@ -20,14 +20,21 @@ interface TeacherDetail {
   school_nama?: string
 }
 
+const JABATAN_OPTIONS = ['Guru', 'Kepala Sekolah', 'Tenaga Kependidikan']
+const STATUS_OPTIONS = ['pns', 'pppk', 'pppk_paruh_waktu', 'honorer', 'gty']
+const PENDIDIKAN_OPTIONS = [
+  'SD Sederajat', 'SMP Sederajat', 'SMA Sederajat',
+  'D1', 'D2', 'D3', 'D4/S1', 'S2', 'S3',
+]
+
 const EDITABLE_FIELDS = [
   { key: 'nama', label: 'Nama' },
   { key: 'nik', label: 'NIK' },
   { key: 'nip', label: 'NIP' },
   { key: 'nuptk', label: 'NUPTK' },
-  { key: 'jabatan', label: 'Jabatan' },
-  { key: 'status_pegawai', label: 'Status Pegawai' },
-  { key: 'pendidikan_terakhir', label: 'Pendidikan' },
+  { key: 'jabatan', label: 'Jabatan', options: JABATAN_OPTIONS },
+  { key: 'status_pegawai', label: 'Status Pegawai', options: STATUS_OPTIONS },
+  { key: 'pendidikan_terakhir', label: 'Pendidikan', options: PENDIDIKAN_OPTIONS },
   { key: 'jurusan', label: 'Jurusan' },
   { key: 'tmt_kerja', label: 'TMT Kerja' },
   { key: 'tanggal_bup', label: 'Tgl. BUP' },
@@ -157,11 +164,24 @@ export default function TeacherDetailModal({
                   {EDITABLE_FIELDS.map(f => (
                     <div key={f.key}>
                       <label className="block text-xs text-slate-400 mb-1">{f.label}</label>
-                      <input
-                        className="input"
-                        value={form[f.key] || ''}
-                        onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      />
+                      {f.options ? (
+                        <select
+                          className="input"
+                          value={form[f.key] || ''}
+                          onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        >
+                          <option value="">Pilih {f.label}</option>
+                          {f.options.map(o => (
+                            <option key={o} value={o}>{o}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          className="input"
+                          value={form[f.key] || ''}
+                          onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
