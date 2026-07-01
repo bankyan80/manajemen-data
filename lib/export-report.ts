@@ -55,6 +55,8 @@ export function exportExcel(type: string, label: string, summary: any, details: 
   switch (type) {
     case 'monthly': {
       const sisPerKelas = (details.siswaPerKelas || []) as any[]
+      const infra = (details.infrastruktur || {}) as Record<string, { total: number; baik: number; rusak: number }>
+      const infraRows = Object.entries(infra).map(([jenis, d]) => [jenis.replace(/_/g, ' '), safeVal(d.total), safeVal(d.baik), safeVal(d.rusak)])
       sheetData = [
         ...headerRows,
         ['Data Siswa per Kelas'],
@@ -64,6 +66,10 @@ export function exportExcel(type: string, label: string, summary: any, details: 
         ['Mutasi Masuk', safeVal(details.mutasiMasuk)],
         ['Mutasi Keluar', safeVal(details.mutasiKeluar)],
         ['Periode', safeVal(details.periode)],
+        [],
+        ['Infrastruktur'],
+        ['Jenis Ruang', 'Total', 'Baik', 'Rusak'],
+        ...infraRows,
       ]
       break
     }
@@ -184,6 +190,21 @@ export function exportPdf(type: string, label: string, summary: any, details: De
       y = (doc as any).lastAutoTable.finalY + 8
       doc.setFontSize(9)
       doc.text(`Mutasi Masuk: ${details.mutasiMasuk || 0}  |  Mutasi Keluar: ${details.mutasiKeluar || 0}  |  Periode: ${details.periode || '-'}`, 14, y)
+      y += 8
+
+      const infra = (details.infrastruktur || {}) as Record<string, { total: number; baik: number; rusak: number }>
+      const infraEntries = Object.entries(infra)
+      if (infraEntries.length > 0) {
+        doc.text('Infrastruktur', 14, y)
+        y += 5
+        autoTable(doc, {
+          startY: y,
+          head: [['Jenis Ruang', 'Total', 'Baik', 'Rusak']],
+          body: infraEntries.map(([jenis, d]) => [jenis.replace(/_/g, ' '), safeVal(d.total), safeVal(d.baik), safeVal(d.rusak)]),
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [59, 130, 246] },
+        })
+      }
       break
     }
     case 'semester': {
@@ -290,9 +311,15 @@ export function exportCsv(type: string, _label: string, _summary: any, details: 
   switch (type) {
     case 'monthly': {
       const sisPerKelas = (details.siswaPerKelas || []) as any[]
+      const infra = (details.infrastruktur || {}) as Record<string, { total: number; baik: number; rusak: number }>
+      const infraRows = Object.entries(infra).map(([jenis, d]) => [jenis.replace(/_/g, ' '), safeVal(d.total), safeVal(d.baik), safeVal(d.rusak)])
       rows = [
         ['Jenjang', 'Kelas/Kelompok', 'Laki-laki', 'Perempuan', 'Total'],
         ...sisPerKelas.map(s => [safeVal(s.jenjang), safeVal(s.kelas_kelompok), safeVal(s.laki), safeVal(s.perempuan), safeVal(s.total)]),
+        [],
+        ['Infrastruktur'],
+        ['Jenis Ruang', 'Total', 'Baik', 'Rusak'],
+        ...infraRows,
       ]
       break
     }

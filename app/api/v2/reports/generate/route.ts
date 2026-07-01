@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
-import { schools, employees, students, studentMutations, studentRecaps, certifications, alumni } from '@/db/schema-v2'
+import { schools, employees, students, studentMutations, studentRecaps, certifications, alumni, ruang } from '@/db/schema-v2'
 import { eq, and, count, sql, gte, lte, like } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
@@ -55,6 +55,26 @@ async function reportMonthly(_db: NonNullDb, schoolFilter: any, effectiveSchoolI
     )
     .groupBy(studentMutations.jenis)
 
+  const infraFilter = effectiveSchoolId ? eq(ruang.school_id, effectiveSchoolId) : undefined
+  const infraSummary = await _db
+    .select({
+      jenis_ruang: ruang.jenis_ruang,
+      kondisi: ruang.kondisi_non_struktur,
+      total: count(),
+    })
+    .from(ruang)
+    .where(infraFilter || undefined)
+    .groupBy(ruang.jenis_ruang, ruang.kondisi_non_struktur)
+
+  const infra: Record<string, { total: number; baik: number; rusak: number }> = {}
+  for (const r of infraSummary) {
+    const j = r.jenis_ruang || 'lainnya'
+    if (!infra[j]) infra[j] = { total: 0, baik: 0, rusak: 0 }
+    infra[j].total += r.total
+    if (r.kondisi === 'baik' || r.kondisi === 'sedang') infra[j].baik += r.total
+    else infra[j].rusak += r.total
+  }
+
   return {
     type: 'monthly',
     format: 'pdf',
@@ -75,6 +95,7 @@ async function reportMonthly(_db: NonNullDb, schoolFilter: any, effectiveSchoolI
       mutasiMasuk: mutasiBulanIni.find(m => m.jenis === 'masuk')?.total || 0,
       mutasiKeluar: mutasiBulanIni.find(m => m.jenis === 'keluar')?.total || 0,
       periode: `Juni ${CURRENT_YEAR}`,
+      infrastruktur: infra,
     },
     downloadUrl: '#',
   }
