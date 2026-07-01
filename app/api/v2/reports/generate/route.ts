@@ -503,7 +503,9 @@ export const POST = (req: NextRequest) => safeApi(async () => {
   const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
 
   const effectiveSchoolId = role !== 'admin_kecamatan' && userSekolahId ? userSekolahId : school_id
-  let schoolFilter: any = effectiveSchoolId ? eq(schools.id, effectiveSchoolId) : eq(schools.is_active, 1)
+  let schoolFilter: any = effectiveSchoolId
+    ? eq(schools.id, effectiveSchoolId)
+    : and(eq(schools.is_active, 1), eq(schools.status, 'negeri'))
   if (jenjang && !effectiveSchoolId) {
     schoolFilter = and(schoolFilter, eq(schools.jenjang, jenjang))
   }
