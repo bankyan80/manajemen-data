@@ -70,7 +70,9 @@ function loadHistory(): ReportHistory[] {
   if (typeof window === 'undefined') return []
   try {
     const raw = localStorage.getItem('report_history')
-    return raw ? JSON.parse(raw) : []
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
   } catch { return [] }
 }
 
