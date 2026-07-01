@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
+import { useSort } from '@/lib/use-sort'
 import {
   Building2, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
   AlertCircle, FlaskConical, BookOpen, DoorOpen, Pencil, Save, X,
+  ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -132,6 +134,7 @@ export default function InfrastructureClient() {
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState({ nama: '', jenis: '', jumlah: 0, kondisi: '' })
   const [editError, setEditError] = useState<string | null>(null)
+  const { sorted: sortedItems, sort, toggle } = useSort(items, 'school_nama')
 
   const openDetail = (item: InfraItem) => {
     setSelectedItem(item)
@@ -299,15 +302,26 @@ export default function InfrastructureClient() {
                 <table className="table-base">
                   <thead>
                     <tr>
-                      <th>Sekolah</th>
-                      <th>Jenis</th>
-                      <th>Nama Ruang</th>
-                      <th>Jumlah</th>
-                      <th>Kondisi</th>
+                      {[
+                        { key: 'school_nama', label: 'Sekolah' },
+                        { key: 'jenis', label: 'Jenis' },
+                        { key: 'nama', label: 'Nama Ruang' },
+                        { key: 'jumlah', label: 'Jumlah' },
+                        { key: 'kondisi', label: 'Kondisi' },
+                      ].map(col => (
+                        <th key={col.key} className="cursor-pointer select-none" onClick={() => toggle(col.key)}>
+                          <div className="flex items-center gap-1">
+                            {col.label}
+                            {sort.key === col.key ? (
+                              sort.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                            ) : <ArrowUp className="w-3 h-3 opacity-0" />}
+                          </div>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map(item => {
+                    {sortedItems.map(item => {
                       const Icon = JENIS_ICONS[item.jenis] || Building2
                       return (
                         <tr

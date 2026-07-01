@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
+import { useSort } from '@/lib/use-sort'
 import {
   Users, Award, Clock, AlertCircle, Search, ChevronLeft, ChevronRight,
-  SlidersHorizontal, FileText,
+  SlidersHorizontal, FileText, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TeacherDetailModal from './teacher-detail-modal'
@@ -92,6 +93,7 @@ export default function TeachersClient() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
+  const { sorted: sortedTeachers, sort, toggle } = useSort(teachers, 'nama')
 
   const fetchTeachers = useCallback(async (page: number = 1) => {
     setLoading(true)
@@ -342,17 +344,30 @@ export default function TeachersClient() {
                 <table className="table-base">
                   <thead>
                     <tr>
-                      <th>Nama</th>
-                      <th>NIK</th>
-                      <th>Jabatan</th>
-                      <th>Status Pegawai</th>
-                      <th>Sertifikasi</th>
-                      <th>Pensiun</th>
-                      <th>Sekolah</th>
+                      {[
+                        { key: 'nama', label: 'Nama' },
+                        { key: 'nik', label: 'NIK' },
+                        { key: 'jabatan', label: 'Jabatan' },
+                        { key: 'status_pegawai', label: 'Status Pegawai' },
+                        { key: 'sertifikasi', label: 'Sertifikasi' },
+                        { key: 'tanggal_bup', label: 'Pensiun' },
+                        { key: 'school_nama', label: 'Sekolah' },
+                      ].map(col => (
+                        <th key={col.key} className="cursor-pointer select-none" onClick={() => toggle(col.key)}>
+                          <div className="flex items-center gap-1">
+                            {col.label}
+                            {sort.key === col.key ? (
+                              sort.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                            ) : (
+                              <ArrowUp className="w-3 h-3 opacity-0" />
+                            )}
+                          </div>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {teachers.map(t => (
+                    {sortedTeachers.map(t => (
                       <tr
                         key={t.id}
                         className="cursor-pointer"

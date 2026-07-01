@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
+import { useSort } from '@/lib/use-sort'
 import {
   Award, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
-  AlertCircle, CheckCircle2, MinusCircle,
+  AlertCircle, CheckCircle2, MinusCircle, ArrowUp, ArrowDown,
 } from 'lucide-react'
 
 interface EmployeeCert {
@@ -74,6 +75,7 @@ export default function CertificationClient() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('')
+  const { sorted: sortedEmployees, sort, toggle } = useSort(employees, 'nama')
 
   const fetchData = useCallback(async (page: number = 1) => {
     setLoading(true)
@@ -245,15 +247,26 @@ export default function CertificationClient() {
                 <table className="table-base">
                   <thead>
                     <tr>
-                      <th>Nama</th>
-                      <th>NIK / NUPTK</th>
-                      <th>Jabatan</th>
-                      <th>Sertifikasi</th>
-                      <th>Sekolah</th>
+                      {[
+                        { key: 'nama', label: 'Nama' },
+                        { key: 'nik', label: 'NIK / NUPTK' },
+                        { key: 'jabatan', label: 'Jabatan' },
+                        { key: 'sertifikasi', label: 'Sertifikasi' },
+                        { key: 'school_nama', label: 'Sekolah' },
+                      ].map(col => (
+                        <th key={col.key} className="cursor-pointer select-none" onClick={() => toggle(col.key)}>
+                          <div className="flex items-center gap-1">
+                            {col.label}
+                            {sort.key === col.key ? (
+                              sort.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                            ) : <ArrowUp className="w-3 h-3 opacity-0" />}
+                          </div>
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {employees.map(emp => (
+                    {sortedEmployees.map(emp => (
                       <tr key={emp.id} className="hover:bg-slate-50">
                         <td>
                           <div className="font-medium text-slate-800">{emp.nama}</div>

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
+import { useSort } from '@/lib/use-sort'
 import {
   Archive, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
   AlertCircle, FileText, Download, Eye, Upload,
-  File, Image, FileSpreadsheet,
+  File, Image, FileSpreadsheet, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { cn, formatDate, formatBytes } from '@/lib/utils'
 
@@ -70,6 +71,7 @@ export default function ArchivesClient() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const { sorted: sortedArchives, sort, toggle } = useSort(archives, 'uploaded_at')
 
   const fetchArchives = useCallback(async (page: number = 1) => {
     setLoading(true)
@@ -223,16 +225,29 @@ export default function ArchivesClient() {
                 <table className="table-base">
                   <thead>
                     <tr>
-                      <th>Nama Dokumen</th>
-                      <th>Kategori</th>
-                      <th>Tipe</th>
-                      <th>Ukuran</th>
-                      <th>Tanggal Upload</th>
-                      <th>Aksi</th>
+                      {[
+                        { key: 'file_name', label: 'Nama Dokumen' },
+                        { key: 'category', label: 'Kategori' },
+                        { key: 'file_type', label: 'Tipe' },
+                        { key: 'file_size', label: 'Ukuran' },
+                        { key: 'uploaded_at', label: 'Tanggal Upload' },
+                        { key: '', label: 'Aksi' },
+                      ].map(col => (
+                        col.key ? (
+                          <th key={col.key} className="cursor-pointer select-none" onClick={() => toggle(col.key)}>
+                            <div className="flex items-center gap-1">
+                              {col.label}
+                              {sort.key === col.key ? (
+                                sort.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                              ) : <ArrowUp className="w-3 h-3 opacity-0" />}
+                            </div>
+                          </th>
+                        ) : <th key="actions">{col.label}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {archives.map(doc => {
+                    {sortedArchives.map(doc => {
                       const FileIcon = getFileIcon(doc.file_type)
                       return (
                         <tr key={doc.id} className="hover:bg-slate-50">

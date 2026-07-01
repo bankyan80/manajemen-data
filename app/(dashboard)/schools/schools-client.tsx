@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
 import { useRouter } from 'next/navigation'
+import { useSort } from '@/lib/use-sort'
 import {
   School, Search, ChevronLeft, ChevronRight, MapPin,
   Users, GraduationCap, AlertCircle, SlidersHorizontal,
+  ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { HEALTH_GRADE } from '@/constants'
 import { cn } from '@/lib/utils'
@@ -75,6 +77,7 @@ export default function SchoolsClient() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [jenjang, setJenjang] = useState('')
+  const { sorted: sortedSchools, sort, toggle } = useSort(schools, 'nama')
 
   const fetchSchools = useCallback(async (page: number = 1) => {
     setLoading(true)
@@ -179,17 +182,28 @@ export default function SchoolsClient() {
             <table className="table-base">
               <thead>
                 <tr>
-                  <th>Sekolah</th>
-                  <th>NPSN</th>
-                  <th>Jenjang</th>
-                  <th>Status</th>
-                  <th>Guru</th>
-                  <th>Siswa</th>
-                  <th>Health Score</th>
+                  {[
+                    { key: 'nama', label: 'Sekolah' },
+                    { key: 'npsn', label: 'NPSN' },
+                    { key: 'jenjang', label: 'Jenjang' },
+                    { key: 'status', label: 'Status' },
+                    { key: 'teacherCount', label: 'Guru' },
+                    { key: 'studentCount', label: 'Siswa' },
+                    { key: 'health_score', label: 'Health Score' },
+                  ].map(col => (
+                    <th key={col.key} className="cursor-pointer select-none" onClick={() => toggle(col.key)}>
+                      <div className="flex items-center gap-1">
+                        {col.label}
+                        {sort.key === col.key ? (
+                          sort.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                        ) : <ArrowUp className="w-3 h-3 opacity-0" />}
+                      </div>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {schools.map(school => {
+                {sortedSchools.map(school => {
                   const health = getHealthGrade(school.health_score)
                   return (
                     <tr
