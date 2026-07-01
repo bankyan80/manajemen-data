@@ -91,3 +91,32 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     },
   })
 })
+
+export const PUT = (req: NextRequest) => safeApi(async () => {
+  const { session, error } = await guardApi()
+  if (error) return error
+  if (!db) return NextResponse.json({ success: false, error: 'DB not configured' }, { status: 500 })
+
+  const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ success: false, error: 'ID sekolah diperlukan' }, { status: 400 })
+
+  const role = (session?.user as any)?.role as string
+  const userSekolahId = (session?.user as any)?.sekolah_id as string | undefined
+  if (role !== 'admin_kecamatan' && userSekolahId !== id) {
+    return NextResponse.json({ success: false, error: 'Tidak memiliki akses' }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const updateData: Record<string, any> = {}
+  if (body.alamat !== undefined) updateData.alamat = body.alamat
+  if (body.desa !== undefined) updateData.desa = body.desa
+  if (body.kepala_id !== undefined) updateData.kepala_id = body.kepala_id
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ success: false, error: 'Tidak ada data yang diubah' }, { status: 400 })
+  }
+
+  await db.update(schools).set(updateData).where(eq(schools.id, id))
+  return NextResponse.json({ success: true, data: { message: 'Sekolah berhasil diupdate' } })
+})

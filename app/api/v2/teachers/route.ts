@@ -20,6 +20,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   const sekolah_id = searchParams.get('sekolah_id')
+  const include_swasta = searchParams.get('include_swasta') === 'true'
   const status_pegawai = searchParams.get('status_pegawai')
   const sertifikasi = searchParams.get('sertifikasi')
   const q = searchParams.get('q')
@@ -47,7 +48,9 @@ export const GET = (req: NextRequest) => safeApi(async () => {
   const orderBy = sortOrder === 'asc' ? asc(orderByColumn) : desc(orderByColumn)
 
   // Base condition (role/school filter only)
-  let baseCondition = sql`${employees.is_active} = 1 AND ${employees.sekolah_id} IN (SELECT id FROM schools WHERE status = 'negeri')`
+  let baseCondition = include_swasta
+    ? sql`${employees.is_active} = 1`
+    : sql`${employees.is_active} = 1 AND ${employees.sekolah_id} IN (SELECT id FROM schools WHERE status = 'negeri')`
   if (role !== 'admin_kecamatan' && userSekolahId) {
     baseCondition = sql`${baseCondition} AND ${employees.sekolah_id} = ${userSekolahId}`
   } else if (sekolah_id) {

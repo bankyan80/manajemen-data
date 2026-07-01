@@ -6,6 +6,7 @@ import { safeFetch } from '@/lib/safe-fetch'
 import {
   ArrowLeft, MapPin, School, Users, GraduationCap,
   Building2, Archive, ChevronLeft, ChevronRight, BookOpen,
+  Pencil, Save, X,
 } from 'lucide-react'
 import { HEALTH_GRADE } from '@/constants'
 import { cn } from '@/lib/utils'
@@ -74,6 +75,7 @@ function getHealthBarColor(score: number | null) {
 const TABS = [
   { id: 'profil', label: 'Profil', icon: School },
   { id: 'guru', label: 'Guru', icon: Users },
+  { id: 'tendik', label: 'Tendik', icon: Users },
   { id: 'siswa', label: 'Siswa', icon: GraduationCap },
   { id: 'rombel', label: 'Rombel', icon: BookOpen },
   { id: 'infrastruktur', label: 'Infrastruktur', icon: Building2 },
@@ -115,6 +117,11 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [teacherPage, setTeacherPage] = useState(1)
   const [teacherTotalPages, setTeacherTotalPages] = useState(1)
 
+  const [tendik, setTendik] = useState<TeacherRow[]>([])
+  const [tendikLoading, setTendikLoading] = useState(false)
+  const [tendikPage, setTendikPage] = useState(1)
+  const [tendikTotalPages, setTendikTotalPages] = useState(1)
+
   const [students, setStudents] = useState<StudentRow[]>([])
   const [studentsLoading, setStudentsLoading] = useState(false)
   const [studentPage, setStudentPage] = useState(1)
@@ -124,21 +131,37 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [rombelLoading, setRombelLoading] = useState(false)
   const [rombelSummary, setRombelSummary] = useState({ totalSiswa: 0, totalRombel: 0 })
 
+  const [editingProfil, setEditingProfil] = useState(false)
+  const [profilForm, setProfilForm] = useState({ alamat: school.alamat, desa: school.desa, kepala_id: school.kepala_id || '' })
+  const [savingProfil, setSavingProfil] = useState(false)
+
   const health = getHealthGrade(school.health_score)
 
   useEffect(() => {
     if (activeTab === 'guru') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTeachersLoading(true)
-      safeFetch<any>(`/api/v2/teachers?sekolah_id=${school.id}&page=${teacherPage}&limit=10`)
+      safeFetch<any>(`/api/v2/teachers?sekolah_id=${school.id}&page=${teacherPage}&limit=10&include_swasta=true`)
         .then(result => {
-          setTeachers(result.teachers || [])
+          setTeachers((result.teachers || []).filter((t: any) => t.jabatan !== 'Tenaga Kependidikan'))
           setTeacherTotalPages(result.pagination?.total_pages || 1)
         })
         .catch(console.error)
         .finally(() => setTeachersLoading(false))
     }
   }, [activeTab, teacherPage, school.id])
+
+  useEffect(() => {
+    if (activeTab === 'tendik') {
+      setTendikLoading(true)
+      safeFetch<any>(`/api/v2/teachers?sekolah_id=${school.id}&page=${tendikPage}&limit=10&include_swasta=true`)
+        .then(result => {
+          setTendik((result.teachers || []).filter((t: any) => t.jabatan === 'Tenaga Kependidikan'))
+          setTendikTotalPages(result.pagination?.total_pages || 1)
+        })
+        .catch(console.error)
+        .finally(() => setTendikLoading(false))
+    }
+  }, [activeTab, tendikPage, school.id])
 
   useEffect(() => {
     if (activeTab === 'siswa') {
@@ -248,32 +271,91 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
         <div className="p-6">
           {activeTab === 'profil' && (
             <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">Informasi Sekolah</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <InfoRow label="NPSN" value={school.npsn} />
-                  <InfoRow label="Jenjang" value={school.jenjang.toUpperCase()} />
-                  <InfoRow label="Status" value={school.status} />
-                  <InfoRow label="Desa" value={school.desa} />
-                  <InfoRow label="Kecamatan" value={school.kecamatan} />
-                  <InfoRow label="Latitude" value={school.latitude?.toString() || '-'} />
-                  <InfoRow label="Longitude" value={school.longitude?.toString() || '-'} />
-                </div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-700">Informasi Sekolah</h3>
+                <button
+                  onClick={() => { setEditingProfil(!editingProfil); setProfilForm({ alamat: school.alamat, desa: school.desa, kepala_id: school.kepala_id || '' }) }}
+                  className="p-2 rounded-lg hover:bg-slate-100 text-slate-400"
+                  title={editingProfil ? 'Batal' : 'Edit'}
+                >
+                  {editingProfil ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+                </button>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">Alamat</h3>
-                <p className="text-sm text-slate-600">{school.alamat}</p>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-2 rounded-xl">
-                  <Users className="w-4 h-4 text-slate-400" />
-                  Data Guru & Tendik tersedia di tab Guru
+              {editingProfil ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Alamat</label>
+                    <textarea
+                      className="input"
+                      rows={2}
+                      value={profilForm.alamat}
+                      onChange={e => setProfilForm(p => ({ ...p, alamat: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Desa</label>
+                    <input
+                      className="input"
+                      value={profilForm.desa}
+                      onChange={e => setProfilForm(p => ({ ...p, desa: e.target.value }))}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs text-slate-400 mb-1">Kepala Sekolah ID</label>
+                    <input
+                      className="input"
+                      value={profilForm.kepala_id}
+                      onChange={e => setProfilForm(p => ({ ...p, kepala_id: e.target.value }))}
+                    />
+                  </div>
+                  <div className="sm:col-span-2 flex justify-end">
+                    <button
+                      onClick={async () => {
+                        setSavingProfil(true)
+                        try {
+                          await safeFetch(`/api/v2/schools?id=${school.id}`, {
+                            method: 'PUT',
+                            body: JSON.stringify(profilForm),
+                          })
+                          setEditingProfil(false)
+                        } catch { }
+                        finally { setSavingProfil(false) }
+                      }}
+                      disabled={savingProfil}
+                      className="btn btn-primary btn-sm flex items-center gap-2"
+                    >
+                      {savingProfil ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                      Simpan
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-2 rounded-xl">
-                  <GraduationCap className="w-4 h-4 text-slate-400" />
-                  Data Siswa tersedia di tab Siswa
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <InfoRow label="NPSN" value={school.npsn} />
+                    <InfoRow label="Jenjang" value={school.jenjang.toUpperCase()} />
+                    <InfoRow label="Status" value={school.status} />
+                    <InfoRow label="Desa" value={school.desa} />
+                    <InfoRow label="Kecamatan" value={school.kecamatan} />
+                    <InfoRow label="Latitude" value={school.latitude?.toString() || '-'} />
+                    <InfoRow label="Longitude" value={school.longitude?.toString() || '-'} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-3">Alamat</h3>
+                    <p className="text-sm text-slate-600">{school.alamat}</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-2 rounded-xl">
+                      <Users className="w-4 h-4 text-slate-400" />
+                      Data Guru & Tendik tersedia di tab Guru
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-2 rounded-xl">
+                      <GraduationCap className="w-4 h-4 text-slate-400" />
+                      Data Siswa tersedia di tab Siswa
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -332,6 +414,41 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                 </div>
               )}
               <Pagination page={teacherPage} totalPages={teacherTotalPages} onChange={setTeacherPage} />
+            </div>
+          )}
+
+          {activeTab === 'tendik' && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-700">Tenaga Kependidikan</h3>
+              </div>
+              {tendikLoading ? (
+                <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-12 skeleton w-full" />)}</div>
+              ) : tendik.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm">
+                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  Tidak ada data tendik
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="table-base">
+                    <thead>
+                      <tr><th>Nama</th><th>NIK</th><th>Jabatan</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                      {tendik.map(t => (
+                        <tr key={t.id}>
+                          <td className="font-medium text-slate-800">{t.nama}</td>
+                          <td className="font-mono text-sm text-slate-500">{t.nik}</td>
+                          <td className="text-slate-600 text-sm">{t.jabatan || '-'}</td>
+                          <td><span className="badge bg-slate-100 text-slate-600 text-[11px]">{t.status_pegawai?.replace(/_/g, ' ') || '-'}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <Pagination page={tendikPage} totalPages={tendikTotalPages} onChange={setTendikPage} />
             </div>
           )}
 
@@ -419,7 +536,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                     <tbody>
                       {rombel.map((r: any, i: number) => (
                         <tr key={i}>
-                          <td className="font-medium text-slate-800">{r.kelas_kelompok}</td>
+                          <td className="font-medium text-slate-800">{school.jenjang !== 'sd' ? r.kelas_kelompok.replace(/\s*\(.*\)/, '') : r.kelas_kelompok}</td>
                           <td className="text-slate-600">{r.laki}</td>
                           <td className="text-slate-600">{r.perempuan}</td>
                           <td className="font-semibold text-slate-700">{r.total}</td>
