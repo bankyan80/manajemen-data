@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
 import {
   Building2, Search, ChevronLeft, ChevronRight, SlidersHorizontal,
-  AlertCircle, FlaskConical, BookOpen, DoorOpen,
+  AlertCircle, FlaskConical, BookOpen, DoorOpen, Pencil, Save, X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -127,6 +127,43 @@ export default function InfrastructureClient() {
   const [jenisFilter, setJenisFilter] = useState('')
   const [kondisiFilter, setKondisiFilter] = useState('')
   const [selectedItem, setSelectedItem] = useState<InfraItem | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editForm, setEditForm] = useState({ nama: '', jenis: '', jumlah: 0, kondisi: '' })
+  const [editError, setEditError] = useState<string | null>(null)
+
+  const openDetail = (item: InfraItem) => {
+    setSelectedItem(item)
+    setEditForm({ nama: item.nama, jenis: item.jenis, jumlah: item.jumlah, kondisi: item.kondisi })
+    setEditing(false)
+    setEditError(null)
+  }
+
+  const handleSave = async () => {
+    if (!selectedItem) return
+    setSaving(true)
+    setEditError(null)
+    try {
+      const result = await safeFetch<any>(`/api/v2/infrastructure/${selectedItem.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          nama_ruang: editForm.nama,
+          jenis_ruang: editForm.jenis,
+          kapasitas_siswa: editForm.jumlah,
+          kondisi_non_struktur: editForm.kondisi,
+        }),
+      })
+      if (result) {
+        setEditing(false)
+        setSelectedItem({ ...selectedItem, nama: editForm.nama, jenis: editForm.jenis, jumlah: editForm.jumlah, kondisi: editForm.kondisi })
+        fetchItems(Math.ceil((pagination.page * pagination.limit - (pagination.limit - 1)) / pagination.limit))
+      }
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : 'Gagal menyimpan')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const fetchItems = useCallback(async (page: number = 1) => {
     setLoading(true)
@@ -275,7 +312,7 @@ export default function InfrastructureClient() {
                         <tr
                           key={item.id}
                           className="cursor-pointer hover:bg-slate-50"
-                          onClick={() => setSelectedItem(item)}
+                          onClick={() => openDetail(item)}
                         >
                           <td>
                             <div className="font-medium text-slate-800">{item.school_nama}</div>
@@ -307,9 +344,28 @@ export default function InfrastructureClient() {
           )}
 
           {selectedItem && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSelectedItem(null)}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => { setSelectedItem(null); setEditing(false) }}>
               <div className="card max-w-lg w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">Detail Infrastruktur</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800">Detail Infrastruktur</h3>
+                  {!editing ? (
+                    <button onClick={() => setEditing(true)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button onClick={() => { setEditing(false); setEditForm({ nama: selectedItem.nama, jenis: selectedItem.jenis, jumlah: selectedItem.jumlah, kondisi: selectedItem.kondisi }) }} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {editError && (
+                  <div className="p-3 mb-4 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2 text-sm text-red-700">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {editError}
+                  </div>
+                )}
+
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between py-2 border-b">
                     <span className="text-slate-500">Sekolah</span>
@@ -319,28 +375,84 @@ export default function InfrastructureClient() {
                     <span className="text-slate-500">NPSN</span>
                     <span className="font-mono text-slate-600">{selectedItem.school_npsn}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-slate-500">Jenis</span>
-                    <span className="capitalize text-slate-700">{selectedItem.jenis?.replace(/_/g, ' ')}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-slate-500">Nama Ruang</span>
-                    <span className="font-medium text-slate-700">{selectedItem.nama}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b">
-                    <span className="text-slate-500">Jumlah</span>
-                    <span className="font-semibold text-slate-700">{selectedItem.jumlah}</span>
-                  </div>
-                  <div className="flex justify-between py-2">
-                    <span className="text-slate-500">Kondisi</span>
-                    <span className={cn("badge", KONDISI_BADGES[selectedItem.kondisi] || 'bg-slate-100 text-slate-600')}>
-                      {KONDISI_LABELS[selectedItem.kondisi] || selectedItem.kondisi}
-                    </span>
-                  </div>
+
+                  {editing ? (
+                    <>
+                      <div className="py-2 border-b">
+                        <label className="block text-xs text-slate-500 mb-1">Jenis</label>
+                        <select value={editForm.jenis} onChange={e => setEditForm(f => ({ ...f, jenis: e.target.value }))} className="input select text-sm">
+                          <option value="ruang_kelas">Ruang Kelas</option>
+                          <option value="laboratorium">Laboratorium</option>
+                          <option value="perpustakaan">Perpustakaan</option>
+                          <option value="wc">WC</option>
+                          <option value="guru">Ruang Guru</option>
+                          <option value="kepala_sekolah">Ruang Kepala Sekolah</option>
+                          <option value="tata_usaha">Ruang Tata Usaha</option>
+                          <option value="ibadah">Ruang Ibadah</option>
+                          <option value="UKS">UKS</option>
+                          <option value="gudang">Gudang</option>
+                          <option value="lainnya">Lainnya</option>
+                        </select>
+                      </div>
+                      <div className="py-2 border-b">
+                        <label className="block text-xs text-slate-500 mb-1">Nama Ruang</label>
+                        <input type="text" value={editForm.nama} onChange={e => setEditForm(f => ({ ...f, nama: e.target.value }))} className="input text-sm" />
+                      </div>
+                      <div className="py-2 border-b">
+                        <label className="block text-xs text-slate-500 mb-1">Jumlah / Kapasitas</label>
+                        <input type="number" value={editForm.jumlah} onChange={e => setEditForm(f => ({ ...f, jumlah: Number(e.target.value) }))} className="input text-sm" min="0" />
+                      </div>
+                      <div className="py-2">
+                        <label className="block text-xs text-slate-500 mb-1">Kondisi</label>
+                        <select value={editForm.kondisi} onChange={e => setEditForm(f => ({ ...f, kondisi: e.target.value }))} className="input select text-sm">
+                          <option value="baik">Baik</option>
+                          <option value="sedang">Sedang</option>
+                          <option value="rusak_ringan">Rusak Ringan</option>
+                          <option value="rusak_berat">Rusak Berat</option>
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-slate-500">Jenis</span>
+                        <span className="capitalize text-slate-700">{selectedItem.jenis?.replace(/_/g, ' ')}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-slate-500">Nama Ruang</span>
+                        <span className="font-medium text-slate-700">{selectedItem.nama}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span className="text-slate-500">Jumlah / Kapasitas</span>
+                        <span className="font-semibold text-slate-700">{selectedItem.jumlah}</span>
+                      </div>
+                      <div className="flex justify-between py-2">
+                        <span className="text-slate-500">Kondisi</span>
+                        <span className={cn("badge", KONDISI_BADGES[selectedItem.kondisi] || 'bg-slate-100 text-slate-600')}>
+                          {KONDISI_LABELS[selectedItem.kondisi] || selectedItem.kondisi}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <button onClick={() => setSelectedItem(null)} className="btn btn-primary w-full mt-6">
-                  Tutup
-                </button>
+
+                <div className="flex gap-2 mt-6">
+                  {editing ? (
+                    <>
+                      <button onClick={() => { setEditing(false); setEditForm({ nama: selectedItem.nama, jenis: selectedItem.jenis, jumlah: selectedItem.jumlah, kondisi: selectedItem.kondisi }) }} className="btn btn-ghost flex-1">
+                        Batal
+                      </button>
+                      <button onClick={handleSave} disabled={saving} className="btn btn-primary flex-1 flex items-center justify-center gap-2">
+                        {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                        {saving ? 'Menyimpan...' : 'Simpan'}
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => { setSelectedItem(null); setEditing(false) }} className="btn btn-primary w-full">
+                      Tutup
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
