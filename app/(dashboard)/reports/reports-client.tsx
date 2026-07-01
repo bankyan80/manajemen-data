@@ -321,6 +321,7 @@ function DetailShortage({ data }: { data: any }) {
   const d = data || {}
   const analisis = d.analisis || []
   const rekap = d.rekapitulasi || {}
+  const [expanded, setExpanded] = useState<number | null>(null)
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
@@ -343,33 +344,58 @@ function DetailShortage({ data }: { data: any }) {
       </div>
       <div className="text-xs text-slate-500">Total kekurangan guru: <span className="font-bold text-red-600">{rekap.totalKekuranganGuru || 0}</span> orang</div>
       {analisis.length > 0 && (
-        <div className="overflow-x-auto max-h-48 overflow-y-auto">
+        <div className="overflow-x-auto max-h-96 overflow-y-auto">
           <table className="table-base text-xs">
             <thead>
-              <tr><th>Sekolah</th><th>Jenjang</th><th>Siswa</th><th>Guru</th><th>Target</th><th>Kurang</th><th>Rasio</th><th>Status</th></tr>
+              <tr><th>Sekolah</th><th>Jzg</th><th>Siswa</th><th>Rombel</th><th>Guru</th><th>Target</th><th>Kurang</th><th>Rasio</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>
               {analisis.map((a: any, i: number) => (
-                <tr key={i}>
-                  <td className="max-w-[130px] truncate">{a.sekolahNama}</td>
-                  <td className="uppercase">{a.jenjang}</td>
-                  <td>{a.jumlahSiswa}</td>
-                  <td>{a.jumlahGuru}</td>
-                  <td>{a.targetGuru}</td>
-                  <td className={a.kekuranganGuru > 0 ? 'text-red-600 font-bold' : 'text-slate-400'}>{a.kekuranganGuru}</td>
-                  <td>1:{a.rasioSiswaGuru}</td>
-                  <td>
-                    <span className={cn(
-                      'badge text-[10px]',
-                      a.statusKetenagaan === 'kekurangan' ? 'bg-red-100 text-red-700' :
-                      a.statusKetenagaan === 'ideal' ? 'bg-green-100 text-green-700' :
-                      'bg-orange-100 text-orange-700'
-                    )}>
-                      {a.statusKetenagaan === 'kekurangan' ? 'Kurang' :
-                       a.statusKetenagaan === 'ideal' ? 'Ideal' : 'Kelebihan Siswa'}
-                    </span>
-                  </td>
-                </tr>
+                <>
+                  <tr key={i} className="cursor-pointer" onClick={() => setExpanded(expanded === i ? null : i)}>
+                    <td className="max-w-[130px] truncate">{a.sekolahNama}</td>
+                    <td className="uppercase">{a.jenjang}</td>
+                    <td>{a.jumlahSiswa}</td>
+                    <td>{a.jumlahRombel}</td>
+                    <td>{a.jumlahGuru}</td>
+                    <td>{a.targetGuru}</td>
+                    <td className={a.kekuranganGuru > 0 ? 'text-red-600 font-bold' : 'text-slate-400'}>{a.kekuranganGuru}</td>
+                    <td>1:{a.rasioSiswaGuru}</td>
+                    <td>
+                      <span className={cn(
+                        'badge text-[10px]',
+                        a.statusKetenagaan === 'kekurangan' ? 'bg-red-100 text-red-700' :
+                        a.statusKetenagaan === 'ideal' ? 'bg-green-100 text-green-700' :
+                        'bg-orange-100 text-orange-700'
+                      )}>
+                        {a.statusKetenagaan === 'kekurangan' ? 'Kurang' :
+                         a.statusKetenagaan === 'ideal' ? 'Ideal' : 'Kelebihan Siswa'}
+                      </span>
+                    </td>
+                    <td className="text-slate-300">{expanded === i ? '▲' : '▼'}</td>
+                  </tr>
+                  {expanded === i && a.perJabatan && (
+                    <tr key={`${i}-detail`}>
+                      <td colSpan={10} className="p-0">
+                        <div className="bg-slate-50 p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
+                          {Object.entries(a.perJabatan).map(([jab, v]: [string, any]) => (
+                            <div key={jab} className="flex justify-between items-center px-2 py-1 rounded bg-white border">
+                              <span className="text-slate-600">{jab}</span>
+                              <span className={cn(
+                                'font-semibold',
+                                v.shortage > 0 ? 'text-red-600' : v.surplus > 0 ? 'text-blue-600' : 'text-green-600'
+                              )}>
+                                {v.actual}/{v.target}
+                                {v.shortage > 0 && ` (-${v.shortage})`}
+                                {v.surplus > 0 && ` (+${v.surplus})`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>

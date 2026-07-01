@@ -339,6 +339,12 @@ async function reportCertification(_db: NonNullDb, schoolFilter: any, effectiveS
   }
 }
 
+const GURU_MAPEL = [
+  'Guru Pendidikan Agama', 'Guru PJOK', 'Guru Bahasa Inggris',
+  'Guru Matematika', 'Guru Bahasa Indonesia', 'Guru IPA', 'Guru IPS',
+  'Guru PPKn', 'Guru Seni Budaya', 'Guru TIK', 'Guru Muatan Lokal',
+]
+
 async function reportShortage(_db: NonNullDb, schoolFilter: any, effectiveSchoolId: string | null) {
   const allSchools = await _db
     .select({
@@ -352,19 +358,67 @@ async function reportShortage(_db: NonNullDb, schoolFilter: any, effectiveSchool
   for (const school of allSchools) {
     const [siswaResult] = await _db.select({ value: count() }).from(students)
       .where(and(eq(students.school_id, school.id), eq(students.status_siswa, 'aktif')))
-    const [guruResult] = await _db.select({ value: count() }).from(employees)
+    const rombelRows = await _db
+      .select({ kelas: students.kelas_kelompok })
+      .from(students)
+      .where(and(eq(students.school_id, school.id), eq(students.status_siswa, 'aktif')))
+      .groupBy(students.kelas_kelompok)
+    const jumlahRombel = rombelRows.length
+
+    const empByJabatan = await _db
+      .select({ jabatan: employees.jabatan, count: count() })
+      .from(employees)
       .where(and(eq(employees.sekolah_id, school.id), eq(employees.is_active, 1)))
+      .groupBy(employees.jabatan)
+
+    const jabatanCount: Record<string, number> = {}
+    for (const r of empByJabatan) {
+      if (r.jabatan) jabatanCount[r.jabatan] = r.count
+    }
 
     const siswaCount = siswaResult.value
-    const guruCount = guruResult.value
-    const guruSdTarget = 6
-    const guruTkTarget = 2
-    const guruKbTarget = 2
-    const target = school.jenjang === 'sd' ? guruSdTarget : school.jenjang === 'tk' ? guruTkTarget : guruKbTarget
-    const kekurangan = Math.max(0, target - guruCount)
-    const rasio = guruCount > 0 ? Math.round(siswaCount / guruCount) : 0
-    const idealRasio = school.jenjang === 'sd' ? 20 : 15
-    const status = kekurangan > 0 ? 'kekurangan' : rasio > idealRasio ? 'kelebihan_siswa' : 'ideal'
+    const guruKelasActual = jabatanCount['Guru Kelas'] || 0
+    const guruBKActual = jabatanCount['Guru BK'] || 0
+    const kepalaSekolahActual = jabatanCount['Kepala Sekolah'] || 0
+    const tendikActual = jabatanCount['Tenaga Kependidikan'] || 0
+
+    const guruKelasTarget = jumlahRombel
+    const guruBKTarget = 1
+    const kepalaSekolahTarget = 1
+    const subjectTargetPerMapel = jumlahRombel > 12 ? 2 : 1
+
+    const jabatanTarget: Record<string, { actual: number; target: number }> = {}
+    jabatanTarget['Guru Kelas'] = { actual: guruKelasActual, target: guruKelasTarget }
+    jabatanTarget['Guru BK'] = { actual: guruBKActual, target: guruBKTarget }
+    jabatanTarget['Kepala Sekolah'] = { actual: kepalaSekolahActual, target: kepalaSekolahTarget }
+
+    for (const mapel of GURU_MAPEL) {
+      const actual = jabatanCount[mapel] || 0
+      jabatanTarget[mapel] = { actual, target: subjectTargetPerMapel }
+    }
+
+    // Treat any other Guru-* jabatan as subject teachers
+    for (const [jab, count] of Object.entries(jabatanCount)) {
+      if (!jabatanTarget[jab] && jab.startsWith('Guru ')) {
+        jabatanTarget[jab] = { actual: count, target: subjectTargetPerMapel }
+      }
+      if (!jabatanTarget[jab]) {
+        jabatanTarget[jab] = { actual: count, target: count }
+      }
+    }
+
+    let totalTarget = 0
+    let totalActual = 0
+    const perJabatan: Record<string, { actual: number; target: number; shortage: number; surplus: number }> = {}
+    for (const [jab, { actual, target }] of Object.entries(jabatanTarget)) {
+      totalTarget += target
+      totalActual += actual
+      perJabatan[jab] = { actual, target, shortage: Math.max(0, target - actual), surplus: Math.max(0, actual - target) }
+    }
+
+    const totalKekuranganGuru = Math.max(0, totalTarget - totalActual)
+    const rasio = totalActual > 0 ? Math.round(siswaCount / totalActual) : 0
+    const status = totalKekuranganGuru > 0 ? 'kekurangan' : rasio > 20 ? 'kelebihan_siswa' : 'ideal'
 
     analisisPerSekolah.push({
       sekolahId: school.id,
@@ -373,11 +427,13 @@ async function reportShortage(_db: NonNullDb, schoolFilter: any, effectiveSchool
       status: school.status,
       desa: school.desa,
       jumlahSiswa: siswaCount,
-      jumlahGuru: guruCount,
-      targetGuru: target,
-      kekuranganGuru: kekurangan,
+      jumlahRombel,
+      jumlahGuru: totalActual,
+      targetGuru: totalTarget,
+      kekuranganGuru: totalKekuranganGuru,
       rasioSiswaGuru: rasio,
       statusKetenagaan: status,
+      perJabatan,
     })
   }
 
@@ -389,7 +445,7 @@ async function reportShortage(_db: NonNullDb, schoolFilter: any, effectiveSchool
   const totalKekurangan = analisisPerSekolah.filter(a => a.statusKetenagaan === 'kekurangan').length
   const totalIdeal = analisisPerSekolah.filter(a => a.statusKetenagaan === 'ideal').length
   const totalKelebihanSiswa = analisisPerSekolah.filter(a => a.statusKetenagaan === 'kelebihan_siswa').length
-  const totalKekuranganGuru = analisisPerSekolah.reduce((s, a) => s + a.kekuranganGuru, 0)
+  const totalKekuranganGuruAll = analisisPerSekolah.reduce((s, a) => s + a.kekuranganGuru, 0)
 
   return {
     type: 'shortage',
@@ -412,7 +468,7 @@ async function reportShortage(_db: NonNullDb, schoolFilter: any, effectiveSchool
         kekurangan: totalKekurangan,
         ideal: totalIdeal,
         kelebihanSiswa: totalKelebihanSiswa,
-        totalKekuranganGuru,
+        totalKekuranganGuru: totalKekuranganGuruAll,
         rataRataRasio: analisisPerSekolah.length > 0
           ? Math.round(analisisPerSekolah.reduce((s, a) => s + a.rasioSiswaGuru, 0) / analisisPerSekolah.length)
           : 0,
