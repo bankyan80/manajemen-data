@@ -37,7 +37,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: `Jumlah distribusi (${sum}) melebihi total lulusan (${total})` }, { status: 400 })
   }
 
-  const tujuanList: string[] = []
+  const tujuanList: (string | null)[] = []
   for (let i = 0; i < (smp_negeri || 0); i++) tujuanList.push('smp_negeri')
   for (let i = 0; i < (smp_swasta || 0); i++) tujuanList.push('smp_swasta')
   for (let i = 0; i < (pondok || 0); i++) tujuanList.push('pondok')
