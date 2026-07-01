@@ -13,6 +13,7 @@ interface InfraItem {
   school_id: string
   school_nama: string
   school_npsn: string
+  sekolah_jenjang?: string
   jenis: string
   nama: string
   jumlah: number

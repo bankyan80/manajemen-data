@@ -3,7 +3,8 @@ import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
 import { ruang, schools } from '@/db/schema-v2'
-import { count, eq, sql, desc, and } from 'drizzle-orm'
+import { count, eq, sql, asc } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +58,7 @@ export const GET = (req: NextRequest) => safeApi(async () => {
       school_id: ruang.school_id,
       school_nama: schools.nama,
       school_npsn: schools.npsn,
+      sekolah_jenjang: schools.jenjang,
       jenis: ruang.jenis_ruang,
       nama: ruang.nama_ruang,
       jumlah: ruang.kapasitas_siswa,
@@ -65,7 +67,11 @@ export const GET = (req: NextRequest) => safeApi(async () => {
     .from(ruang)
     .innerJoin(schools, eq(ruang.school_id, schools.id))
     .where(whereConditions)
-    .orderBy(desc(ruang.created_at))
+    .orderBy(
+      sql`CASE WHEN ${schools.jenjang} = 'sd' THEN 1 WHEN ${schools.jenjang} = 'tk' THEN 2 WHEN ${schools.jenjang} = 'kb' THEN 3 ELSE 4 END`,
+      asc(schools.nama),
+      asc(ruang.nama_ruang),
+    )
     .limit(limit)
     .offset(offset)
 
