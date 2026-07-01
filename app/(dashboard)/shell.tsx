@@ -32,14 +32,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       {/* Sidebar */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border flex flex-col transition-transform duration-200",
-        "lg:translate-x-0",
         sidebarMobileOpen ? "translate-x-0" : "-translate-x-full",
-        !sidebarDesktopOpen && "lg:-translate-x-full"
+        sidebarDesktopOpen ? "lg:translate-x-0" : "lg:-translate-x-full"
       )}>
         <div className="flex items-center gap-3 h-16 px-6 border-b border-border flex-shrink-0">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-white font-bold text-sm">
-            TB
-          </div>
+          <img src="/tutwuri.png" alt="Tut Wuri Handayani" className="w-9 h-9 object-contain" />
           <div>
             <div className="text-sm font-semibold text-slate-900">TIMKER BIDIK</div>
             <div className="text-[10px] text-slate-400 font-medium">Command Center</div>

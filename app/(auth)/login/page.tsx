@@ -49,8 +49,8 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary shadow-lg shadow-primary/20 mb-4">
-            <span className="text-2xl font-bold text-white">TB</span>
+          <div className="mb-4">
+            <img src="/tutwuri.png" alt="Tut Wuri Handayani" className="w-20 h-20 mx-auto object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 font-heading">
             {APP_NAME}
