@@ -3,7 +3,7 @@ import { safeApi } from '@/lib/api-handler'
 import { guardApi, guardDb } from '@/lib/api-guard'
 import { db } from '@/lib/db'
 import { schools, employees, students, sarana } from '@/db/schema-v2'
-import { count, eq, sql, lt, gte, and } from 'drizzle-orm'
+import { count, eq, sql, and } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,18 +26,28 @@ export const GET = () => safeApi(async () => {
   const teacherCounts = await _db
     .select({
       school_id: employees.sekolah_id,
+      school_nama: schools.nama,
       count: count(),
     })
     .from(employees)
+    .leftJoin(schools, eq(employees.sekolah_id, schools.id))
     .where(eq(employees.is_active, 1))
     .groupBy(employees.sekolah_id)
 
-  const teacherShortage = teacherCounts.filter((r) => r.count < 7).length
-  const teacherSurplus = teacherCounts.filter((r) => r.count > 20).length
+  const shortageSchools = teacherCounts.filter((r) => r.count < 7).map(r => ({
+    school_id: r.school_id,
+    school_nama: r.school_nama || 'Unknown',
+    teacher_count: r.count,
+  }))
+
+  const surplusSchools = teacherCounts.filter((r) => r.count > 20).map(r => ({
+    school_id: r.school_id,
+    school_nama: r.school_nama || 'Unknown',
+    teacher_count: r.count,
+  }))
 
   const now = new Date()
   const fiveYearsLater = new Date(now.getFullYear() + 5, now.getMonth(), now.getDate())
-  const fiveYearsLaterTs = fiveYearsLater.getTime()
   const todayStr = now.toISOString().slice(0, 10)
   const fiveYearsStr = fiveYearsLater.toISOString().slice(0, 10)
 
@@ -63,8 +73,10 @@ export const GET = () => safeApi(async () => {
       totalSchools: totalSchools.value,
       totalStudents: totalStudents.value,
       totalTeachers: totalTeachers.value,
-      teacherShortage,
-      teacherSurplus,
+      teacherShortage: shortageSchools.length,
+      teacherSurplus: surplusSchools.length,
+      teacherShortageSchools: shortageSchools,
+      teacherSurplusSchools: surplusSchools,
       certificationPending: certificationPending.value,
       retirementRisk: retirementRisk.value,
       damagedClassrooms: damagedClassrooms.value,

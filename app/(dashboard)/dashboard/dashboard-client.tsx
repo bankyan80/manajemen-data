@@ -9,12 +9,20 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn } from '@/lib/utils'
 
+interface SchoolCount {
+  school_id: string
+  school_nama: string
+  teacher_count: number
+}
+
 interface KPI {
   totalSchools: number
   totalStudents: number
   totalTeachers: number
   teacherShortage: number
   teacherSurplus: number
+  teacherShortageSchools: SchoolCount[]
+  teacherSurplusSchools: SchoolCount[]
   certificationPending: number
   retirementRisk: number
   damagedClassrooms: number
@@ -70,6 +78,7 @@ export default function DashboardClient() {
   const [alerts, setAlerts] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [modalList, setModalList] = useState<{ title: string; items: SchoolCount[] } | null>(null)
 
   useEffect(() => {
     async function fetchAll() {
@@ -98,10 +107,43 @@ export default function DashboardClient() {
           <AlertCircle className="w-12 h-12 text-danger mx-auto mb-4" />
           <h2 className="text-lg font-semibold mb-2">Gagal Memuat Dashboard</h2>
           <p className="text-slate-500 text-sm">{error}</p>
-        </div>
       </div>
-    )
-  }
+
+      {modalList && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setModalList(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 max-h-[70vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold text-sm text-slate-800">{modalList.title}</h3>
+              <button onClick={() => setModalList(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">&times;</button>
+            </div>
+            <div className="overflow-y-auto max-h-[55vh]">
+              <table className="table-base w-full">
+                <thead>
+                  <tr>
+                    <th className="w-10 text-xs">No</th>
+                    <th className="text-xs">Nama Sekolah</th>
+                    <th className="text-center text-xs w-24">Jumlah Guru</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modalList.items.length === 0 ? (
+                    <tr><td colSpan={3} className="text-center text-slate-400 text-sm py-8">Tidak ada data</td></tr>
+                  ) : modalList.items.map((s, i) => (
+                    <tr key={s.school_id}>
+                      <td className="text-center text-xs text-slate-500">{i + 1}</td>
+                      <td className="text-sm">{s.school_nama}</td>
+                      <td className="text-center font-semibold text-sm">{s.teacher_count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
   return (
     <div className="page-container">
@@ -129,8 +171,12 @@ export default function DashboardClient() {
             <AnimatedCounter value={kpi.totalSchools} label="Total Sekolah" icon={School} color="#2563EB" />
             <AnimatedCounter value={kpi.totalStudents} label="Total Siswa" icon={GraduationCap} color="#10B981" />
             <AnimatedCounter value={kpi.totalTeachers} label="Total Guru & Tendik" icon={Users} color="#8B5CF6" />
-            <AnimatedCounter value={kpi.teacherShortage} label="Kekurangan Guru" icon={AlertTriangle} color="#EF4444" />
-            <AnimatedCounter value={kpi.teacherSurplus} label="Kelebihan Guru" icon={TrendingUp} color="#F59E0B" />
+            <div className="cursor-pointer" onClick={() => setModalList({ title: 'Kekurangan Guru (< 7)', items: kpi.teacherShortageSchools || [] })}>
+              <AnimatedCounter value={kpi.teacherShortage} label="Kekurangan Guru" icon={AlertTriangle} color="#EF4444" />
+            </div>
+            <div className="cursor-pointer" onClick={() => setModalList({ title: 'Kelebihan Guru (> 20)', items: kpi.teacherSurplusSchools || [] })}>
+              <AnimatedCounter value={kpi.teacherSurplus} label="Kelebihan Guru" icon={TrendingUp} color="#F59E0B" />
+            </div>
             <AnimatedCounter value={kpi.certificationPending} label="Sertifikasi Tertunda" icon={Award} color="#F59E0B" />
             <AnimatedCounter value={kpi.retirementRisk} label="Risiko Pensiun" icon={Clock} color="#EF4444" />
             <AnimatedCounter value={kpi.damagedClassrooms} label="Ruang Rusak" icon={Building} color="#EF4444" />
