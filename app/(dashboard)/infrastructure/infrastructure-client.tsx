@@ -115,7 +115,7 @@ function SummaryCard({ label, total, baik, rusak, icon: Icon }: {
   )
 }
 
-export default function InfrastructureClient() {
+export default function InfrastructureClient({ role, userSekolahId, userSekolahNama }: { role?: string; userSekolahId?: string; userSekolahNama?: string }) {
   const [items, setItems] = useState<InfraItem[]>([])
   const [summary, setSummary] = useState<Summary>({
     total_ruang_kelas: 0, ruang_kelas_baik: 0, ruang_kelas_rusak: 0,
@@ -176,11 +176,13 @@ export default function InfrastructureClient() {
 
   const handleAdd = async () => {
     if (!addForm.nama_ruang) { alert('Nama ruang wajib diisi'); return }
+    const payload = { ...addForm, school_id: addForm.school_id || userSekolahId || '' }
+    if (!payload.school_id) { alert('Sekolah belum dipilih'); return }
     setAddSaving(true)
     try {
       await safeFetch('/api/sarpras/ruang/', {
         method: 'POST',
-        body: JSON.stringify(addForm),
+        body: JSON.stringify(payload),
       })
       setShowAddModal(false)
       setAddForm({ school_id: '', nama_ruang: '', jenis_ruang: 'ruang_kelas', kapasitas_siswa: 0, kondisi_non_struktur: 'baik' })
@@ -402,13 +404,20 @@ export default function InfrastructureClient() {
               <div className="card max-w-lg w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
                 <h3 className="text-lg font-semibold text-slate-800 mb-4">Tambah Infrastruktur</h3>
                 <div className="space-y-3 text-sm">
-                  <div>
-                    <label className="block text-xs text-slate-500 mb-1">Sekolah</label>
-                    <select value={addForm.school_id} onChange={e => setAddForm(f => ({ ...f, school_id: e.target.value }))} className="input select text-sm">
-                      <option value="">Pilih Sekolah</option>
-                      {schools.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
-                    </select>
-                  </div>
+                  {role === 'operator_sekolah' ? (
+                    <div className="py-2 border-b">
+                      <span className="text-xs text-slate-500">Sekolah</span>
+                      <p className="font-medium text-slate-700">{userSekolahNama || '-'}</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">Sekolah</label>
+                      <select value={addForm.school_id} onChange={e => setAddForm(f => ({ ...f, school_id: e.target.value }))} className="input select text-sm">
+                        <option value="">Pilih Sekolah</option>
+                        {schools.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs text-slate-500 mb-1">Jenis Ruang</label>
                     <select value={addForm.jenis_ruang} onChange={e => setAddForm(f => ({ ...f, jenis_ruang: e.target.value }))} className="input select text-sm">
@@ -445,7 +454,7 @@ export default function InfrastructureClient() {
                 </div>
                 <div className="flex gap-2 mt-6">
                   <button onClick={() => setShowAddModal(false)} className="btn btn-ghost flex-1">Batal</button>
-                  <button onClick={handleAdd} disabled={addSaving || !addForm.school_id} className="btn btn-primary flex-1 flex items-center justify-center gap-2">
+                  <button onClick={handleAdd} disabled={addSaving || (role !== 'operator_sekolah' && !addForm.school_id)} className="btn btn-primary flex-1 flex items-center justify-center gap-2">
                     {addSaving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus className="w-4 h-4" />}
                     {addSaving ? 'Menyimpan...' : 'Simpan'}
                   </button>
