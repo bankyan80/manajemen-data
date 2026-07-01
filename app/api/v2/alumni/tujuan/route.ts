@@ -3,84 +3,61 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { alumni } from '@/db/schema-v2'
-import { eq, and } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
 export async function PUT(req: NextRequest) {
   try {
-  if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const role = (session?.user as any)?.role
-  const userSekolahId = (session?.user as any)?.sekolah_id
+    if (!db) return NextResponse.json({ error: 'DB not configured' }, { status: 500 })
+    const session = await getServerSession(authOptions)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const role = (session?.user as any)?.role
+    const userSekolahId = (session?.user as any)?.sekolah_id
 
-  const { school_id, tahun_lulus, distribusi } = await req.json()
-  if (!school_id || !tahun_lulus || !distribusi) {
-    return NextResponse.json({ error: 'school_id, tahun_lulus, dan distribusi wajib' }, { status: 400 })
-  }
-
-  if (role === 'operator_sekolah' && userSekolahId !== school_id) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  const { smp_negeri, smp_swasta, pondok, tidak_melanjutkan } = distribusi
-  const sum = (smp_negeri || 0) + (smp_swasta || 0) + (pondok || 0) + (tidak_melanjutkan || 0)
-
-  let semuaAlumni = await db
-    .select({ id: alumni.id })
-    .from(alumni)
-    .where(and(eq(alumni.school_id, school_id), eq(alumni.tahun_lulus, tahun_lulus)))
-
-  if (semuaAlumni.length === 0 && sum > 0) {
-    const now = Date.now()
-    const newRecords = []
-    const cats = [
-      { key: 'smp_negeri', count: smp_negeri || 0 },
-      { key: 'smp_swasta', count: smp_swasta || 0 },
-      { key: 'pondok', count: pondok || 0 },
-      { key: 'tidak_melanjutkan', count: tidak_melanjutkan || 0 },
-    ]
-    for (const cat of cats) {
-      for (let i = 0; i < cat.count; i++) {
-        newRecords.push({
-          id: crypto.randomUUID(),
-          school_id,
-          tahun_lulus,
-          nama: '(Rekap)',
-          nisn: null,
-          nik: null,
-          kelas: null,
-          tujuan: cat.key,
-          created_at: now,
-          updated_at: now,
-        })
-      }
+    const body = await req.json()
+    const schoolId = role === 'operator_sekolah' ? userSekolahId : body.school_id
+    if (!schoolId || !body.tahun_lulus) {
+      return NextResponse.json({ error: 'school_id dan tahun_lulus wajib' }, { status: 400 })
     }
-    if (newRecords.length > 0) {
-      await db.insert(alumni).values(newRecords)
+
+    const summary = {
+      jumlah_lulusan: body.jumlah_lulusan || 0,
+      smp_negeri_l: body.smp_negeri_l || 0,
+      smp_negeri_p: body.smp_negeri_p || 0,
+      smp_swasta_l: body.smp_swasta_l || 0,
+      smp_swasta_p: body.smp_swasta_p || 0,
+      pondok_l: body.pondok_l || 0,
+      pondok_p: body.pondok_p || 0,
+      tidak_melanjutkan_l: body.tidak_melanjutkan_l || 0,
+      tidak_melanjutkan_p: body.tidak_melanjutkan_p || 0,
     }
-    semuaAlumni = await db
+
+    const existing = await db
       .select({ id: alumni.id })
       .from(alumni)
-      .where(and(eq(alumni.school_id, school_id), eq(alumni.tahun_lulus, tahun_lulus)))
-  }
+      .where(sql`${alumni.school_id} = ${schoolId} AND ${alumni.tahun_lulus} = ${body.tahun_lulus} AND ${alumni.nama} = 'REKAP'`)
+      .limit(1)
 
-  const total = semuaAlumni.length
+    const now = Date.now()
+    if (existing.length > 0) {
+      await db.update(alumni).set({ tujuan: JSON.stringify(summary), updated_at: now }).where(eq(alumni.id, existing[0].id))
+    } else {
+      await db.insert(alumni).values({
+        id: crypto.randomUUID(),
+        school_id: schoolId,
+        tahun_lulus: body.tahun_lulus,
+        nama: 'REKAP',
+        nisn: null,
+        nik: null,
+        kelas: null,
+        tujuan: JSON.stringify(summary),
+        created_at: now,
+        updated_at: now,
+      })
+    }
 
-  const tujuanList: (string | null)[] = []
-  for (let i = 0; i < (smp_negeri || 0); i++) tujuanList.push('smp_negeri')
-  for (let i = 0; i < (smp_swasta || 0); i++) tujuanList.push('smp_swasta')
-  for (let i = 0; i < (pondok || 0); i++) tujuanList.push('pondok')
-  for (let i = 0; i < (tidak_melanjutkan || 0); i++) tujuanList.push('tidak_melanjutkan')
-  const sisa = total - sum
-  for (let i = 0; i < sisa; i++) tujuanList.push(null)
-
-  for (let i = 0; i < semuaAlumni.length; i++) {
-    await db.update(alumni).set({ tujuan: tujuanList[i] }).where(eq(alumni.id, semuaAlumni[i].id))
-  }
-
-  return NextResponse.json({ success: true, total, updated: semuaAlumni.length })
+    return NextResponse.json({ success: true, summary }, { status: 200 })
   } catch (e) {
     console.error('[API Error]', e)
     return NextResponse.json({ success: false, error: e instanceof Error ? e.message : 'Internal error' }, { status: 500 })

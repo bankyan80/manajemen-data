@@ -2,40 +2,39 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { safeFetch } from '@/lib/safe-fetch'
-import { GraduationCap, Save, X, Loader2, Plus } from 'lucide-react'
+import { GraduationCap, Save, Loader2 } from 'lucide-react'
+
+interface Summary {
+  jumlah_lulusan: number
+  smp_negeri_l: number; smp_negeri_p: number
+  smp_swasta_l: number; smp_swasta_p: number
+  pondok_l: number; pondok_p: number
+  tidak_melanjutkan_l: number; tidak_melanjutkan_p: number
+}
+
+const EMPTY: Summary = {
+  jumlah_lulusan: 0,
+  smp_negeri_l: 0, smp_negeri_p: 0,
+  smp_swasta_l: 0, smp_swasta_p: 0,
+  pondok_l: 0, pondok_p: 0,
+  tidak_melanjutkan_l: 0, tidak_melanjutkan_p: 0,
+}
 
 export default function AlumniClient() {
-  const [items, setItems] = useState<any[]>([])
+  const [items, setItems] = useState<{ school_id: string; school_nama: string; summary: Summary }[]>([])
   const [loading, setLoading] = useState(true)
   const [tahunFilter, setTahunFilter] = useState('')
   const [tahunList, setTahunList] = useState<string[]>([])
+  const [editData, setEditData] = useState<Record<string, Summary>>({})
   const [saving, setSaving] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<Record<string, Record<string, number>>>({})
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [addForm, setAddForm] = useState({ tahun_lulus: '', school_id: '', nama: '', nisn: '', nik: '', jenis_kelamin: 'laki-laki', kelas: '', tujuan: '' })
-  const [addSaving, setAddSaving] = useState(false)
-  const [schools, setSchools] = useState<{ id: string; nama: string }[]>([])
   const [userRole, setUserRole] = useState('')
-  const [userSekolahId, setUserSekolahId] = useState('')
-  const [operatorSchool, setOperatorSchool] = useState<{ id: string; nama: string } | null>(null)
 
   useEffect(() => {
-    safeFetch<any>('/api/v2/schools').then(r => setSchools(r.schools || [])).catch(() => {})
     fetch('/api/auth/session').then(r => r.json()).then(s => {
       const u = s?.user as any
       setUserRole(u?.role || '')
-      setUserSekolahId(u?.sekolah_id || '')
     }).catch(() => {})
   }, [])
-
-  useEffect(() => {
-    if (userRole === 'operator_sekolah' && userSekolahId) {
-      safeFetch<any>(`/api/v2/schools?id=${userSekolahId}`).then(r => {
-        const sc = r.school || r.schools?.[0]
-        if (sc) setOperatorSchool(sc)
-      }).catch(() => {})
-    }
-  }, [userRole, userSekolahId])
 
   useEffect(() => {
     if (userRole === 'operator_sekolah' && tahunList.length === 0 && !tahunFilter) {
@@ -47,7 +46,6 @@ export default function AlumniClient() {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      params.set('limit', '5000')
       if (tahunFilter) params.set('tahun_lulus', tahunFilter)
       const result = await safeFetch<any>(`/api/v2/alumni?${params}`)
       setItems(result.data || [])
@@ -58,108 +56,60 @@ export default function AlumniClient() {
 
   useEffect(() => { fetchItems() }, [fetchItems])
 
-  const alumniBySchool = new Map<string, { nama: string; total: number; smp_negeri: number; smp_swasta: number; pondok: number; tidak_melanjutkan: number }>()
-  for (const r of items) {
-    const key = r.school_id
-    if (!alumniBySchool.has(key)) {
-      alumniBySchool.set(key, { nama: r.school_nama || key, total: 0, smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 })
-    }
-    const s = alumniBySchool.get(key)!
-    s.total++
-    if (r.tujuan === 'smp_negeri') s.smp_negeri++
-    else if (r.tujuan === 'smp_swasta') s.smp_swasta++
-    else if (r.tujuan === 'pondok') s.pondok++
-    else if (r.tujuan === 'tidak_melanjutkan') s.tidak_melanjutkan++
-  }
-  const sekolahList = Array.from(alumniBySchool.entries()).map(([id, s]) => ({ id, ...s }))
-  if (sekolahList.length === 0 && userRole === 'operator_sekolah' && operatorSchool) {
-    sekolahList.push({ id: operatorSchool.id, nama: operatorSchool.nama, total: 0, smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 })
-  }
-
-  const openEdit = (schoolId: string) => {
-    const s = alumniBySchool.get(schoolId) || { smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 }
-    setEditForm(prev => ({ ...prev, [schoolId]: { smp_negeri: s.smp_negeri, smp_swasta: s.smp_swasta, pondok: s.pondok, tidak_melanjutkan: s.tidak_melanjutkan } }))
-  }
-
   const handleSave = async (schoolId: string) => {
-    const form = editForm[schoolId]
-    if (!form || !tahunFilter) return
-    const sum = form.smp_negeri + form.smp_swasta + form.pondok + form.tidak_melanjutkan
-    const s = alumniBySchool.get(schoolId)
-    if (sum > (s?.total || 0) && (s?.total || 0) > 0) { alert(`Jumlah distribusi (${sum}) melebihi total lulusan (${s?.total || 0})`); return }
+    const data = editData[schoolId]
+    if (!data || !tahunFilter) return
     setSaving(schoolId)
     try {
       await safeFetch('/api/v2/alumni/tujuan', {
         method: 'PUT',
-        body: JSON.stringify({ school_id: schoolId, tahun_lulus: tahunFilter, distribusi: form }),
+        body: JSON.stringify({ school_id: schoolId, tahun_lulus: tahunFilter, ...data }),
       })
+      setEditData(prev => { const n = { ...prev }; delete n[schoolId]; return n })
       fetchItems()
     } catch (err: unknown) { alert(err instanceof Error ? err.message : 'Gagal menyimpan') }
     finally { setSaving(null) }
   }
 
-  const handleAddAlumni = async () => {
-    if (!addForm.tahun_lulus || !addForm.nama || !addForm.kelas) { alert('Tahun lulus, nama, dan kelas wajib'); return }
-    const payload = { ...addForm, school_id: addForm.school_id || userSekolahId }
-    if (!payload.school_id) { alert('Sekolah belum dipilih'); return }
-    setAddSaving(true)
-    try {
-      await safeFetch('/api/v2/alumni', { method: 'POST', body: JSON.stringify(payload) })
-      setShowAddForm(false)
-      setAddForm({ tahun_lulus: '', school_id: '', nama: '', nisn: '', nik: '', jenis_kelamin: 'laki-laki', kelas: '', tujuan: '' })
-      setTahunFilter(addForm.tahun_lulus)
-      fetchItems()
-    } catch (err: unknown) { alert(err instanceof Error ? err.message : 'Gagal menambah') }
-    finally { setAddSaving(false) }
+  const setVal = (schoolId: string, field: keyof Summary, val: number) => {
+    setEditData(prev => {
+      const cur = prev[schoolId] || { ...EMPTY }
+      return { ...prev, [schoolId]: { ...cur, [field]: val } }
+    })
   }
+
+  const getVal = (schoolId: string, field: keyof Summary): number => {
+    if (editData[schoolId]) return editData[schoolId][field]
+    const item = items.find(i => i.school_id === schoolId)
+    return item?.summary?.[field] ?? 0
+  }
+
+  const CatInput = ({ schoolId, fieldL, fieldP }: { schoolId: string; fieldL: keyof Summary; fieldP: keyof Summary }) => (
+    <div className="flex items-center justify-center gap-1">
+      <div className="flex flex-col items-center">
+        <span className="text-[10px] text-slate-400 leading-tight">L</span>
+        <input type="number" min="0" className="input text-xs py-1 px-1 w-14 text-center" value={getVal(schoolId, fieldL)} onChange={e => setVal(schoolId, fieldL, Math.max(0, Number(e.target.value)))} />
+      </div>
+      <div className="flex flex-col items-center">
+        <span className="text-[10px] text-slate-400 leading-tight">P</span>
+        <input type="number" min="0" className="input text-xs py-1 px-1 w-14 text-center" value={getVal(schoolId, fieldP)} onChange={e => setVal(schoolId, fieldP, Math.max(0, Number(e.target.value)))} />
+      </div>
+    </div>
+  )
 
   return (
     <div className="page-container">
       <div className="page-header">
         <div>
           <h1 className="page-title">Rekap Kelanjutan Lulusan</h1>
-          <p className="page-subtitle">Data lulusan peserta didik per sekolah</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="badge bg-primary/10 text-primary">{items.length} Lulusan</span>
-          {userRole !== 'operator_sekolah' ? (
-            <button onClick={() => setShowAddForm(true)} className="btn btn-primary btn-sm flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Tambah Alumni</button>
-          ) : null}
+          <p className="page-subtitle">Data siswa melanjutkan dan tidak melanjutkan per sekolah</p>
         </div>
       </div>
-
-      {showAddForm && (
-        <div className="card p-4 mb-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-            {userRole !== 'operator_sekolah' ? (
-              <div><label className="block text-xs text-slate-500 mb-1">Sekolah</label><select value={addForm.school_id} onChange={e => setAddForm(f => ({ ...f, school_id: e.target.value }))} className="input select text-sm"><option value="">Pilih</option>{schools.map(s => <option key={s.id} value={s.id}>{s.nama}</option>)}</select></div>
-            ) : null}
-            <div><label className="block text-xs text-slate-500 mb-1">Tahun Lulus</label><input type="text" value={addForm.tahun_lulus} onChange={e => setAddForm(f => ({ ...f, tahun_lulus: e.target.value }))} className="input text-sm" placeholder="2025/2026" /></div>
-            <div><label className="block text-xs text-slate-500 mb-1">Nama</label><input value={addForm.nama} onChange={e => setAddForm(f => ({ ...f, nama: e.target.value }))} className="input text-sm" placeholder="Nama siswa" /></div>
-            <div><label className="block text-xs text-slate-500 mb-1">NISN</label><input value={addForm.nisn} onChange={e => setAddForm(f => ({ ...f, nisn: e.target.value }))} className="input text-sm" /></div>
-            <div><label className="block text-xs text-slate-500 mb-1">NIK</label><input value={addForm.nik} onChange={e => setAddForm(f => ({ ...f, nik: e.target.value }))} className="input text-sm" /></div>
-            <div><label className="block text-xs text-slate-500 mb-1">JK</label><select value={addForm.jenis_kelamin} onChange={e => setAddForm(f => ({ ...f, jenis_kelamin: e.target.value }))} className="input select text-sm"><option value="laki-laki">Laki-laki</option><option value="perempuan">Perempuan</option></select></div>
-            <div><label className="block text-xs text-slate-500 mb-1">Kelas</label><input value={addForm.kelas} onChange={e => setAddForm(f => ({ ...f, kelas: e.target.value }))} className="input text-sm" placeholder="Kelas VI" /></div>
-            <div><label className="block text-xs text-slate-500 mb-1">Tujuan</label><select value={addForm.tujuan} onChange={e => setAddForm(f => ({ ...f, tujuan: e.target.value }))} className="input select text-sm"><option value="">-</option><option value="smp_negeri">SMP Negeri</option><option value="smp_swasta">SMP Swasta</option><option value="pondok">Pondok Pesantren</option><option value="tidak_melanjutkan">Tidak Melanjutkan</option></select></div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <button onClick={handleAddAlumni} disabled={addSaving} className="btn btn-primary btn-sm flex items-center gap-1">{addSaving ? 'Menyimpan...' : 'Simpan'}</button>
-            <button onClick={() => setShowAddForm(false)} className="btn btn-ghost btn-sm">Batal</button>
-          </div>
-        </div>
-      )}
 
       <div className="card mb-6">
         <div className="p-4">
           <div className="relative w-full sm:w-64">
-            {tahunList.length > 0 ? (
-              <select value={tahunFilter} onChange={e => setTahunFilter(e.target.value)} className="input select text-sm">
-                <option value="">Pilih Tahun Lulus</option>
-                {tahunList.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            ) : (
-              <input type="text" value={tahunFilter} onChange={e => setTahunFilter(e.target.value)} className="input text-sm" placeholder="Masukkan tahun lulus (cth: 2025/2026)" />
-            )}
+            <input type="text" value={tahunFilter} onChange={e => setTahunFilter(e.target.value)} className="input text-sm" placeholder="Tahun lulus (cth: 2025/2026)" />
           </div>
         </div>
       </div>
@@ -169,12 +119,12 @@ export default function AlumniClient() {
       ) : !tahunFilter ? (
         <div className="card p-12 text-center text-slate-400 text-sm">
           <GraduationCap className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          Pilih tahun lulus untuk melihat rekap
+          Masukkan tahun lulus untuk melihat/mengisi data
         </div>
-      ) : sekolahList.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="card p-12 text-center text-slate-400 text-sm">
           <GraduationCap className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          Belum ada data alumni untuk tahun {tahunFilter}
+          Tidak ada sekolah untuk tahun {tahunFilter}
         </div>
       ) : (
         <div className="card overflow-hidden">
@@ -184,7 +134,7 @@ export default function AlumniClient() {
                 <tr>
                   <th className="w-10">No</th>
                   <th>Nama Sekolah</th>
-                  <th className="text-center">Jumlah Lulusan</th>
+                  <th className="text-center">Jml Lulusan</th>
                   <th className="text-center">SMP Negeri</th>
                   <th className="text-center">SMP Swasta</th>
                   <th className="text-center">Pondok Pesantren</th>
@@ -193,57 +143,28 @@ export default function AlumniClient() {
                 </tr>
               </thead>
               <tbody>
-                {sekolahList.map((s, i) => {
-                  const editing = editForm[s.id]
-                  const form = editing || { smp_negeri: 0, smp_swasta: 0, pondok: 0, tidak_melanjutkan: 0 }
+                {items.map((item, i) => {
+                  const s = editData[item.school_id] || item.summary || EMPTY
+                  const totalL = s.smp_negeri_l + s.smp_swasta_l + s.pondok_l + s.tidak_melanjutkan_l
+                  const totalP = s.smp_negeri_p + s.smp_swasta_p + s.pondok_p + s.tidak_melanjutkan_p
+                  const total = totalL + totalP
+                  const isDirty = editData[item.school_id] !== undefined
                   return (
-                    <tr key={s.id}>
+                    <tr key={item.school_id}>
                       <td className="text-center text-sm text-slate-500">{i + 1}</td>
-                      <td className="font-medium text-slate-800 text-sm">{s.nama}</td>
-                      <td className="text-center font-semibold text-slate-800">{s.total}</td>
+                      <td className="font-medium text-slate-800 text-sm">{item.school_nama}</td>
                       <td className="text-center">
-                        {editing ? (
-                          <input type="number" min="0" className="input text-xs py-1 px-2 w-16 text-center" value={form.smp_negeri} onChange={e => setEditForm(prev => ({ ...prev, [s.id]: { ...prev[s.id], smp_negeri: Number(e.target.value) } }))} />
-                        ) : (
-                          <span className="text-sm text-slate-600">{s.smp_negeri || 0}</span>
-                        )}
+                        <input type="number" min="0" className="input text-xs py-1 px-1 w-16 text-center" value={s.jumlah_lulusan} onChange={e => setVal(item.school_id, 'jumlah_lulusan', Math.max(0, Number(e.target.value)))} />
+                        <div className="text-[10px] text-slate-400 mt-0.5">({total} L+P)</div>
                       </td>
-                      <td className="text-center">
-                        {editing ? (
-                          <input type="number" min="0" className="input text-xs py-1 px-2 w-16 text-center" value={form.smp_swasta} onChange={e => setEditForm(prev => ({ ...prev, [s.id]: { ...prev[s.id], smp_swasta: Number(e.target.value) } }))} />
-                        ) : (
-                          <span className="text-sm text-slate-600">{s.smp_swasta || 0}</span>
-                        )}
-                      </td>
-                      <td className="text-center">
-                        {editing ? (
-                          <input type="number" min="0" className="input text-xs py-1 px-2 w-16 text-center" value={form.pondok} onChange={e => setEditForm(prev => ({ ...prev, [s.id]: { ...prev[s.id], pondok: Number(e.target.value) } }))} />
-                        ) : (
-                          <span className="text-sm text-slate-600">{s.pondok || 0}</span>
-                        )}
-                      </td>
-                      <td className="text-center">
-                        {editing ? (
-                          <input type="number" min="0" className="input text-xs py-1 px-2 w-16 text-center" value={form.tidak_melanjutkan} onChange={e => setEditForm(prev => ({ ...prev, [s.id]: { ...prev[s.id], tidak_melanjutkan: Number(e.target.value) } }))} />
-                        ) : (
-                          <span className="text-sm text-slate-600">{s.tidak_melanjutkan || 0}</span>
-                        )}
-                      </td>
+                      <td className="text-center whitespace-nowrap"><CatInput schoolId={item.school_id} fieldL="smp_negeri_l" fieldP="smp_negeri_p" /></td>
+                      <td className="text-center whitespace-nowrap"><CatInput schoolId={item.school_id} fieldL="smp_swasta_l" fieldP="smp_swasta_p" /></td>
+                      <td className="text-center whitespace-nowrap"><CatInput schoolId={item.school_id} fieldL="pondok_l" fieldP="pondok_p" /></td>
+                      <td className="text-center whitespace-nowrap"><CatInput schoolId={item.school_id} fieldL="tidak_melanjutkan_l" fieldP="tidak_melanjutkan_p" /></td>
                       <td>
-                        <div className="flex items-center gap-1">
-                          {editing ? (
-                            <>
-                              <button onClick={() => handleSave(s.id)} disabled={saving === s.id} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600" title="Simpan">
-                                {saving === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                              </button>
-                              <button onClick={() => setEditForm(prev => { const n = { ...prev }; delete n[s.id]; return n })} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400" title="Batal">
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          ) : (
-                            <button onClick={() => openEdit(s.id)} className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-500 text-xs">Isi</button>
-                          )}
-                        </div>
+                        <button onClick={() => handleSave(item.school_id)} disabled={saving === item.school_id || !isDirty} className={`p-1.5 rounded-lg text-xs flex items-center gap-1 ${isDirty ? 'hover:bg-green-50 text-green-600' : 'text-slate-300 cursor-not-allowed'}`}>
+                          {saving === item.school_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                        </button>
                       </td>
                     </tr>
                   )
