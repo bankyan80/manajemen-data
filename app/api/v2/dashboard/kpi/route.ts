@@ -31,7 +31,7 @@ export const GET = () => safeApi(async () => {
     })
     .from(employees)
     .leftJoin(schools, eq(employees.sekolah_id, schools.id))
-    .where(eq(employees.is_active, 1))
+    .where(sql`${employees.is_active} = 1 AND ${schools.status} = 'negeri'`)
     .groupBy(employees.sekolah_id)
 
   const shortageSchools = teacherCounts.filter((r) => r.count < 7).map(r => ({
