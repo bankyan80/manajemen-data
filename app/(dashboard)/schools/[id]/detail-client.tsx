@@ -126,6 +126,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   const [editingRombelName, setEditingRombelName] = useState<string | null>(null)
   const [editRombelNameValue, setEditRombelNameValue] = useState('')
   const [showAddRombel, setShowAddRombel] = useState(false)
+  const [newRombelKelas, setNewRombelKelas] = useState('')
   const [newRombelName, setNewRombelName] = useState('')
   const [addRombelError, setAddRombelError] = useState('')
   const [addRombelLoading, setAddRombelLoading] = useState(false)
@@ -188,8 +189,14 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
   }, [activeTab, school.id])
 
   const handleAddRombel = async () => {
-    const name = newRombelName.trim()
-    if (!name) { setAddRombelError('Nama rombel tidak boleh kosong'); return }
+    const rombel = newRombelName.trim()
+    if (school.jenjang === 'sd') {
+      if (!newRombelKelas) { setAddRombelError('Pilih kelas terlebih dahulu'); return }
+      if (!rombel) { setAddRombelError('Nama rombel tidak boleh kosong'); return }
+    } else {
+      if (!rombel) { setAddRombelError('Nama rombel tidak boleh kosong'); return }
+    }
+    const name = school.jenjang === 'sd' ? `${newRombelKelas}${rombel}` : rombel
     setAddRombelLoading(true)
     setAddRombelError('')
     try {
@@ -198,6 +205,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
         body: JSON.stringify({ kelas_kelompok: name }),
       })
       setShowAddRombel(false)
+      setNewRombelKelas('')
       setNewRombelName('')
       loadRombel()
     } catch (err: unknown) {
@@ -502,7 +510,7 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
                   <span className="text-slate-500">Total Siswa: <strong>{rombelSummary.totalSiswa}</strong></span>
                 </div>
                 <div className="ml-auto">
-                  <button onClick={() => { setShowAddRombel(true); setNewRombelName(''); setAddRombelError('') }} className="btn btn-primary btn-sm flex items-center gap-1">
+                  <button onClick={() => { setShowAddRombel(true); setNewRombelKelas(''); setNewRombelName(''); setAddRombelError('') }} className="btn btn-primary btn-sm flex items-center gap-1">
                     <Plus className="w-3.5 h-3.5" /> Tambah Rombel
                   </button>
                 </div>
@@ -511,17 +519,41 @@ export default function SchoolDetailClient({ school }: { school: SchoolProfile }
               {showAddRombel && (
                 <div className="p-4 mb-4 rounded-xl bg-slate-50 border border-border">
                   <div className="flex items-end gap-3">
-                    <div className="flex-1">
-                      <label className="block text-xs text-slate-400 mb-1">Nama Rombel Baru</label>
-                      <input
-                        className="input"
-                        value={newRombelName}
-                        onChange={e => setNewRombelName(e.target.value)}
-                        placeholder={school.jenjang === 'sd' ? 'Contoh: IA, IB, IIA' : 'Contoh: A, A1, B, B1'}
-                        onKeyDown={e => { if (e.key === 'Enter') { handleAddRombel() } }}
-                      />
-                    </div>
-                    <button onClick={handleAddRombel} disabled={addRombelLoading || !newRombelName.trim()} className="btn btn-primary btn-sm flex items-center gap-1">
+                    {school.jenjang === 'sd' ? (
+                      <>
+                        <div>
+                          <label className="block text-xs text-slate-400 mb-1">Kelas</label>
+                          <select className="input" value={newRombelKelas} onChange={e => setNewRombelKelas(e.target.value)}>
+                            <option value="">Pilih Kelas</option>
+                            {['I', 'II', 'III', 'IV', 'V', 'VI'].map(k => (
+                              <option key={k} value={k}>{k}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-xs text-slate-400 mb-1">Nama Rombel</label>
+                          <input
+                            className="input"
+                            value={newRombelName}
+                            onChange={e => setNewRombelName(e.target.value)}
+                            placeholder="Contoh: A, B"
+                            onKeyDown={e => { if (e.key === 'Enter') { handleAddRombel() } }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex-1">
+                        <label className="block text-xs text-slate-400 mb-1">Nama Rombel</label>
+                        <input
+                          className="input"
+                          value={newRombelName}
+                          onChange={e => setNewRombelName(e.target.value)}
+                          placeholder="Contoh: A, A1, B, B1"
+                          onKeyDown={e => { if (e.key === 'Enter') { handleAddRombel() } }}
+                        />
+                      </div>
+                    )}
+                    <button onClick={handleAddRombel} disabled={addRombelLoading} className="btn btn-primary btn-sm flex items-center gap-1">
                       {addRombelLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                       Simpan
                     </button>
