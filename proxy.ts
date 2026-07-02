@@ -35,7 +35,7 @@ export async function proxy(req: NextRequest) {
     return addSecurityHeaders(res);
   }
 
-  if (path === "/login") {
+  if (path === "/login" || path === "/api/health") {
     const res = NextResponse.next();
     return addSecurityHeaders(res);
   }

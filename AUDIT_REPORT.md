@@ -1,6 +1,7 @@
 # FULL AUDIT REPORT — Manajemen Satu Data (timker-bidik.online)
 
-**Tanggal Audit**: 28 Juni 2026  
+**Tanggal Audit Awal**: 28 Juni 2026  
+**Tanggal Re-Audit**: 2 Juli 2026  
 **Auditor**: Full-Stack System  
 **URL**: https://timker-bidik.online  
 **Repo**: github.com/bankyan80/manajemen-data (branch: master)
@@ -9,28 +10,42 @@
 
 ## 1. EXECUTIVE SUMMARY
 
-| Area | Skor | Status |
-|------|------|--------|
-| **Security** | **30/100** | ❌ KRITIS — 20+ endpoint tanpa autentikasi, CORS terbuka, NIK leak |
-| **Database** | **40/100** | ❌ Tidak ada index, cascade, atau transaction |
-| **Frontend/UX** | **55/100** | ⚠️ Banyak placeholder, hardcoded data, missing error boundaries |
-| **Performance** | **50/100** | ⚠️ N+1 query, overfetching, missing pagination |
-| **SEO** | **15/100** | ❌ Tidak ada robots.txt, sitemap, OG tags, meta descriptions |
-| **Accessibility** | **30/100** | ❌ Missing aria, keyboard nav, dark mode |
-| **DevOps** | **65/100** | ⚠️ SSL bagus, deploy Vercel stabil, tapi tidak ada monitoring/backup |
-| **API Design** | **35/100** | ❌ Tidak ada rate limiting, tidak ada versioning, error handling inkonsisten |
-| **Code Quality** | **45/100** | ⚠️ Pervasive `any`, unused imports, file terlalu besar |
+| Area | Skor Awal | Skor Sekarang | Status |
+|------|-----------|---------------|--------|
+| **Security** | **30/100** | **85/100** | ✅ BANYAK MEMBAIK — proxy.ts JWT guard aktif di semua `/api/*`, CORS dibatasi, security headers aktif |
+| **Database** | **40/100** | **50/100** | ⚠️ 43 index sudah ditambah, tapi cascade/transactions/UNIQUE masih kurang |
+| **Frontend/UX** | **55/100** | **60/100** | ⚠️ Global error.tsx + 10 loading.tsx sudah ada, tapi hardcoded data & UX masih banyak |
+| **Performance** | **50/100** | **50/100** | ⚠️ Belum ada perubahan signifikan |
+| **SEO** | **15/100** | **20/100** | ⚠️ robots.txt + sitemap.xml sudah dibuat, metadata per page masih kurang |
+| **Accessibility** | **30/100** | **30/100** | ❌ Belum ada perubahan |
+| **DevOps** | **65/100** | **65/100** | ⚠️ Stabil tapi belum ada monitoring/backup |
+| **API Design** | **35/100** | **45/100** | ⚠️ Middleware auth sudah konsisten, rate limiting masih belum |
+| **Code Quality** | **45/100** | **45/100** | ⚠️ Belum ada perubahan signifikan |
 
-### Overall Score: **38/100** (Perlu Perbaikan Segera)
+### Overall Score: **58/100** (Meningkat dari 38/100 — peningkatan signifikan di Security)
 
-### Ringkasan Temuan Kritis:
-1. **34 dari 44 API endpoint tidak mengembalikan 401 untuk request tanpa session** — seluruh data PII (NIK, NISN, alamat, no HP siswa/pegawai) bisa diakses siapa saja
-2. **CORS: `Access-Control-Allow-Origin: *`** — situs pihak ketiga bisa membaca semua data
-3. **NIK lookup endpoint tanpa auth** — memungkinkan enumerasi NIK secara brute-force
-4. **Role permissions bisa di-overwrite** — endpoint `/api/settings` tanpa auth
-5. **Tidak ada index di foreign key** — performa JOIN akan menurun drastis seiring data bertambah
-6. **Tidak ada transaction** — multi-step writes bisa partial (data korup)
-7. **17 halaman tanpa error boundary** — crash akan menampilkan white screen
+### Ringkasan Perbaikan Kritis yang SUDAH DILAKUKAN:
+1. ✅ **34 API endpoint sekarang diamankan** — proxy.ts `getToken` JWT check on ALL `/api/*` (kecuali `/api/auth/*`) → 401 jika tidak valid
+2. ✅ **CORS dibatasi** dari `*` menjadi `https://timker-bidik.online`
+3. ✅ **NIK lookup endpoint diamankan** oleh proxy.ts (semua API kecuali auth)
+4. ✅ **Settings endpoint diamankan** oleh proxy.ts
+5. ✅ **Users CRUD diamankan** oleh proxy.ts
+6. ✅ **Security headers aktif**: X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy, Permissions-Policy
+7. ✅ **43 DB indexes** ditambahkan ke 20 tabel
+8. ✅ **Error boundaries**: global `app/error.tsx` + reusable `PageError.tsx`
+9. ✅ **Loading states**: 10 `loading.tsx` files
+10. ✅ **robots.txt + sitemap.xml** sudah dibuat
+
+### Ringkasan Temuan yang MASIH TERBUKA:
+1. ❌ **Tidak ada cascade deletes** — orphan records berisiko
+2. ❌ **Tidak ada database transactions** — multi-step writes bisa partial
+3. ❌ **Tidak ada UNIQUE constraints** pada NIK, NISN, no_pendaftaran
+4. ❌ **N+1 query patterns** masih ada di beberapa endpoint
+5. ❌ **Tidak ada pagination** di sebagian besar list endpoint
+6. ❌ **Rate limiting tidak ada** — brute force masih mungkin secara teori
+7. ❌ **Stack trace ter-expose** di error boundary SPMB
+8. ❌ **Hardcoded/placeholder data** di 4 halaman
+9. ❌ **Metadata per page** masih menggunakan default root layout
 
 ---
 
@@ -84,16 +99,16 @@ aplikasi-laporan-pendidikan/
 - **Role system**: `admin_kecamatan`, `operator_sekolah`, `pegawai` — + `role_permissions` dari settings
 
 ### Technical Debt
-| Issue | Dampak |
-|-------|--------|
-| 17 halaman client component tanpa error boundary | Crash → white screen |
-| File `page.tsx` terlalu besar (kesiswaan: 894, spmb _client: 992, gtk: 517) | Sulit di-maintain |
-| TanStack React Query terinstall tapi tidak dipakai | Dependency bloat (~12KB) |
-| `react-hook-form` + `zod` terinstall, hampir tidak dipakai | Dependency bloat (~25KB) |
-| 74+ `as any` casting | Type safety hilang |
-| Tidak ada shared layout (setiap page wrap AppShellTopbar sendiri) | Duplikasi kode |
-| Dua sistem arsip (arsip-dokumen legacy + arsip-digital baru) | Inconsistency |
-| 200+ line comment di `globals.css` | CSS bloat |
+| Issue | Dampak | Status |
+|-------|--------|--------|
+| Global error.tsx + reusable PageError component sudah ada | Crash → white screen bisa dihindari | ✅ Fixed sebagian |
+| File `page.tsx` terlalu besar (kesiswaan: 894, spmb _client: 992, gtk: 517) | Sulit di-maintain | ❌ Masih open |
+| TanStack React Query terinstall tapi tidak dipakai | Dependency bloat (~12KB) | ❌ Masih open |
+| `react-hook-form` + `zod` terinstall, hampir tidak dipakai | Dependency bloat (~25KB) | ❌ Masih open |
+| 74+ `as any` casting | Type safety hilang | ❌ Masih open |
+| Tidak ada shared layout (setiap page wrap AppShellTopbar sendiri) | Duplikasi kode | ❌ Masih open |
+| Dua sistem arsip (arsip-dokumen legacy + arsip-digital baru) | Inconsistency | ❌ Masih open |
+| 200+ line comment di `globals.css` | CSS bloat | ❌ Masih open |
 
 ---
 
@@ -101,64 +116,47 @@ aplikasi-laporan-pendidikan/
 
 ### A. SECURITY VULNERABILITIES (Severity: CRITICAL)
 
-#### ID-SEC-001: API GET endpoint tanpa autentikasi
+#### ID-SEC-001: API GET endpoint tanpa autentikasi ✅ FIXED
 **Lokasi**: 34 dari 44 file route di `app/api/`  
-**Severity**: **CRITICAL**  
-**Deskripsi**: Hampir semua GET endpoint memanggil `getServerSession` tapi **tidak pernah return 401** jika session null. Session hanya dipakai untuk filtering data per role.  
-**Dampak**: Siapa pun bisa membaca semua data aplikasi tanpa login.  
-**Cara Reproduksi**: `curl https://timker-bidik.online/api/kesiswaan/students` → data siswa lengkap dengan NIK/NISN.  
-**Root Cause**: Pattern `getServerSession` untuk role filtering tanpa guard `if (!session) return 401`.  
-**Data Ter-expose**:
-- 10.883+ siswa (nama, NIK, NISN, alamat, no HP, nama orang tua)
-- 426+ pegawai (NIK, NIP, NUPTK, jabatan, golongan)
-- 45+ user accounts (username, email, role)
-- Semua dokumen arsip (file_url)
-- Role permissions config
+**Severity**: ~~CRITICAL~~ → **FIXED**  
+**Fix**: `proxy.ts` — `getToken` JWT check on ALL `/api/*` (kecuali `/api/auth/*`) → 401  
+**Verifikasi**: `curl https://timker-bidik.online/api/kesiswaan/students` → `401 Unauthorized` ✅
 
-#### ID-SEC-002: CORS wildcard
+#### ID-SEC-002: CORS wildcard ✅ FIXED
 **Lokasi**: Response header `Access-Control-Allow-Origin: *`  
-**Severity**: **HIGH**  
-**Deskripsi**: Semua response menyertakan CORS header wildcard, memungkinkan cross-origin requests dari domain mana pun.  
-**Dampak**: Situs jahat bisa membaca data via browser pengguna yang sudah login (CSRF-style read).  
-**Root Cause**: Mungkin default Vercel atau konfigurasi Next.js.
+**Severity**: ~~HIGH~~ → **FIXED**  
+**Fix**: `next.config.ts` — `Access-Control-Allow-Origin: https://timker-bidik.online`
 
-#### ID-SEC-003: NIK lookup endpoint tanpa auth
+#### ID-SEC-003: NIK lookup endpoint tanpa auth ✅ FIXED
 **Lokasi**: `app/api/kesiswaan/students/lookup-nik/route.ts`, `app/api/spmb/pendaftar/lookup-nik/route.ts`  
-**Severity**: **CRITICAL**  
-**Deskripsi**: Dua endpoint menerima NIK sebagai query parameter dan mengembalikan data pribadi tanpa autentikasi.  
-**Dampak**: Brute-force enumerasi NIK (16 digit → cukup 10^16 kombinasi, tapi dengan rate limiting bisa dipersempit dengan prefix KTP).  
-**Root Cause**: Tidak ada `getServerSession` check.
+**Severity**: ~~CRITICAL~~ → **FIXED**  
+**Fix**: Diamankan oleh `proxy.ts` — semua `/api/*` butuh JWT token
 
-#### ID-SEC-004: Settings endpoint tanpa auth (role_permissions bisa diubah)
+#### ID-SEC-004: Settings endpoint tanpa auth ✅ FIXED
 **Lokasi**: `app/api/settings/route.ts`  
-**Severity**: **CRITICAL**  
-**Deskripsi**: GET dan PUT tidak punya auth. PUT bisa mengubah role_permissions.  
-**Dampak**: Attacker bisa memberikan hak akses admin ke user manapun, atau mengunci admin dari sistem.  
-**Root Cause**: Tidak ada auth check sama sekali.
+**Severity**: ~~CRITICAL~~ → **FIXED**  
+**Verifikasi**: `curl https://timker-bidik.online/api/settings` → `401 Unauthorized` ✅
 
-#### ID-SEC-005: User CRUD tanpa auth
+#### ID-SEC-005: User CRUD tanpa auth ✅ FIXED
 **Lokasi**: `app/api/users/route.ts`, `app/api/users/[id]/route.ts`, `app/api/users/bulk-delete/route.ts`  
-**Severity**: **CRITICAL**  
-**Deskripsi**: Create, read, update, delete users — semua tanpa auth.  
-**Dampak**: Siapa pun bisa membuat akun admin baru, menghapus semua user pegawai, atau mengubah role user.  
-**Root Cause**: Tidak ada auth check.
+**Severity**: ~~CRITICAL~~ → **FIXED**  
+**Verifikasi**: `curl https://timker-bidik.online/api/users` → `401 Unauthorized` ✅
 
-#### ID-SEC-006: Mutasi data tanpa auth (PATCH/DELETE)
-**Lokasi**: `app/api/spmb/pendaftar/[id]/route.ts` (GET, DELETE tanpa auth), `app/api/spmb/daya-tampung/route.ts` (PATCH tanpa auth), `app/api/ppdb/route.ts` (POST/PATCH/DELETE tanpa auth), `app/api/sarpras/[table]/[id]/route.ts` (PATCH/DELETE tanpa auth)  
-**Severity**: **CRITICAL**  
-**Dampak**: Siapa pun bisa mengubah status pendaftaran SPMB (menerima/menolak), mengubah daya tampung, menghapus data PPDB, mengubah aset sarpras.
+#### ID-SEC-006: Mutasi data tanpa auth ✅ FIXED
+**Lokasi**: `app/api/spmb/pendaftar/[id]/route.ts`, `app/api/spmb/daya-tampung/route.ts`, `app/api/ppdb/route.ts`, `app/api/sarpras/[table]/[id]/route.ts`  
+**Severity**: ~~CRITICAL~~ → **FIXED**  
+**Fix**: Diamankan oleh `proxy.ts`
 
-#### ID-SEC-007: Missing security headers
+#### ID-SEC-007: Missing security headers ✅ FIXED
 **Lokasi**: Semua response  
-**Severity**: **HIGH**  
-**Temuan**:
-- ❌ `Content-Security-Policy` — tidak ada (risiko XSS)
-- ❌ `X-Frame-Options` — tidak ada (risiko clickjacking)
-- ❌ `X-Content-Type-Options: nosniff` — tidak ada
-- ❌ `Referrer-Policy` — tidak ada
-- ❌ `Permissions-Policy` — tidak ada
-- ❌ `Cross-Origin-Embedder-Policy` — tidak ada
-- ✅ `Strict-Transport-Security: max-age=63072000` — ADA (bagus)
+**Severity**: ~~HIGH~~ → **FIXED**  
+**Fix**: `proxy.ts` — semua response sekarang memiliki:
+- ✅ `X-Frame-Options: DENY`
+- ✅ `X-Content-Type-Options: nosniff`
+- ✅ `Referrer-Policy: strict-origin-when-cross-origin`
+- ✅ `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- ❌ `Content-Security-Policy` — masih belum ada
+- ❌ `Cross-Origin-Embedder-Policy` — masih belum ada
 
 #### ID-SEC-008: Stack trace ter-expose di production
 **Lokasi**: `app/spmb/error.tsx:14-16`  
@@ -507,148 +505,138 @@ aplikasi-laporan-pendidikan/
 
 ---
 
-## 8. PRIORITAS PERBAIKAN
+## 8. PRIORITAS PERBAIKAN (Re-Audit 2 Juli 2026)
 
-### 🔴 Critical (Harus diperbaiki sebelum production)
+### ✅ SUDAH DIPERBAIKI
+
+| ID | Fix | Status |
+|----|-----|--------|
+| SEC-001 | proxy.ts JWT guard di semua `/api/*` | ✅ DONE |
+| SEC-002 | CORS dibatasi ke `https://timker-bidik.online` | ✅ DONE |
+| SEC-003 | NIK lookup endpoint diamankan proxy.ts | ✅ DONE |
+| SEC-004 | Settings endpoint diamankan proxy.ts | ✅ DONE |
+| SEC-005 | Users CRUD diamankan proxy.ts | ✅ DONE |
+| SEC-006 | SPMB/PPDB/Sarpras mutations diamankan proxy.ts | ✅ DONE |
+| SEC-007 | X-Frame-Options, X-Content-Type, Referrer-Policy, Permissions-Policy | ✅ DONE |
+| DB-001 | 43 indexes di 20 tables | ✅ DONE |
+| UX-001 | Global error.tsx + PageError component | ✅ DONE (partial — tidak semua page) |
+| UX-002 | 10 loading.tsx files | ✅ DONE (partial) |
+| SEO-001 | robots.txt | ✅ DONE |
+| SEO-002 | sitemap.xml | ✅ DONE |
+
+### 🔴 Critical (Prioritas tertinggi — masih open)
 
 | Priority | ID | Fix |
 |----------|----|-----|
-| 1 | SEC-001 | **Guard semua GET endpoint**: Tambah `if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })` setelah `getServerSession` di SEMUA route file (34 file) |
-| 2 | SEC-004 | **Auth guard di settings**: `app/api/settings/route.ts` — tambah session check untuk PUT |
-| 3 | SEC-005 | **Auth guard di users CRUD**: `app/api/users/*/route.ts` — 3 file perlu auth |
-| 4 | SEC-003 | **Auth guard di lookup-nik**: 2 file lookup-nik — tambah session check |
-| 5 | SEC-006 | **Auth guard di spmb/ppdb/sarpras mutations**: 5 file perlu auth |
-| 6 | DB-003 | **Wrap multi-step writes di transactions**: `db.transaction()` di mutasi-masuk, mutasi-keluar, spmb/pendaftar, naik-kelas |
-| 7 | UX-001 | **Buat error.tsx untuk semua page**: Minimal 16 file baru |
+| 1 | DB-003 | **Wrap multi-step writes di transactions**: `db.transaction()` di mutasi-masuk, mutasi-keluar, spmb/pendaftar, naik-kelas |
+| 2 | DB-002 | **Tambah CASCADE deletes**: `{ onDelete: 'cascade' }` di schema |
+| 3 | DB-004 | **Tambah UNIQUE constraints**: `nik` di employees/students, `nisn`, `no_pendaftaran` |
 
 ### 🟠 High
 
 | Priority | ID | Fix |
 |----------|----|-----|
-| 8 | DB-001 | **Tambah index di FK columns**: `drizzle-kit` `index()` untuk semua `school_id`, `employee_id`, `user_id`, dll |
-| 9 | DB-002 | **Tambah CASCADE deletes**: `{ onDelete: 'cascade' }` di schema |
-| 10 | DB-004 | **Tambah UNIQUE constraints**: `nik` di employees/students, `nisn`, `no_pendaftaran` |
-| 11 | DB-005 | **Batch operations instead of loops**: `inArray()` untuk bulk delete, batch insert untuk naik kelas |
-| 12 | DB-007 | **Tambah pagination**: `limit` + `offset` ke semua list endpoint |
-| 13 | SEC-002 | **Hapus CORS wildcard**: Konfigurasi `Access-Control-Allow-Origin` spesifik |
-| 14 | SEC-007 | **Tambah security headers**: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy di middleware |
-| 15 | UX-002 | **Buat loading.tsx untuk setiap route** |
-| 16 | UX-003 | **Ganti hardcoded data dengan API fetch atau skeleton** |
-| 17 | DB-009 | **Fix race condition**: Gunakan UUID + timestamp untuk `no_pendaftaran` |
-| 18 | DEVOPS-001 | **Integrasi Sentry atau error tracking** |
+| 4 | DB-005 | **Batch operations instead of loops**: `inArray()` untuk bulk delete, batch insert untuk naik kelas |
+| 5 | DB-007 | **Tambah pagination**: `limit` + `offset` ke semua list endpoint |
+| 6 | UX-003 | **Ganti hardcoded data dengan API fetch atau skeleton** |
+| 7 | DB-009 | **Fix race condition**: Gunakan UUID + timestamp untuk `no_pendaftaran` |
+| 8 | DEVOPS-001 | **Integrasi Sentry atau error tracking** |
+| 9 | SEC-008 | **Fix stack trace exposed**: Jangan tampilkan `error.stack` di production |
 
 ### 🟡 Medium
 
 | Priority | ID | Fix |
 |----------|----|-----|
-| 19 | DB-006 | **Move client-side filters ke SQL WHERE** |
-| 20 | DB-008 | **Gunakan explicit projection** `db.select({ ... })` instead of `db.select()` |
-| 21 | UX-004 | **Fix button (tambah onClick handler atau hapus)** |
-| 22 | UX-006 | **Ganti `key={i}` dengan key yang stabil** |
-| 23 | UX-007 | **Ganti `alert()` dengan toast/notification component** |
-| 24 | PERF-004 | **Optimasi dashboard query: 9 queries → 1-2 aggregate queries** |
-| 25 | SEO-001 | **Buat `robots.txt`** |
-| 26 | SEO-002 | **Buat `sitemap.xml`** |
-| 27 | SEO-003 | **Tambah metadata per page** |
-| 28 | A11Y-001 | **Tambah `aria-current="page"`** |
-| 29 | A11Y-004 | **Tambah keyboard trap + Escape key handler di modal** |
+| 10 | DB-006 | **Move client-side filters ke SQL WHERE** |
+| 11 | DB-008 | **Gunakan explicit projection** `db.select({ ... })` instead of `db.select()` |
+| 12 | UX-004 | **Fix button (tambah onClick handler atau hapus)** |
+| 13 | UX-006 | **Ganti `key={i}` dengan key yang stabil** |
+| 14 | UX-007 | **Ganti `alert()` dengan toast/notification component** |
+| 15 | PERF-004 | **Optimasi dashboard query: 9 queries → 1-2 aggregate queries** |
+| 16 | SEO-003 | **Tambah metadata per page** |
+| 17 | A11Y-001 | **Tambah `aria-current="page"`** |
+| 18 | A11Y-004 | **Tambah keyboard trap + Escape key handler di modal** |
+| 19 | SEC-009 | **Rate limiting** |
 
 ### 🔵 Low
 
 | Priority | ID | Fix |
 |----------|----|-----|
-| 30 | PERF-001 | **Optimasi package imports di next.config.ts** |
-| 31 | PERF-003 | **Optimasi image (Next/Image + WebP)** |
-| 32 | UX-009 | **Search functionality** |
-| 33 | UX-010 | **Notification system** |
-| 34 | SEC-009 | **Rate limiting** |
-| 35 | A11Y-002 | **Dark mode** |
-| 36 | A11Y-003 | **Focus indicators** |
-| 37 | DEVOPS-003 | **Move secrets out of .env** |
+| 20 | UX-008 | **DOM queries instead of React refs** |
+| 21 | UX-009 | **Search functionality** |
+| 22 | UX-010 | **Notification system** |
+| 23 | PERF-001 | **Optimasi package imports di next.config.ts** |
+| 24 | PERF-003 | **Optimasi image (Next/Image + WebP)** |
+| 25 | A11Y-002 | **Dark mode** |
+| 26 | A11Y-003 | **Focus indicators** |
+| 27 | DEVOPS-003 | **Move secrets out of .env** | |
 
 ---
 
-## 9. STEP-BY-STEP FIX RECOMMENDATIONS
+## 9. STEP-BY-STEP FIX RECOMMENDATIONS (Updated 2 Juli 2026)
 
-### Quick Wins (bisa selesai dalam 1-2 hari):
+### ✅ Quick Wins — SUDAH DILAKUKAN:
 
-1. **Buat helper function `requireAuth()`**: Di `lib/auth.ts`, tambahkan:
-   ```ts
-   export async function requireAuth() {
-     const session = await getServerSession(authOptions)
-     if (!session) throw new Error('Unauthorized')
-     return session
-   }
-   ```
-   Lalu di setiap route:
-   ```ts
-   try {
-     const session = await requireAuth()
-   } catch {
-     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-   }
-   ```
+1. ✅ **proxy.ts JWT guard** — Auth ALL `/api/*` (kecuali `/api/auth/*`)
+2. ✅ **CORS fix** — `next.config.ts` batasi ke `https://timker-bidik.online`
+3. ✅ **Security headers** — `proxy.ts`: X-Frame-Options, X-Content-Type, Referrer-Policy, Permissions-Policy
+4. ✅ **robots.txt** — `public/robots.txt`
+5. ✅ **sitemap.xml** — `app/sitemap.ts` (Next.js built-in sitemap generation)
+6. ✅ **DB indexes** — 43 indexes di 20 tables (`db/schema.ts`)
+7. ✅ **Global error.tsx** — `app/error.tsx` + `components/ui/PageError.tsx`
+8. ✅ **Loading states** — 10 `loading.tsx` files
 
-2. **Fix CORS**: Di `next.config.ts`, tambahkan:
-   ```ts
-   headers: async () => [
-     { source: '/api/(.*)', headers: [
-       { key: 'Access-Control-Allow-Origin', value: 'https://timker-bidik.online' },
-       { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PATCH,DELETE' },
-       { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-     ]}
-   ]
-   ```
+### Next Quick Wins (bisa selesai 1-2 hari):
 
-3. **Security headers middleware**: Di `proxy.ts`, tambahkan header ke response:
-   ```ts
-   response.headers.set('X-Frame-Options', 'DENY')
-   response.headers.set('X-Content-Type-Options', 'nosniff')
-   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-   ```
-
-4. **Fix `no_pendaftaran` race condition**: Ganti format menjadi `SPMB-{YYYYMMDD}-{UUID(8)}`:
+1. **Fix `no_pendaftaran` race condition**: Ganti format menjadi `SPMB-{YYYYMMDD}-{UUID(8)}`:
    ```ts
    const no_pendaftaran = `SPMB-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${crypto.randomUUID().slice(0,8)}`
    ```
 
-5. **Buat `robots.txt`**: Static file di `public/robots.txt`:
-   ```
-   User-agent: *
-   Disallow: /api/
-   Disallow: /login
-   ```
+2. **Fix stack trace exposed**: Hapus `error.stack` dari `app/spmb/error.tsx`
+
+3. **Tambah metadata per page**: title + description unik di setiap layout.tsx
 
 ### Medium-term fixes (3-5 hari):
 
-6. **Tambah index di schema**: Jalankan `drizzle-kit generate` setelah tambah index definitions
-7. **Tambah transactions**: Bungkus multi-step writes di `db.transaction()`
-8. **Tambah pagination**: Implementasi pagination pattern (copy dari `/api/kesiswaan/students`)
-9. **Buat error.tsx**: Copy dari `app/spmb/error.tsx` dan sesuaikan
-10. **Batch operations**: Ganti loop dengan `inArray()` dan batch insert
+4. **Tambah transactions**: Bungkus multi-step writes di `db.transaction()`
+5. **Tambah pagination**: Implementasi pagination pattern ke list endpoint
+6. **Batch operations**: Ganti loop dengan `inArray()` dan batch insert
+7. **Tambah CASCADE deletes + UNIQUE constraints**: Migrasi database
+8. **Ganti hardcoded data dengan API fetch**: Kurikulum, pengaturan, arsip-dokumen, transisi
 
 ### Long-term fixes (1-2 minggu):
 
-11. **Database migration**: CASCADE deletes + UNIQUE constraints
-12. **Refactor file besar**: Split `kesiswaan/page.tsx` (894 lines) dan `spmb/_client.tsx` (992 lines)
-13. **Dark mode + accessibility improvements**
-14. **SEO: metadata per page, sitemap generation**
+9. **Refactor file besar**: Split `kesiswaan/page.tsx` (894 lines) dan `spmb/_client.tsx` (992 lines)
+10. **Dark mode + accessibility improvements**
+11. **Rate limiting + error monitoring**
+12. **SEO: metadata per page, canonical URLs, JSON-LD**
 
 ---
 
-## 10. FINAL SCORE: 38/100
+## 10. FINAL SCORE (Re-Audit 2 Juli 2026): 58/100 (+20 poin)
 
-| Kategori | Score | Bobot | Weighted |
-|----------|-------|-------|----------|
-| **Security** | 30 | 25% | 7.5 |
-| **Database** | 40 | 15% | 6.0 |
-| **Frontend/UX** | 55 | 15% | 8.3 |
-| **Performance** | 50 | 10% | 5.0 |
-| **SEO** | 15 | 5% | 0.8 |
-| **Accessibility** | 30 | 5% | 1.5 |
-| **DevOps** | 65 | 10% | 6.5 |
-| **API Design** | 35 | 10% | 3.5 |
-| **Code Quality** | 45 | 5% | 2.3 |
-| **Total** | — | 100% | **38/100** |
+| Kategori | Skor Awal | Skor Baru | Bobot | Weighted |
+|----------|-----------|-----------|-------|----------|
+| **Security** | 30 | **85** ✅ | 25% | 21.3 |
+| **Database** | 40 | **50** ⚠️ | 15% | 7.5 |
+| **Frontend/UX** | 55 | **60** ⚠️ | 15% | 9.0 |
+| **Performance** | 50 | **50** | 10% | 5.0 |
+| **SEO** | 15 | **20** ⚠️ | 5% | 1.0 |
+| **Accessibility** | 30 | **30** | 5% | 1.5 |
+| **DevOps** | 65 | **65** | 10% | 6.5 |
+| **API Design** | 35 | **45** ⚠️ | 10% | 4.5 |
+| **Code Quality** | 45 | **45** | 5% | 2.3 |
+| **Total** | **38/100** | **58/100** | 100% | **58.6** |
 
-**Kesimpulan**: Aplikasi memiliki **potensi besar** sebagai sistem informasi pendidikan kecamatan, namun saat ini memiliki **security gaps yang sangat serius** yang membuat data siswa dan pegawai tidak aman. Prioritas #1 adalah menambahkan authentication guard ke semua API endpoint. Tanpa itu, aplikasi **tidak boleh diakses publik**.
+**Peningkatan**: +20 poin dari audit awal (38 → 58)
+
+**Kategori dengan peningkatan terbesar**:
+1. **Security**: 30 → 85 (+55) — proxy.ts middleware auth, CORS fix, security headers
+2. **API Design**: 35 → 45 (+10) — middleware auth konsisten
+3. **Database**: 40 → 50 (+10) — 43 indexes ditambahkan
+
+**Kategori yang belum berubah**:
+- Performance, Accessibility, DevOps, Code Quality — masih perlu perbaikan
+
+**Kesimpulan**: Aplikasi sudah **jauh lebih aman** dari audit sebelumnya. Semua critical security gaps (34 endpoint tanpa auth, CORS wildcard, NIK leak) sudah ditutup oleh `proxy.ts`. Fokus selanjutnya: database optimization (transactions, cascade, unique), UX hardening, SEO, dan accessibility.
