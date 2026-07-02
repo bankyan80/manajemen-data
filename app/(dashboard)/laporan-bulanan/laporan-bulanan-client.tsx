@@ -27,8 +27,8 @@ interface MutasiItem {
   nama: string
   tanggal: string
   kelas_kelompok: string
-  sekolah_asal?: string | null
-  sekolah_tujuan?: string | null
+  sekolah_asal: string | null
+  sekolah_tujuan: string | null
   jenis_kelamin: string | null
 }
 
