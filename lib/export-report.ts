@@ -304,6 +304,193 @@ export function exportPdf(type: string, label: string, summary: any, details: De
   doc.save(`laporan-${type}-${Date.now()}.pdf`)
 }
 
+// ─── PDF: Laporan Bulanan Detail (from new /laporan-bulanan API) ──
+
+export function exportMonthlyReportPdf(data: {
+  school: { nama: string; npsn: string; jenjang: string; status: string; alamat: string; desa: string }
+  periode: string
+  tahun_pelajaran: string
+  siswa: {
+    byClass: { kelas_kelompok: string; total: number; laki: number; perempuan: number; siswa: { nama: string; nisn: string | null; nik: string | null; jenis_kelamin: string | null; tempat_lahir: string | null; tanggal_lahir: string | null }[] }[]
+    totalSiswa: number
+    mutasiMasuk: { nama: string; tanggal: string; kelas_kelompok: string; sekolah_asal: string | null; jenis_kelamin: string | null }[]
+    mutasiKeluar: { nama: string; tanggal: string; kelas_kelompok: string; sekolah_tujuan: string | null; jenis_kelamin: string | null }[]
+  }
+  pegawai: { guru: any[]; tendik: any[]; total: number }
+  infrastruktur: { ruang: any[]; total: number }
+}) {
+  const doc = new jsPDF()
+  const pageW = doc.internal.pageSize.getWidth()
+  let y = 20
+
+  const addPage = () => {
+    doc.addPage()
+    y = 20
+  }
+
+  const checkPage = (needed: number) => {
+    if (y + needed > doc.internal.pageSize.getHeight() - 20) addPage()
+  }
+
+  doc.setFontSize(16)
+  doc.text('Laporan Bulanan', pageW / 2, y, { align: 'center' })
+  y += 7
+  doc.setFontSize(10)
+  doc.text(data.school.nama, pageW / 2, y, { align: 'center' })
+  y += 6
+  doc.setFontSize(8)
+  doc.text(`NPSN: ${data.school.npsn}  |  ${data.school.desa}  |  ${data.school.status.charAt(0).toUpperCase() + data.school.status.slice(1)}  |  ${data.school.jenjang.toUpperCase()}`, pageW / 2, y, { align: 'center' })
+  y += 5
+  doc.text(`Periode: ${data.periode}  |  Tahun Pelajaran: ${data.tahun_pelajaran}`, pageW / 2, y, { align: 'center' })
+  y += 5
+  doc.text(`Dibuat: ${new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}`, pageW / 2, y, { align: 'center' })
+  y += 10
+
+  // ── 1. Daftar Siswa ──
+  checkPage(20)
+  doc.setFontSize(12)
+  doc.text(`1. Daftar Siswa (${data.siswa.totalSiswa} aktif)`, 14, y)
+  y += 6
+
+  for (const kelas of data.siswa.byClass) {
+    checkPage(12 + kelas.siswa.length * 5)
+    doc.setFontSize(9)
+    doc.text(`${kelas.kelas_kelompok}  —  ${kelas.laki} L  /  ${kelas.perempuan} P  =  ${kelas.total} siswa`, 14, y)
+    y += 4
+
+    autoTable(doc, {
+      startY: y,
+      head: [['No', 'Nama', 'NISN', 'NIK', 'JK', 'Tempat Lahir', 'Tgl Lahir']],
+      body: kelas.siswa.map((s, i) => [
+        String(i + 1),
+        s.nama,
+        s.nisn || '-',
+        s.nik || '-',
+        s.jenis_kelamin === 'laki-laki' ? 'L' : 'P',
+        s.tempat_lahir || '-',
+        s.tanggal_lahir || '-',
+      ]),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [59, 130, 246], fontSize: 7 },
+    })
+    y = (doc as any).lastAutoTable.finalY + 4
+  }
+
+  // ── Mutasi Masuk ──
+  checkPage(20)
+  doc.setFontSize(10)
+  doc.text('Siswa Masuk', 14, y)
+  y += 5
+  if (data.siswa.mutasiMasuk.length > 0) {
+    autoTable(doc, {
+      startY: y,
+      head: [['No', 'Nama', 'Kelas', 'Asal Sekolah', 'Tanggal']],
+      body: data.siswa.mutasiMasuk.map((m, i) => [
+        String(i + 1), m.nama, m.kelas_kelompok, m.sekolah_asal || '-', m.tanggal,
+      ]),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [22, 163, 74] },
+    })
+    y = (doc as any).lastAutoTable.finalY + 4
+  } else {
+    doc.setFontSize(8)
+    doc.text('Tidak ada siswa masuk bulan ini', 14, y)
+    y += 6
+  }
+
+  // ── Mutasi Keluar ──
+  checkPage(20)
+  doc.setFontSize(10)
+  doc.text('Siswa Keluar', 14, y)
+  y += 5
+  if (data.siswa.mutasiKeluar.length > 0) {
+    autoTable(doc, {
+      startY: y,
+      head: [['No', 'Nama', 'Kelas', 'Tujuan Sekolah', 'Tanggal']],
+      body: data.siswa.mutasiKeluar.map((m, i) => [
+        String(i + 1), m.nama, m.kelas_kelompok, m.sekolah_tujuan || '-', m.tanggal,
+      ]),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [220, 38, 38] },
+    })
+    y = (doc as any).lastAutoTable.finalY + 4
+  } else {
+    doc.setFontSize(8)
+    doc.text('Tidak ada siswa keluar bulan ini', 14, y)
+    y += 6
+  }
+
+  // ── 2. Daftar Pegawai ──
+  checkPage(20)
+  doc.setFontSize(12)
+  doc.text(`2. Daftar Pegawai (${data.pegawai.total})`, 14, y)
+  y += 6
+
+  if (data.pegawai.guru.length > 0) {
+    checkPage(12 + data.pegawai.guru.length * 5)
+    doc.setFontSize(9)
+    doc.text(`Guru & Kepala Sekolah (${data.pegawai.guru.length})`, 14, y)
+    y += 4
+    autoTable(doc, {
+      startY: y,
+      head: [['No', 'Nama', 'NIP', 'NUPTK', 'Jabatan', 'Status', 'JK', 'Pendidikan']],
+      body: data.pegawai.guru.map((e: any, i: number) => [
+        String(i + 1), e.nama, e.nip || '-', e.nuptk || '-',
+        e.jabatan || '-', e.status_pegawai?.toUpperCase() || '-',
+        e.jenis_kelamin === 'laki-laki' ? 'L' : 'P',
+        e.pendidikan_terakhir || '-',
+      ]),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [59, 130, 246] },
+    })
+    y = (doc as any).lastAutoTable.finalY + 4
+  }
+
+  if (data.pegawai.tendik.length > 0) {
+    checkPage(12 + data.pegawai.tendik.length * 5)
+    doc.setFontSize(9)
+    doc.text(`Tenaga Kependidikan (${data.pegawai.tendik.length})`, 14, y)
+    y += 4
+    autoTable(doc, {
+      startY: y,
+      head: [['No', 'Nama', 'NIP', 'NUPTK', 'Jabatan', 'Status', 'JK', 'Pendidikan']],
+      body: data.pegawai.tendik.map((e: any, i: number) => [
+        String(i + 1), e.nama, e.nip || '-', e.nuptk || '-',
+        e.jabatan || '-', e.status_pegawai?.toUpperCase() || '-',
+        e.jenis_kelamin === 'laki-laki' ? 'L' : 'P',
+        e.pendidikan_terakhir || '-',
+      ]),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [100, 116, 139] },
+    })
+    y = (doc as any).lastAutoTable.finalY + 4
+  }
+
+  // ── 3. Daftar Infrastruktur ──
+  checkPage(20)
+  doc.setFontSize(12)
+  doc.text(`3. Daftar Infrastruktur (${data.infrastruktur.total} ruang)`, 14, y)
+  y += 6
+
+  if (data.infrastruktur.ruang.length > 0) {
+    autoTable(doc, {
+      startY: y,
+      head: [['No', 'Nama Ruang', 'Jenis', 'Lantai', 'Kapasitas', 'Kondisi']],
+      body: data.infrastruktur.ruang.map((r: any, i: number) => [
+        String(i + 1), r.nama_ruang, r.jenis_ruang || '-',
+        r.lantai_ke ? `Lt ${r.lantai_ke}` : '-',
+        r.kapasitas_siswa ? `${r.kapasitas_siswa}` : '-',
+        r.kondisi_non_struktur || '-',
+      ]),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [59, 130, 246] },
+    })
+    y = (doc as any).lastAutoTable.finalY + 4
+  }
+
+  doc.save(`laporan-bulanan-${data.school.nama.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.pdf`)
+}
+
 // ─── CSV ───────────────────────────────────────────────────────
 
 export function exportCsv(type: string, _label: string, _summary: any, details: DetailData) {

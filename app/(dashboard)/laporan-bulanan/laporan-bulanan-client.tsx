@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { safeFetch } from '@/lib/safe-fetch'
-import { Users, UserPlus, UserMinus, Building2, ChevronDown, ChevronRight } from 'lucide-react'
+import { exportMonthlyReportPdf } from '@/lib/export-report'
+import { Users, UserPlus, UserMinus, Building2, ChevronDown, ChevronRight, Download } from 'lucide-react'
 
 interface SiswaItem {
   nama: string
@@ -166,9 +167,18 @@ export default function LaporanBulananClient() {
               NPSN: {data.school.npsn} &middot; {data.school.desa} &middot; {data.school.status.charAt(0).toUpperCase() + data.school.status.slice(1)}
             </p>
           </div>
-          <div className="text-right text-sm text-slate-500">
-            <div className="font-medium">Tahun Pelajaran</div>
-            <div className="text-lg font-bold text-primary">{data.tahun_pelajaran}</div>
+          <div className="flex items-start gap-4">
+            <button
+              onClick={() => exportMonthlyReportPdf(data)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 text-sm font-medium transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Unduh PDF
+            </button>
+            <div className="text-right text-sm text-slate-500">
+              <div className="font-medium">Tahun Pelajaran</div>
+              <div className="text-lg font-bold text-primary">{data.tahun_pelajaran}</div>
+            </div>
           </div>
         </div>
       </div>
