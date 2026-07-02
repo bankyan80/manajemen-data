@@ -58,6 +58,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Loading states**: 10 `loading.tsx` files across data-heavy pages + `components/ui/PageLoading.tsx`
 - **Certification rewrite**: API now queries `employees.jabatan` (Guru/Kepsek = `sudah`, Tendik = `tidak_ada`); frontend shows table + per-school recap with badges
 - **PDF/Excel/CSV export**: `lib/export-report.ts` — 6 report types each with tailored columns; download buttons on current result + history items (re-generates via API)
+- **Re-audit production**: score **58/100** (+20 poin dari sebelumnya); update `AUDIT_REPORT.md` dengan status fix
+- **robots.txt + sitemap.xml**: SEO quick wins for production
+- **/api/health public**: dikecualikan dari proxy.ts auth check untuk monitoring
 
 ### In Progress
 - (none)
@@ -92,16 +95,20 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **DB indexes applied**: 43 indexes across 20 tables (via `drizzle-kit push` + `scripts/add-indexes.ts`)
 - `lookup-nik` API menerima parameter `jenjang` tapi tidak menggunakannya — mencari di semua jenjang
 - Pegawai: 426 GTK + 144 swasta = 570 total (KB PERMATA BUNDA belum ada data)
-- Audit report lengkap di `AUDIT_REPORT.md` — overall score **38/100**
+- Audit report lengkap di `AUDIT_REPORT.md` — overall score **58/100** (naik dari 38/100, re-audit 2 Juli 2026)
+- **robots.txt + sitemap.xml**: sudah dibuat — SEO quick wins
+- **/api/health** sekarang public (dikecualikan dari proxy.ts auth check) untuk monitoring
 - **Operator hanya lihat data sekolah sendiri**: API students, mutasi-masuk, mutasi-keluar auto-filter by `user.sekolah_id` dari session
 - **Kesiswaan page auto-detect operator jenjang**: fetch `/api/schools/:id` saat mount, set `jenjang` default sesuai data sekolah
 - **Sertifikasi pegawai**: 373 Guru/Kepsek = `sudah`, 49 Tendik = `tidak_ada` — via `scripts/update-sertifikasi.ts`
 - **Export reports**: menggunakan `exportPdf()` (jsPDF), `exportExcel()` (SheetJS), `exportCsv()` — semua function di `lib/export-report.ts`
 
 ## Relevant Files
-- `proxy.ts`: Next.js 16 proxy middleware — JWT check + security headers + CORS (active on production)
+- `proxy.ts`: Next.js 16 proxy middleware — JWT check + security headers + `/api/health` exception
 - `next.config.ts`: CORS headers (`Access-Control-Allow-Origin: https://timker-bidik.online`)
 - `lib/auth.ts`: `requireApiAuth()` helper
+- `public/robots.txt`: SEO — Allow `/`, Disallow `/api/` and `/login`
+- `app/sitemap.ts`: Sitemap generation (9 pages)
 - `db/schema.ts`: + 43 index definitions across 20 tables
 - `scripts/add-indexes.ts`: Fallback script for manual index creation
 - `scripts/revert-tk-kb-tp.ts`: revert 1.265 TK/KB students from 2026/2027 → 2025/2026
