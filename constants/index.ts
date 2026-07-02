@@ -32,6 +32,7 @@ export const MENU_ITEMS: Record<string, MenuItemDef[]> = {
     { id: 'mutasi-keluar', label: 'Mutasi Keluar', icon: 'UserMinus', href: '/mutasi-keluar' },
     { id: 'archives', label: 'Arsip Digital', icon: 'Archive', href: '/archives' },
     { id: 'ai', label: 'AI Intelligence', icon: 'Brain', href: '/ai' },
+    { id: 'laporan-bulanan', label: 'Laporan Bulanan', icon: 'ClipboardList', href: '/laporan-bulanan' },
     { id: 'reports', label: 'Laporan', icon: 'FileText', href: '/reports' },
   ],
   operator_sekolah: [
@@ -43,6 +44,7 @@ export const MENU_ITEMS: Record<string, MenuItemDef[]> = {
     { id: 'mutasi-masuk', label: 'Mutasi Masuk', icon: 'UserPlus', href: '/mutasi-masuk' },
     { id: 'mutasi-keluar', label: 'Mutasi Keluar', icon: 'UserMinus', href: '/mutasi-keluar' },
     { id: 'archives', label: 'Arsip', icon: 'Archive', href: '/archives' },
+    { id: 'laporan-bulanan', label: 'Laporan Bulanan', icon: 'ClipboardList', href: '/laporan-bulanan' },
     { id: 'reports', label: 'Laporan', icon: 'FileText', href: '/reports' },
   ],
   guru_tendik: [

@@ -10,6 +10,7 @@ const protectedPaths = [
   "/schools", "/teachers", "/certification", "/infrastructure",
   "/archives", "/ai", "/reports", "/gis",
   "/profile",
+  "/laporan-bulanan",
 ];
 
 const securityHeaders = {
@@ -118,5 +119,6 @@ export const config = {
     "/reports/:path*",
     "/gis/:path*",
     "/profile/:path*",
+    "/laporan-bulanan/:path*",
   ],
 };

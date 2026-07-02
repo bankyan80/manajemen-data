@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
   LayoutDashboard, Map, School, Users, Award, Building2, 
-  Archive, BarChart4, Brain, FileText, UserPlus, UserMinus, GraduationCap,
+  Archive, BarChart4, Brain, FileText, ClipboardList, UserPlus, UserMinus, GraduationCap,
   Menu, Bell, ChevronDown, LogOut, User, PanelLeftClose, PanelLeft,
 } from 'lucide-react'
 import { MENU_ITEMS } from '@/constants'
@@ -15,7 +15,7 @@ import { safeFetch } from '@/lib/safe-fetch'
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Map, School, Users, Award, Building2,
-  Archive, BarChart4, Brain, FileText, User, UserPlus, UserMinus, GraduationCap,
+  Archive, BarChart4, Brain, FileText, ClipboardList, User, UserPlus, UserMinus, GraduationCap,
 }
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
