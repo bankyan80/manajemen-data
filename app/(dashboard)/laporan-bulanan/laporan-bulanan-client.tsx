@@ -183,7 +183,7 @@ export default function LaporanBulananClient() {
         </div>
       </div>
 
-      {/* Section 1: Siswa */}
+      {/* Section 1: Daftar Siswa (per kelas, siswa masuk, siswa keluar) */}
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="bg-slate-50 px-6 py-4 border-b border-border flex items-center gap-3">
           <Users className="w-5 h-5 text-primary" />
@@ -191,7 +191,7 @@ export default function LaporanBulananClient() {
           <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{data.siswa.totalSiswa} siswa aktif</span>
         </div>
 
-        {/* Per kelas */}
+        {/* Per kelas/rombel */}
         <div className="divide-y divide-border">
           {data.siswa.byClass.map((kelas) => {
             const isOpen = expandedKelas.has(kelas.kelas_kelompok)
@@ -212,29 +212,29 @@ export default function LaporanBulananClient() {
                   </div>
                 </button>
                 {isOpen && (
-                  <div className="px-6 pb-3">
+                  <div className="px-6 pb-3 overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-t border-border">
-                          <th className="text-left py-2 px-2 text-slate-500 font-medium">No</th>
-                          <th className="text-left py-2 px-2 text-slate-500 font-medium">Nama</th>
-                          <th className="text-left py-2 px-2 text-slate-500 font-medium">NISN</th>
-                          <th className="text-left py-2 px-2 text-slate-500 font-medium">NIK</th>
+                          <th className="text-left py-2 px-2 text-slate-500 font-medium whitespace-nowrap">No</th>
+                          <th className="text-left py-2 px-2 text-slate-500 font-medium whitespace-nowrap">Nama</th>
+                          <th className="text-left py-2 px-2 text-slate-500 font-medium whitespace-nowrap">NISN</th>
+                          <th className="text-left py-2 px-2 text-slate-500 font-medium whitespace-nowrap">NIK</th>
                           <th className="text-left py-2 px-2 text-slate-500 font-medium">JK</th>
-                          <th className="text-left py-2 px-2 text-slate-500 font-medium">Tempat Lahir</th>
-                          <th className="text-left py-2 px-2 text-slate-500 font-medium">Tgl Lahir</th>
+                          <th className="text-left py-2 px-2 text-slate-500 font-medium whitespace-nowrap">Tempat Lahir</th>
+                          <th className="text-left py-2 px-2 text-slate-500 font-medium whitespace-nowrap">Tgl Lahir</th>
                         </tr>
                       </thead>
                       <tbody>
                         {kelas.siswa.map((s, i) => (
                           <tr key={i} className="border-t border-border/50 hover:bg-slate-50">
                             <td className="py-2 px-2 text-slate-400">{i + 1}</td>
-                            <td className="py-2 px-2 font-medium text-slate-900">{s.nama}</td>
+                            <td className="py-2 px-2 font-medium text-slate-900 whitespace-nowrap">{s.nama}</td>
                             <td className="py-2 px-2 text-slate-600">{s.nisn || '-'}</td>
                             <td className="py-2 px-2 text-slate-600">{s.nik || '-'}</td>
                             <td className="py-2 px-2 text-slate-600">{s.jenis_kelamin === 'laki-laki' ? 'L' : 'P'}</td>
-                            <td className="py-2 px-2 text-slate-600">{s.tempat_lahir || '-'}</td>
-                            <td className="py-2 px-2 text-slate-600">{s.tanggal_lahir || '-'}</td>
+                            <td className="py-2 px-2 text-slate-600 whitespace-nowrap">{s.tempat_lahir || '-'}</td>
+                            <td className="py-2 px-2 text-slate-600 whitespace-nowrap">{s.tanggal_lahir || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -248,56 +248,55 @@ export default function LaporanBulananClient() {
             <div className="px-6 py-8 text-center text-slate-400">Tidak ada siswa aktif</div>
           )}
         </div>
-      </div>
 
-      {/* Mutasi Masuk & Keluar side by side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Mutasi Masuk */}
-        <div className="bg-white rounded-xl border border-border overflow-hidden">
-          <div className="bg-green-50 px-6 py-4 border-b border-border flex items-center gap-3">
-            <UserPlus className="w-5 h-5 text-green-600" />
-            <h2 className="font-semibold text-slate-900">Siswa Masuk</h2>
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">{data.siswa.mutasiMasuk.length}</span>
-          </div>
-          {data.siswa.mutasiMasuk.length > 0 ? (
-            <div className="divide-y divide-border">
-              {data.siswa.mutasiMasuk.map((m, i) => (
-                <div key={i} className="px-6 py-3 flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-slate-900">{m.nama}</div>
-                    <div className="text-xs text-slate-400">{m.kelas_kelompok} &middot; Dari: {m.sekolah_asal || '-'}</div>
-                  </div>
-                  <div className="text-xs text-slate-500">{m.tanggal}</div>
+        {/* Siswa Masuk & Keluar — di dalam section Daftar Siswa */}
+        <div className="border-t border-border">
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="border-r border-border max-md:border-b">
+              <div className="bg-green-50/50 px-6 py-3 border-b border-border flex items-center gap-3">
+                <UserPlus className="w-4 h-4 text-green-600" />
+                <h3 className="text-sm font-semibold text-slate-900">Siswa Masuk</h3>
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">{data.siswa.mutasiMasuk.length}</span>
+              </div>
+              {data.siswa.mutasiMasuk.length > 0 ? (
+                <div className="divide-y divide-border text-sm">
+                  {data.siswa.mutasiMasuk.map((m, i) => (
+                    <div key={i} className="px-6 py-2.5 flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-slate-900">{m.nama}</div>
+                        <div className="text-xs text-slate-400">{m.kelas_kelompok} &middot; Dari: {m.sekolah_asal || '-'}</div>
+                      </div>
+                      <div className="text-xs text-slate-500 whitespace-nowrap">{m.tanggal}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="px-6 py-8 text-center text-slate-400 text-sm">Tidak ada siswa masuk bulan ini</div>
+              )}
             </div>
-          ) : (
-            <div className="px-6 py-8 text-center text-slate-400 text-sm">Tidak ada siswa masuk bulan ini</div>
-          )}
-        </div>
-
-        {/* Mutasi Keluar */}
-        <div className="bg-white rounded-xl border border-border overflow-hidden">
-          <div className="bg-red-50 px-6 py-4 border-b border-border flex items-center gap-3">
-            <UserMinus className="w-5 h-5 text-red-600" />
-            <h2 className="font-semibold text-slate-900">Siswa Keluar</h2>
-            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">{data.siswa.mutasiKeluar.length}</span>
-          </div>
-          {data.siswa.mutasiKeluar.length > 0 ? (
-            <div className="divide-y divide-border">
-              {data.siswa.mutasiKeluar.map((m, i) => (
-                <div key={i} className="px-6 py-3 flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-slate-900">{m.nama}</div>
-                    <div className="text-xs text-slate-400">{m.kelas_kelompok} &middot; Ke: {m.sekolah_tujuan || '-'}</div>
-                  </div>
-                  <div className="text-xs text-slate-500">{m.tanggal}</div>
+            <div>
+              <div className="bg-red-50/50 px-6 py-3 border-b border-border flex items-center gap-3">
+                <UserMinus className="w-4 h-4 text-red-600" />
+                <h3 className="text-sm font-semibold text-slate-900">Siswa Keluar</h3>
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">{data.siswa.mutasiKeluar.length}</span>
+              </div>
+              {data.siswa.mutasiKeluar.length > 0 ? (
+                <div className="divide-y divide-border text-sm">
+                  {data.siswa.mutasiKeluar.map((m, i) => (
+                    <div key={i} className="px-6 py-2.5 flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-slate-900">{m.nama}</div>
+                        <div className="text-xs text-slate-400">{m.kelas_kelompok} &middot; Ke: {m.sekolah_tujuan || '-'}</div>
+                      </div>
+                      <div className="text-xs text-slate-500 whitespace-nowrap">{m.tanggal}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="px-6 py-8 text-center text-slate-400 text-sm">Tidak ada siswa keluar bulan ini</div>
+              )}
             </div>
-          ) : (
-            <div className="px-6 py-8 text-center text-slate-400 text-sm">Tidak ada siswa keluar bulan ini</div>
-          )}
+          </div>
         </div>
       </div>
 

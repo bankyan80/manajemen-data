@@ -51,7 +51,7 @@ export const GET = (req: Request) => safeApi(async () => {
       tempat_lahir: students.tempat_lahir, tanggal_lahir: students.tanggal_lahir,
     })
     .from(students)
-    .where(and(eq(students.school_id, effectiveSchoolId), eq(students.status_siswa, 'aktif')))
+    .where(and(eq(students.school_id, effectiveSchoolId), eq(students.status_siswa, 'aktif'), eq(students.tahun_pelajaran, tahunPelajaran)))
     .orderBy(students.kelas_kelompok, students.nama)
 
   const byClassMap = new Map<string, { laki: number; perempuan: number; siswa: typeof siswaAktif }>()
